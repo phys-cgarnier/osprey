@@ -7,14 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Core Dependencies**: Added `matplotlib>=3.10.3` to core dependencies
-  - Python capability visualization now works out of the box without requiring `[scientific]` extras
-  - Ensures tutorial examples (plotting beam current, etc.) work immediately after installation
-  - Moved from optional `scientific` extras to required dependencies for improved user experience
-
-## [0.9.0] - 2025-11-16
-
 ### Added
 - **MCP Capability Generator (Prototype)**: Auto-generate Osprey capabilities from MCP servers
   - `osprey generate capability` command for creating capabilities from MCP servers
@@ -26,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for FastMCP server generation with weather, Slack, and API presets
   - Complete documentation in Quick Start Patterns section
   - Dependencies: `langchain-mcp-adapters`, `langgraph`, provider-specific LangChain packages
+
+### Changed
+- **Core Dependencies**: Added `matplotlib>=3.10.3` to core dependencies
+  - Python capability visualization now works out of the box without requiring `[scientific]` extras
+  - Ensures tutorial examples (plotting beam current, etc.) work immediately after installation
+  - Moved from optional `scientific` extras to required dependencies for improved user experience
+
+## [0.9.0] - 2025-11-16
+
+### Added
 - **Prompt Customization System**: Flexible inheritance for domain-specific prompt builders
   - Added `include_default_examples` parameter to `DefaultTaskExtractionPromptBuilder`
   - Applications can now choose to extend or replace framework examples
