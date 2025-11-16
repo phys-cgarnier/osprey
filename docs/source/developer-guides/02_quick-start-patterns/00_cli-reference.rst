@@ -12,6 +12,7 @@ CLI Reference
 
    - Using ``osprey`` CLI for all framework operations
    - Creating projects with ``osprey init``
+   - Generating capabilities from MCP servers with ``osprey generate`` (prototype)
    - Managing deployments with ``osprey deploy``
    - Running interactive sessions with ``osprey chat``
    - Exporting configuration with ``osprey export-config``
@@ -38,6 +39,7 @@ The Osprey Framework provides a unified CLI for all framework operations. All co
    osprey --version          # Show framework version
    osprey --help             # Show available commands
    osprey init PROJECT       # Create new project
+   osprey generate COMMAND   # Generate components (MCP capabilities, servers)
    osprey deploy COMMAND     # Manage services
    osprey chat               # Start interactive chat
    osprey export-config      # Export configuration
@@ -320,6 +322,160 @@ The ``osprey init`` command creates a complete, self-contained project:
    ├── config.yml             # Complete configuration
    ├── .env.example           # Environment template
    └── README.md              # Project documentation
+
+osprey generate
+===============
+
+.. admonition:: Prototype Feature
+   :class: warning
+
+   This is a **prototype feature** under active development. The API and generated code structure may change in future releases.
+
+Generate Osprey components from various sources, including MCP (Model Context Protocol) servers.
+
+Subcommands
+-----------
+
+``osprey generate capability``
+   Generate Osprey capability from MCP server
+
+``osprey generate mcp-server``
+   Generate demo MCP server for testing
+
+osprey generate capability
+--------------------------
+
+Generate a complete Osprey capability from an MCP server with automatic ReAct agent integration, classifier/orchestrator guides, and context classes.
+
+**Syntax:**
+
+.. code-block:: bash
+
+   osprey generate capability --from-mcp <URL_OR_SIMULATED> --name <NAME> [OPTIONS]
+
+**Required Arguments:**
+
+``--from-mcp <url>``
+   MCP server URL (e.g., ``http://localhost:3001``) or ``simulated`` for demo mode with weather tools
+
+``--name, -n <name>``
+   Name for the generated capability (e.g., ``slack_mcp``, ``weather_mcp``)
+
+**Optional Arguments:**
+
+``--server-name <name>``
+   Human-readable server name (default: derived from capability name)
+
+``--output, -o <path>``
+   Output file path (default: ``./capabilities/<name>.py``)
+
+``--provider <provider>``
+   LLM provider override for guide generation (e.g., ``anthropic``, ``openai``, ``cborg``)
+
+``--model <model_id>``
+   Model ID override for guide generation (e.g., ``claude-sonnet-4-20250514``, ``gpt-4o``)
+
+``--quiet, -q``
+   Reduce output verbosity
+
+**Examples:**
+
+Generate from simulated mode (no server needed):
+
+.. code-block:: bash
+
+   osprey generate capability --from-mcp simulated --name weather_mcp
+
+Generate from real MCP server:
+
+.. code-block:: bash
+
+   osprey generate capability --from-mcp http://localhost:3001 --name slack_mcp
+
+Custom output location:
+
+.. code-block:: bash
+
+   osprey generate capability --from-mcp http://localhost:3001 \
+       --name slack_mcp --output ./my_app/capabilities/slack.py
+
+Override LLM provider/model:
+
+.. code-block:: bash
+
+   osprey generate capability --from-mcp simulated --name weather_mcp \
+       --provider anthropic --model claude-sonnet-4-20250514
+
+See :doc:`04_mcp-capability-generation` for detailed guide.
+
+osprey generate mcp-server
+--------------------------
+
+Generate a demo MCP server for testing Osprey's MCP capability generation. The server uses FastMCP for simple, Pythonic MCP server implementation with weather tools.
+
+**Syntax:**
+
+.. code-block:: bash
+
+   osprey generate mcp-server [OPTIONS]
+
+**Optional Arguments:**
+
+``--name, -n <name>``
+   Server name (default: ``demo_mcp``)
+
+``--output, -o <path>``
+   Output file path (default: ``./<name>_server.py``)
+
+``--port, -p <port>``
+   Server port (default: ``3001``)
+
+**Included Tools:**
+
+The generated server includes three weather-related tools:
+
+- ``get_current_weather`` - Get current weather conditions for a location
+- ``get_forecast`` - Get weather forecast for upcoming days
+- ``get_weather_alerts`` - Get active weather alerts and warnings
+
+**Examples:**
+
+Generate weather demo server (default):
+
+.. code-block:: bash
+
+   osprey generate mcp-server
+
+Generate on custom port:
+
+.. code-block:: bash
+
+   osprey generate mcp-server --port 3002
+
+Custom output location:
+
+.. code-block:: bash
+
+   osprey generate mcp-server --name my_server --output ./servers/mcp.py
+
+**Running the Generated Server:**
+
+.. code-block:: bash
+
+   # Install FastMCP
+   pip install fastmcp
+
+   # Run the server
+   python demo_mcp_server.py
+
+**Testing with Osprey:**
+
+.. code-block:: bash
+
+   # Generate capability from the running server
+   osprey generate capability --from-mcp http://localhost:3001 --name demo_mcp
+
+See :doc:`04_mcp-capability-generation` for complete workflow.
 
 osprey deploy
 ================

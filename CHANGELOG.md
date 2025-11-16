@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **MCP Capability Generator (Prototype)**: Auto-generate Osprey capabilities from MCP servers
+  - `osprey generate capability` command for creating capabilities from MCP servers
+  - `osprey generate mcp-server` command for creating demo MCP servers for testing
+  - Simulated mode for testing without running an MCP server (weather tools)
+  - Automatic ReAct agent integration with LangGraph
+  - LLM-powered classifier and orchestrator guide generation with examples
+  - Interactive registry integration with user confirmation
+  - Support for FastMCP server generation with weather, Slack, and API presets
+  - Complete documentation in Quick Start Patterns section
+  - Dependencies: `langchain-mcp-adapters`, `langgraph`, provider-specific LangChain packages
+
 ### Changed
 - **Core Dependencies**: Added `matplotlib>=3.10.3` to core dependencies
   - Python capability visualization now works out of the box without requiring `[scientific]` extras

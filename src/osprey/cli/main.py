@@ -37,6 +37,8 @@ class LazyGroup(click.Group):
             'chat': 'osprey.cli.chat_cmd',
             'export-config': 'osprey.cli.export_config_cmd',
             'health': 'osprey.cli.health_cmd',
+            'generate': 'osprey.cli.generate_cmd',
+            'remove': 'osprey.cli.remove_cmd',
         }
 
         if cmd_name not in commands:
@@ -57,7 +59,7 @@ class LazyGroup(click.Group):
 
     def list_commands(self, ctx):
         """Return list of available commands (for --help)."""
-        return ['init', 'deploy', 'chat', 'export-config', 'health']
+        return ['init', 'deploy', 'chat', 'export-config', 'generate', 'remove', 'health']
 
 
 @click.group(cls=LazyGroup, invoke_without_command=True)
@@ -76,6 +78,9 @@ def cli(ctx):
     \b
       osprey                          Launch interactive menu
       osprey init my-project          Create new project
+      osprey generate capability ...  Generate capability from MCP server
+      osprey generate mcp-server      Generate demo MCP server
+      osprey remove capability ...    Remove capability from project
       osprey deploy up                Start services
       osprey chat                     Interactive conversation
       osprey health                   Check system health
