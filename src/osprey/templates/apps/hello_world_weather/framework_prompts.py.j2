@@ -28,6 +28,9 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
 
     To REPLACE framework examples with only weather examples, use:
         super().__init__(include_default_examples=False)
+
+    For more information on customizing framework prompts, see:
+    https://als-apg.github.io/osprey/developer-guides/03_core-framework-systems/04_prompt-customization.html
     """
 
     def __init__(self):
@@ -59,9 +62,9 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
         """).strip()
 
     def _add_weather_examples(self):
-        """Add weather-specific examples (adapted from framework patterns)."""
+        """Add weather-specific examples."""
 
-        # Pattern 1: Simple temporal follow-up (adapted from framework "What was it an hour ago?")
+        # Pattern 1: Simple temporal follow-up
         self.examples.append(TaskExtractionExample(
             messages=[
                 MessageUtils.create_user_message("What's the current weather in Paris?"),
@@ -79,51 +82,7 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
             )
         ))
 
-        # Pattern 2: Multi-turn progressive refinement (adapted from framework database troubleshooting)
-        self.examples.append(TaskExtractionExample(
-            messages=[
-                MessageUtils.create_user_message("I'm planning a trip and need to check weather patterns"),
-                MessageUtils.create_assistant_message(
-                    "I can help with weather patterns for your trip! Which destination are you considering?"
-                ),
-                MessageUtils.create_user_message("I'm thinking about New York"),
-                MessageUtils.create_assistant_message(
-                    "Great! When are you planning to visit New York? I can check the forecast."
-                ),
-                MessageUtils.create_user_message("Next weekend, and I'm particularly concerned about rain"),
-            ],
-            user_memory=UserMemories(entries=[]),
-            expected_output=ExtractedTask(
-                task="Get weather forecast for New York for next weekend with focus on precipitation probability",
-                depends_on_chat_history=True,
-                depends_on_user_memory=False
-            )
-        ))
-
-        # Pattern 3: Value extraction from previous response (adapted from "that dip around 3 AM")
-        self.examples.append(TaskExtractionExample(
-            messages=[
-                MessageUtils.create_user_message("Show me today's temperature trend in San Francisco"),
-                MessageUtils.create_assistant_message(
-                    "Here's San Francisco's temperature trend for today. It started at 12°C at 6 AM, "
-                    "rose to 18°C by noon, peaked at 21°C around 3 PM, then dropped to 16°C by 6 PM."
-                ),
-                MessageUtils.create_user_message("That peak at 3 PM is interesting"),
-                MessageUtils.create_assistant_message(
-                    "Yes, the 21°C peak at 3 PM represents the warmest point of the day, which is typical "
-                    "for San Francisco's coastal climate pattern."
-                ),
-                MessageUtils.create_user_message("Was yesterday's peak at the same time and temperature?"),
-            ],
-            user_memory=UserMemories(entries=[]),
-            expected_output=ExtractedTask(
-                task="Compare yesterday's temperature peak time and value in San Francisco with today's 21°C peak at 3 PM",
-                depends_on_chat_history=True,
-                depends_on_user_memory=False
-            )
-        ))
-
-        # Pattern 4: Location carry-forward with temporal change
+        # Pattern 2: Location carry-forward with temporal change
         self.examples.append(TaskExtractionExample(
             messages=[
                 MessageUtils.create_user_message("What's the weather like in San Francisco tonight?"),
@@ -141,7 +100,7 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
             )
         ))
 
-        # Pattern 5: Location switching (adapted from framework location pattern)
+        # Pattern 3: Location switching
         self.examples.append(TaskExtractionExample(
             messages=[
                 MessageUtils.create_user_message("How's the weather in Prague?"),
@@ -159,7 +118,7 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
             )
         ))
 
-        # Pattern 6: Conversational query (adapted from "What can you help with?")
+        # Pattern 4: Conversational query
         self.examples.append(TaskExtractionExample(
             messages=[
                 MessageUtils.create_user_message("Hi, what weather information can you provide?"),
@@ -177,7 +136,7 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
             )
         ))
 
-        # Pattern 7: Fresh request (adapted from framework fresh request pattern)
+        # Pattern 5: Fresh request
         self.examples.append(TaskExtractionExample(
             messages=[
                 MessageUtils.create_user_message("Can you check the weather in New York?"),
@@ -190,7 +149,7 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
             )
         ))
 
-        # Pattern 8: Implicit location reference ("there")
+        # Pattern 6: Implicit location reference ("there")
         self.examples.append(TaskExtractionExample(
             messages=[
                 MessageUtils.create_user_message("What's the current weather in Paris?"),
@@ -205,5 +164,36 @@ class WeatherTaskExtractionPromptBuilder(DefaultTaskExtractionPromptBuilder):
                 task="Get weather forecast for Paris for tomorrow",
                 depends_on_chat_history=True,
                 depends_on_user_memory=False
+            )
+        ))
+
+        # Pattern 7: Memory-based location preference
+        self.examples.append(TaskExtractionExample(
+            messages=[
+                MessageUtils.create_user_message("What's the weather like at home?"),
+            ],
+            user_memory=UserMemories(entries=[
+                "[2025-01-15] Home location: San Francisco"
+            ]),
+            expected_output=ExtractedTask(
+                task="Get current weather conditions for San Francisco",
+                depends_on_chat_history=False,
+                depends_on_user_memory=True
+            )
+        ))
+
+        # Pattern 8: Memory-based activity preferences
+        self.examples.append(TaskExtractionExample(
+            messages=[
+                MessageUtils.create_user_message("Is it good running weather right now?"),
+            ],
+            user_memory=UserMemories(entries=[
+                "[2025-01-14] Running conditions: Prefer temperature < 20°C, no rain, wind < 15 km/h",
+                "[2025-01-15] Home location: San Francisco"
+            ]),
+            expected_output=ExtractedTask(
+                task="Check if current weather in San Francisco meets running conditions: temperature below 20°C, no rain, and wind under 15 km/h",
+                depends_on_chat_history=False,
+                depends_on_user_memory=True
             )
         ))

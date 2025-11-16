@@ -58,6 +58,8 @@ Depends on User Memory: {self.depends_on_user_memory}
 class DefaultTaskExtractionPromptBuilder(FrameworkPromptBuilder):
     """Framework prompt builder for task extraction."""
 
+    PROMPT_TYPE = "task_extraction"
+
     def __init__(self, include_default_examples: bool = True):
         """Initialize task extraction prompt builder.
 
