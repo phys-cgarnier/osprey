@@ -81,6 +81,13 @@ def show_banner(context: str = "interactive", config_path: str | None = None):
     from osprey.utils.config import get_config_value
     from osprey.utils.log_filter import quiet_logger
 
+    # Get version number
+    try:
+        from osprey import __version__
+        version_str = f"v{__version__}"
+    except (ImportError, AttributeError):
+        version_str = ""
+
     console.print()
 
     # Try to load custom banner if in a project directory
@@ -116,6 +123,10 @@ def show_banner(context: str = "interactive", config_path: str | None = None):
         """
 
     console.print(Text(banner_text, style=ThemeConfig.get_banner_style()))
+
+    # Show version if available
+    if version_str:
+        console.print(f"    [{Styles.DIM}]{version_str}[/{Styles.DIM}]")
 
     # Context-specific subtitle
     if context == "interactive":
