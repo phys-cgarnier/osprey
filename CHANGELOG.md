@@ -8,10 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Test Infrastructure**: Global test utilities for all Osprey tests
+  - `create_test_state()` factory for AgentState objects with sensible defaults
+  - `PromptTestHelpers` for structural prompt testing
+  - Reusable pytest fixtures in `tests/conftest.py`
+  - Reduces test boilerplate by 140+ lines per test file
+- **Comprehensive Clarification Tests**: 21 tests for clarification prompt generation
+  - 10 core functionality tests (prompt structure, content extraction)
+  - 9 error handling tests (edge cases, malformed inputs, unicode)
+  - 2 integration tests (full workflow validation)
 - **Interactive Menu Enhancements**: Version number display in interactive menu banner
 - **Stanford AI Playground Provider**: Added Stanford AI playground as a built-in API provider
 
 ### Changed
+- **Clarification System**: Improved prompt structure and context extraction
+  - Enhanced clarification prompt builder with better orchestrator integration
+  - Improved `get_system_instructions()` method for cleaner prompt composition
+  - Better task_objective prioritization in clarification queries
 - **Mock Archiver Connector**: Improved BPM position data generation
   - BPM positions now use realistic ±100 µm equilibrium offsets with ±10 µm oscillations
   - Each BPM has unique, reproducible random characteristics based on PV name

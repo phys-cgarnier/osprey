@@ -16,10 +16,9 @@ from pydantic import BaseModel, Field
 from osprey.base import BaseCapability
 from osprey.base.decorators import capability_node
 from osprey.base.errors import ErrorClassification, ErrorSeverity
-from osprey.context.context_manager import ContextManager
 from osprey.models import get_chat_completion
 from osprey.prompts.loader import get_framework_prompts
-from osprey.state import AgentState, ChatHistoryFormatter, StateManager
+from osprey.state import AgentState, StateManager
 from osprey.utils.config import get_model_config
 from osprey.utils.logger import get_logger
 
@@ -86,8 +85,13 @@ class ClarifyCapability(BaseCapability):
         # Explicit logger retrieval - professional practice
         logger = get_logger("clarify")
 
-        # Extract step if provided
-        step = kwargs.get('step', {})
+        # Use StateManager to get the current step
+        step = StateManager.get_current_step(state)
+
+        # Extract task_objective from step
+        task_objective = step.get('task_objective', 'unknown') if step else 'unknown'
+
+        logger.info(f"Clarification task objective: {task_objective}")
 
         try:
             logger.info("Starting clarification generation")
@@ -101,7 +105,7 @@ class ClarifyCapability(BaseCapability):
             # Generate clarifying questions using PydanticAI
             # Run sync function in thread pool to avoid blocking event loop for streaming
             questions_response = await asyncio.to_thread(
-                _generate_clarifying_questions, state, step.get('task_objective', 'unknown')
+                _generate_clarifying_questions, state, task_objective
             )
 
             if streaming:
@@ -165,38 +169,20 @@ def _generate_clarifying_questions(state, task_objective: str) -> ClarifyingQues
     """Generate specific clarifying questions using PydanticAI.
 
     :param state: Current agent state
-    :param task_objective: The task objective to clarify
+    :param task_objective: The orchestrator's clarification instruction
     :type task_objective: str
     :return: Structured clarifying questions response
     :rtype: ClarifyingQuestionsResponse
     """
 
-    # Format entire chat history for context using native message types
-    messages = state.get("input_output", {}).get("messages", [])
-    chat_history_str = ChatHistoryFormatter.format_for_llm(messages)
-
-    # Get relevant context using ContextManager's proper method
-    context_manager = ContextManager(state)
-    current_step = StateManager.get_current_step(state)
-    relevant_context = context_manager.get_summaries(current_step)
-
-    # Get question generation prompt from framework prompt builder
+    # Get clarification prompt builder from framework
     prompt_provider = get_framework_prompts()
     clarification_builder = prompt_provider.get_clarification_prompt_builder()
-    clarification_query = clarification_builder.build_clarification_query(chat_history_str, task_objective)
 
-    # Use structured LLM generation for clarifying questions
-    system_instructions = clarification_builder.get_system_instructions()
-
-    # Include available context in the prompt so clarification can be context-aware
-    context_info = ""
-    if relevant_context:
-        context_items = []
-        for context_key, context_data in relevant_context.items():
-            context_items.append(f"- {context_key}: {context_data}")
-        context_info = "\n\nAvailable context data:\n" + "\n".join(context_items)
-
-    message = f"{system_instructions}\n\n{clarification_query}{context_info}"
+    # Use prompt builder's get_system_instructions() which handles all composition
+    # This extracts runtime data (user_query, chat_history, context) from state
+    # and composes the complete prompt with PRIMARY TASK prioritization
+    message = clarification_builder.get_system_instructions(state, task_objective)
 
     response_config = get_model_config("response")
     result = get_chat_completion(
