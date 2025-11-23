@@ -1,0 +1,361 @@
+# Claude Code Generator Configuration
+# ====================================
+#
+# This file configures the Claude Code SDK-based code generator for Osprey's
+# Python executor service. It provides sophisticated control over code generation
+# quality, performance, and behavior through planning modes and profiles.
+#
+# Quick Start:
+#   1. API access is configured based on your provider ({{ default_provider }})
+#   2. Choose a profile (fast/balanced/robust) in your main config.yml
+#   3. Optionally create _agent_data/example_scripts/ with examples
+#   4. Customize phases and planning modes as needed
+#
+# Configuration Structure:
+#   - api_config: API access configuration (based on your provider)
+#   - phases: Reusable building blocks (scan, plan, generate)
+#   - planning_modes: Workflows composed from phases (generator_driven, capability_driven)
+#   - profiles: Quality/speed tradeoffs with different models
+#   - codebase_guidance: Directories for Claude to read for learning
+#
+# Planning Modes:
+#   - generator_driven: Generator scans codebase, plans, and implements (default)
+#   - capability_driven: Implement pre-built plan from sophisticated capabilities
+#
+# Customization:
+#   - Edit phases list in planning_modes to control workflow
+#   - Example: phases: [plan, generate] to skip codebase scanning
+#   - Example: phases: [generate] for direct one-shot generation
+#
+# Save Prompts:
+#   - Set save_prompts: true to save all prompts and responses (ENABLED BY DEFAULT)
+#   - Creates execution_folder/prompts/ with complete conversation history
+#   - Includes: system_prompt.txt, phase_prompts/, responses/, example_scripts/
+#   - Provides transparency and helps understand what Claude sees at each step
+
+# =============================================================================
+# API Configuration
+# =============================================================================
+# Claude Code generator requires Claude models from Anthropic.
+# Your main config uses: {{ default_provider }}
+{% if default_provider == 'cborg' %}
+# CBORG (Lawrence Berkeley Lab Model Routing)
+# CBORG routes to Anthropic's Claude models - fully compatible!
+api_config:
+  provider: "cborg"
+  base_url: "https://api.cborg.lbl.gov"
+  # Set your CBORG API key in .env: CBORG_API_KEY=your-key
+  # The generator will automatically configure:
+  #   - ANTHROPIC_AUTH_TOKEN from CBORG_API_KEY
+  #   - ANTHROPIC_BASE_URL to CBORG endpoint
+  #   - Proper model names for CBORG routing
+
+  # CBORG-specific optimizations:
+  disable_non_essential_model_calls: true  # Recommended for CBORG
+  disable_telemetry: true                  # Recommended for CBORG
+  max_output_tokens: 8192                  # Recommended to reduce throttling
+{% elif default_provider == 'anthropic' %}
+# Direct Anthropic API Access
+api_config:
+  provider: "anthropic"
+  # Set your API key in .env: ANTHROPIC_API_KEY=your-key
+  # Uses Anthropic's direct API endpoint
+{% else %}
+# NOTE: Your main config uses {{ default_provider }}, but Claude Code requires Claude models.
+# Defaulting to direct Anthropic API access for the code generator.
+# Your orchestrator and other framework models will still use {{ default_provider }}.
+#
+# To use Claude Code generator, you need an Anthropic API key:
+# Set ANTHROPIC_API_KEY in your .env file
+#
+# Alternative: Switch to CBORG provider for unified key management.
+api_config:
+  provider: "anthropic"
+  # Set your API key in .env: ANTHROPIC_API_KEY=your-key
+  # This is separate from your {{ default_provider }} configuration
+{% endif %}
+
+# =============================================================================
+# Phase Definitions (Reusable Building Blocks)
+# =============================================================================
+# These are the individual phases that can be composed into different workflows.
+# Each phase is a discrete step in the code generation process with its own
+# purpose, tools, and prompts.
+
+phases:
+  # SCAN Phase - Find relevant examples and patterns in codebase
+  scan:
+    agent_name: "code-scanner"
+    prompt: |
+      Analyze the user's request and search the codebase for relevant examples.
+
+      Your goal is to:
+      1. Identify similar implementations or patterns
+      2. Find relevant libraries, functions, or approaches
+      3. Note any best practices or conventions to follow
+      4. Highlight useful code snippets to reference
+
+      Output a concise analysis (2-3 paragraphs) covering:
+      - Relevant files and patterns found
+      - Key libraries or approaches to use
+      - Important conventions or best practices observed
+
+    tools: ["Read", "Grep", "Glob"]  # Enable codebase reading
+{% if default_provider == 'cborg' %}
+    model: "anthropic/claude-haiku"   # Fast model for searching
+{% else %}
+    model: "claude-haiku-4-5-20251001"         # Fast Anthropic model
+{% endif %}
+    max_turns: 3                      # Limit search iterations
+
+  # PLAN Phase - Create detailed implementation plan
+  plan:
+    agent_name: "code-planner"
+    prompt: |
+      Now create a detailed implementation plan for this task.
+
+      Your plan should include:
+      1. **Imports**: All required libraries and modules
+      2. **Approach**: Step-by-step implementation strategy
+      3. **Data Structures**: Variables and their purposes
+      4. **Key Functions**: Main operations to perform
+      5. **Results**: What to store in the 'results' dictionary
+      6. **Error Handling**: How to handle edge cases
+
+      Output a structured plan with numbered steps (not code yet, just the plan).
+      Be specific but concise (1-2 pages maximum).
+
+      Make sure to explicitly present this plan - I will use it in the next step to generate code.
+
+    tools: ["Read"]                   # Can read specific files for details
+{% if default_provider == 'cborg' %}
+    model: "anthropic/claude-haiku"   # Planning model
+{% else %}
+    model: "claude-sonnet-4-5-20250929"        # Smart Anthropic model for planning
+{% endif %}
+    max_turns: 2                      # Focused planning
+
+  # GENERATE Phase - Write Python code
+  generate:
+    agent_name: "code-generator"
+    prompt: |
+      Generate high-quality Python code following the implementation plan.
+
+      Requirements:
+      1. Include ALL necessary imports at the top
+      2. Follow the plan's approach precisely (or implement the capability's structured plan)
+      3. Store results in a dictionary named 'results'
+      4. Add comments explaining key steps
+      5. Use clear, descriptive variable names
+      6. Handle errors appropriately
+      7. Output ONLY Python code in a code block
+
+      The code will be executed in a Jupyter environment with:
+      - Common scientific libraries (numpy, pandas, matplotlib, scipy)
+      - EPICS channel access (pyepics)
+      - Archiver access (configured)
+
+    tools: []                         # No tools - just generate code
+{% if default_provider == 'cborg' %}
+    model: "anthropic/claude-haiku"   # Generation model
+{% else %}
+    model: "claude-sonnet-4-5-20250929"        # Smart Anthropic model
+{% endif %}
+    max_turns: 2                      # Focused code writing
+
+# =============================================================================
+# Planning Modes
+# =============================================================================
+# Planning modes determine how code generation is approached:
+# - generator_driven: Generator scans codebase, creates plan, implements it
+# - capability_driven: Capability provides structured plan, generator implements it
+#
+# CUSTOMIZATION EXAMPLES:
+#
+# Fast generation (skip scanning):
+#   generator_driven:
+#     phases: [plan, generate]
+#
+# Direct one-shot generation:
+#   generator_driven:
+#     phases: [generate]
+#
+# Capability-driven with example learning:
+#   capability_driven:
+#     phases: [scan, generate]
+#
+# Just edit the 'phases' list below to customize!
+
+planning_modes:
+  # Generator-Driven Mode - Generator plans and implements
+  generator_driven:
+    phases: [scan, plan, generate]  # Full workflow with all phases
+    description: "Generator creates its own plan and implements it"
+    enforce_result_schema: false    # Flexible result structure
+
+  # Capability-Driven Mode - Implement pre-built plan from capability
+  capability_driven:
+    phases: [generate]               # Just implement the provided plan
+    description: "Implement capability's pre-built structured plan"
+    enforce_result_schema: true     # Strictly match expected_results structure
+
+# =============================================================================
+# Quality/Speed Profiles
+# =============================================================================
+# Profiles provide pre-configured combinations of models, planning modes, and limits
+# to balance code quality, generation speed, and API costs.
+#
+# Model names configured for Claude Code (requires Anthropic Claude models)
+{% if default_provider == 'cborg' %}
+# Using CBORG - compatible with Claude Code!
+{% elif default_provider == 'anthropic' %}
+# Using Anthropic direct API - fully compatible!
+{% else %}
+# NOTE: Claude Code requires Anthropic Claude models (your main config uses {{ default_provider }})
+# These profiles use Anthropic model names - ensure ANTHROPIC_API_KEY is set in .env
+{% endif %}
+
+profiles:
+  # FAST Profile - Quick, direct generation
+  fast:
+    planning_mode: generator_driven
+    save_prompts: true  # Save all prompts/responses to prompts/ folder for transparency
+{% if default_provider == 'cborg' %}
+    scan_model: "anthropic/claude-haiku"
+    plan_model: "anthropic/claude-haiku"
+    generate_model: "anthropic/claude-haiku"
+{% else %}
+    scan_model: "claude-haiku-4-5-20251001"
+    plan_model: "claude-haiku-4-5-20251001"
+    generate_model: "claude-haiku-4-5-20251001"
+{% endif %}
+    max_turns: 2
+    max_budget_usd: 0.05
+    description: "Quick generation with Haiku (~5s, ~$0.02)"
+
+  # BALANCED Profile - DEFAULT - Good quality with reasonable speed
+  balanced:
+    planning_mode: generator_driven
+    save_prompts: true  # Save all prompts/responses to prompts/ folder for transparency
+{% if default_provider == 'cborg' %}
+    scan_model: "anthropic/claude-haiku"
+    plan_model: "anthropic/claude-haiku"
+    generate_model: "anthropic/claude-haiku"
+{% else %}
+    scan_model: "claude-haiku-4-5-20251001"
+    plan_model: "claude-haiku-4-5-20251001"
+    generate_model: "claude-haiku-4-5-20251001"
+{% endif %}
+    max_turns: 5
+    max_budget_usd: 0.25
+    description: "Balanced workflow with Haiku (fast and cost-effective, ~10s, ~$0.02)"
+
+  # ROBUST Profile - Maximum quality with advanced workflow
+  robust:
+    planning_mode: generator_driven
+    save_prompts: true  # Save all prompts/responses to prompts/ folder for transparency
+{% if default_provider == 'cborg' %}
+    scan_model: "anthropic/claude-haiku"
+    plan_model: "anthropic/claude-sonnet"
+    generate_model: "anthropic/claude-sonnet"
+{% else %}
+    scan_model: "claude-haiku-4-5-20251001"
+    plan_model: "claude-sonnet-4-5-20250929"
+    generate_model: "claude-sonnet-4-5-20250929"
+{% endif %}
+    max_turns: 10
+    max_budget_usd: 0.50
+    description: "Maximum quality with Sonnet planning and generation (~30s, ~$0.15)"
+
+# =============================================================================
+# Codebase Reading Configuration - DIRECTORY ISOLATION & SECURITY
+# =============================================================================
+# ⚠️  SECURITY CRITICAL: The directories listed here contain example code that
+# will be COPIED into an isolated temporary directory for Claude Code to read.
+# Claude runs in /tmp/osprey_claude_code_restricted/ with only the copied
+# examples - it CANNOT access your project workspace, config files, or secrets.
+#
+# Without this restriction, Claude would have full read access to your
+# entire project directory tree, including sensitive configuration files,
+# API keys, and proprietary code!
+#
+# Configure example code that Claude can read to learn patterns and best practices.
+# ALL configured libraries are provided to Claude - it determines what's relevant.
+#
+# Directory Structure:
+#   Example scripts live in _agent_data/example_scripts/ with subdirectories:
+#     _agent_data/example_scripts/
+#       ├── plotting/       # Matplotlib visualization examples (included by default)
+#       ├── analysis/       # Data analysis patterns (add your own)
+#       └── archiver/       # Archiver retrieval examples (add your own)
+#
+# You can also point to external codebases (e.g., facility-specific libraries).
+# But be mindful: Only add directories you're comfortable with Claude reading!
+#
+# Each library provides:
+#   - directories: List of paths containing example code to copy
+#                  Use relative paths (from project root) or absolute paths.
+#   - guidance: Instructions about patterns and best practices in those examples
+#
+# How It Works:
+#   1. Examples are copied from your project into /tmp/osprey_claude_code_restricted/
+#   2. Claude Code runs with this temp directory as its working directory
+#   3. Claude can only read the copied examples, NOT your project workspace
+#   4. After code generation, the temp directory is cleaned up
+# =============================================================================
+
+codebase_guidance:
+  plotting:
+    directories:
+      - "_agent_data/example_scripts/plotting/"
+    guidance: |
+      Matplotlib best practices for control system visualization:
+      - Use tight_layout() to prevent label cutoff
+      - Set DPI=300 for publication-quality plots
+      - Always include clear axis labels with units in brackets [unit]
+      - Add descriptive titles and legends
+      - Use grid(alpha=0.3) for readability
+      - Close figures after saving: plt.close()
+      - For time series: use proper datetime formatting on x-axis
+      - Save plot path to results['plot_path'] for framework integration
+      - Use color-blind friendly palettes for multi-line plots
+
+# =============================================================================
+# Additional Settings
+# =============================================================================
+
+# Cost controls (applied globally)
+cost_controls:
+  max_budget_per_session: 5.00  # Maximum total cost per user session
+  warn_threshold: 0.50          # Log warning when generation exceeds this
+
+# Logging
+logging:
+  log_prompts: false           # Log full prompts (verbose)
+  log_responses: false         # Log full responses (verbose)
+  log_costs: true             # Always log API costs
+  log_performance: true       # Log timing information
+
+# Safety
+safety:
+  # These tools are NEVER allowed during code generation
+  blocked_tools:
+    - Write
+    - Edit
+    - MultiEdit
+    - Delete
+    - Bash
+    - Python
+    - Execute
+
+  # Maximum code size (characters)
+  max_code_size: 50000  # 50KB limit
+
+# Performance
+performance:
+  # Timeout for Claude Code queries (seconds)
+  query_timeout: 120    # 2 minutes
+
+  # Parallel generation (experimental)
+  parallel_enabled: false
+

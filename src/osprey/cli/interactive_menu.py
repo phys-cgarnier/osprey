@@ -345,6 +345,9 @@ def discover_nearby_projects(max_dirs: int = 50, max_time_ms: int = 100) -> list
 # Cache for provider metadata (loaded once per TUI session)
 _provider_cache: dict[str, dict[str, Any]] | None = None
 
+# Cache for code generator metadata (loaded once per TUI session)
+_code_generator_cache: dict[str, dict[str, Any]] | None = None
+
 def get_provider_metadata() -> dict[str, dict[str, Any]]:
     """Get provider information from osprey registry.
 
@@ -430,6 +433,116 @@ def get_provider_metadata() -> dict[str, dict[str, Any]]:
         # This should rarely happen - osprey registry should always be available
         console.print(Messages.error(f"Could not load providers from osprey registry: {e}"))
         console.print(Messages.warning("The TUI requires access to provider information to initialize projects."))
+        if os.environ.get('DEBUG'):
+            import traceback
+            traceback.print_exc()
+
+        # Return empty dict but don't cache failures
+        return {}
+
+
+def get_code_generator_metadata() -> dict[str, dict[str, Any]]:
+    """Get code generator information from osprey registry.
+
+    Loads generators directly from the osprey registry configuration,
+    excluding mock generators (for testing only). This reads the
+    framework's code generator registrations without requiring a
+    project config.yml.
+
+    Results are cached for the TUI session to avoid repeated registry loading.
+
+    Returns:
+        Dictionary mapping generator names to their metadata:
+        {
+            'basic': {
+                'name': 'basic',
+                'description': 'Simple single-pass LLM code generator',
+                'available': True
+            },
+            'claude_code': {
+                'name': 'claude_code',
+                'description': 'Claude Code SDK-based generator...',
+                'available': False,  # If dependencies not installed
+                'optional_dependencies': ['claude-agent-sdk']
+            },
+            ...
+        }
+    """
+    global _code_generator_cache
+
+    # Return cached data if available
+    if _code_generator_cache is not None:
+        return _code_generator_cache
+
+    import importlib
+
+    try:
+        # Import osprey registry provider directly (no config.yml needed!)
+        from osprey.registry.registry import FrameworkRegistryProvider
+
+        # Get osprey registry config (doesn't require project config)
+        framework_registry = FrameworkRegistryProvider()
+        config = framework_registry.get_registry_config()
+
+        generators = {}
+
+        # Load each code generator registration from osprey config
+        for gen_reg in config.code_generators:
+            # Skip mock generators (for testing only)
+            if gen_reg.name == 'mock':
+                if os.environ.get('DEBUG'):
+                    console.print("[dim]Skipping mock generator (testing only)[/dim]")
+                continue
+
+            try:
+                # Try to import the generator to check availability
+                module = importlib.import_module(gen_reg.module_path)
+                _ = getattr(module, gen_reg.class_name)  # Check class exists
+
+                # Generator is available
+                generators[gen_reg.name] = {
+                    'name': gen_reg.name,
+                    'description': gen_reg.description,
+                    'available': True,
+                    'optional_dependencies': gen_reg.optional_dependencies if hasattr(gen_reg, 'optional_dependencies') else []
+                }
+
+            except ImportError as e:
+                # Generator not available (missing dependencies)
+                if hasattr(gen_reg, 'optional_dependencies') and gen_reg.optional_dependencies:
+                    # Optional dependency not installed - include but mark unavailable
+                    generators[gen_reg.name] = {
+                        'name': gen_reg.name,
+                        'description': gen_reg.description,
+                        'available': False,
+                        'optional_dependencies': gen_reg.optional_dependencies,
+                        'import_error': str(e)
+                    }
+                    if os.environ.get('DEBUG'):
+                        console.print(f"[dim]Generator '{gen_reg.name}' unavailable: {e}[/dim]")
+                else:
+                    # Required dependency missing - this is an error
+                    if os.environ.get('DEBUG'):
+                        console.print(f"[dim]Warning: Could not load generator {gen_reg.name}: {e}[/dim]")
+                    continue
+
+            except Exception as e:
+                # Other errors - skip this generator
+                if os.environ.get('DEBUG'):
+                    console.print(f"[dim]Warning: Could not load generator {gen_reg.name}: {e}[/dim]")
+                continue
+
+        if not generators:
+            console.print(Messages.warning("No code generators could be loaded from osprey registry"))
+
+        # Cache the result for future calls
+        _code_generator_cache = generators
+        return generators
+
+    except Exception as e:
+        # This should rarely happen - osprey registry should always be available
+        console.print(Messages.error(f"Could not load code generators from osprey registry: {e}"))
+        console.print(Messages.warning("The TUI requires access to code generator information."))
         if os.environ.get('DEBUG'):
             import traceback
             traceback.print_exc()
@@ -679,6 +792,69 @@ def select_channel_finder_mode() -> str | None:
         "Channel finder mode:",
         choices=choices,
         style=custom_style,
+        instruction="(Use arrow keys to navigate)"
+    ).ask()
+
+
+def select_code_generator(generators: dict[str, dict[str, Any]]) -> str | None:
+    """Interactive code generator selection.
+
+    Shows all available code generators from the registry, with clear indication
+    of which ones are available vs. require additional dependencies.
+
+    Args:
+        generators: Code generator metadata dictionary from get_code_generator_metadata()
+
+    Returns:
+        Selected generator name, or None if cancelled
+    """
+    if not generators:
+        console.print(f"\n{Messages.error('No code generators available')}")
+        console.print(Messages.warning("Osprey could not load any code generators."))
+        console.print(f"[dim]Check that osprey is properly installed: {Messages.command('pip install -e .[all]')}[/dim]\n")
+        return None
+
+    console.print("[dim]Select the code generation strategy for Python execution:[/dim]\n")
+
+    choices = []
+    default_choice = None
+
+    # Sort generators: available first, then unavailable
+    sorted_generators = sorted(
+        generators.items(),
+        key=lambda x: (not x[1].get('available', False), x[0])
+    )
+
+    for gen_name, gen_info in sorted_generators:
+        is_available = gen_info.get('available', False)
+        description = gen_info.get('description', 'No description available')
+
+        if is_available:
+            # Available generator
+            display = f"{gen_name:15} - {description}"
+            choices.append(Choice(display, value=gen_name))
+
+            # Set basic as default if available
+            if gen_name == 'basic' and default_choice is None:
+                default_choice = gen_name
+
+        else:
+            # Unavailable generator (missing optional dependencies)
+            deps = gen_info.get('optional_dependencies', [])
+            deps_str = ', '.join(deps) if deps else 'unknown dependencies'
+            display = f"{gen_name:15} - [dim]{description} (requires: {deps_str})[/dim]"
+            choices.append(Choice(display, value=gen_name, disabled=True))
+
+    if not any(not c.disabled for c in choices if hasattr(c, 'disabled')):
+        console.print(f"\n{Messages.error('No available code generators found')}")
+        console.print(f"{Messages.warning('All generators require additional dependencies.')}\n")
+        return None
+
+    return questionary.select(
+        "Code generator:",
+        choices=choices,
+        style=custom_style,
+        default=default_choice,
         instruction="(Use arrow keys to navigate)"
     ).ask()
 
@@ -989,11 +1165,12 @@ def run_interactive_init() -> str:
 
     try:
         # Show spinner while loading
-        with console.status("[dim]Loading templates and providers...[/dim]", spinner="dots"):
+        with console.status("[dim]Loading templates, providers, and code generators...[/dim]", spinner="dots"):
             templates = manager.list_app_templates()
             providers = get_provider_metadata()
+            code_generators = get_code_generator_metadata()
     except Exception as e:
-        console.print(f"[error]✗ Error loading templates/providers:[/error] {e}")
+        console.print(f"[error]✗ Error loading templates/providers/generators:[/error] {e}")
         input("\nPress ENTER to continue...")
         return 'menu'
 
@@ -1020,6 +1197,16 @@ def run_interactive_init() -> str:
         console.print("\n[bold]Step 3: Channel Finder Configuration[/bold]\n")
         channel_finder_mode = select_channel_finder_mode()
         if channel_finder_mode is None:
+            return 'menu'
+
+    # 2c. Code generator selection (for templates that use Python execution)
+    # Skip for hello_world_weather (simple example), include for control_assistant
+    code_generator = None
+    if template == 'control_assistant':
+        step_num = 4  # After channel finder
+        console.print(f"\n[bold]Step {step_num}: Code Generator[/bold]\n")
+        code_generator = select_code_generator(code_generators)
+        if code_generator is None:
             return 'menu'
 
     # Check if project directory already exists (before other configuration steps)
@@ -1135,8 +1322,11 @@ def run_interactive_init() -> str:
                     input("\nPress ENTER to continue...")
                     return 'menu'
 
-    # 3. Registry style (step number adjusts if channel finder mode was shown)
-    step_num = 4 if template == 'control_assistant' else 3
+    # 3. Registry style (step number adjusts based on previous steps)
+    if template == 'control_assistant':
+        step_num = 5  # After template, name, channel_finder, code_generator
+    else:
+        step_num = 3  # After template, name
     console.print(f"\n[bold]Step {step_num}: Registry Style[/bold]\n")
 
     registry_style = questionary.select(
@@ -1153,14 +1343,20 @@ def run_interactive_init() -> str:
         return 'menu'
 
     # 4. Provider selection (step number adjusts)
-    step_num = 5 if template == 'control_assistant' else 4
+    if template == 'control_assistant':
+        step_num = 6  # After template, name, channel_finder, code_generator, registry
+    else:
+        step_num = 4  # After template, name, registry
     console.print(f"\n[bold]Step {step_num}: AI Provider[/bold]\n")
     provider = select_provider(providers)
     if provider is None:
         return 'menu'
 
     # 5. Model selection (step number adjusts)
-    step_num = 6 if template == 'control_assistant' else 5
+    if template == 'control_assistant':
+        step_num = 7  # After template, name, channel_finder, code_generator, registry, provider
+    else:
+        step_num = 5  # After template, name, registry, provider
     console.print(f"\n[bold]Step {step_num}: Model Selection[/bold]\n")
     model = select_model(provider, providers)
     if model is None:
@@ -1168,13 +1364,15 @@ def run_interactive_init() -> str:
 
     # Summary
     console.print(f"\n{Messages.header('Configuration Summary:')}")
-    console.print(f"  Project:  [value]{project_name}[/value]")
-    console.print(f"  Template: [value]{template}[/value]")
+    console.print(f"  Project:       [value]{project_name}[/value]")
+    console.print(f"  Template:      [value]{template}[/value]")
     if channel_finder_mode:
-        console.print(f"  Pipeline: [value]{channel_finder_mode}[/value]")
-    console.print(f"  Registry: [value]{registry_style}[/value]")
-    console.print(f"  Provider: [value]{provider}[/value]")
-    console.print(f"  Model:    [value]{model}[/value]\n")
+        console.print(f"  Pipeline:      [value]{channel_finder_mode}[/value]")
+    if code_generator:
+        console.print(f"  Code Gen:      [value]{code_generator}[/value]")
+    console.print(f"  Registry:      [value]{registry_style}[/value]")
+    console.print(f"  Provider:      [value]{provider}[/value]")
+    console.print(f"  Model:         [value]{model}[/value]\n")
 
     # Confirm
     proceed = questionary.confirm(
@@ -1193,13 +1391,15 @@ def run_interactive_init() -> str:
 
     try:
         # Note: force=True because we already handled directory deletion if user chose override
-        # Build context dict with optional channel_finder_mode
+        # Build context dict with optional channel_finder_mode and code_generator
         context = {
             'default_provider': provider,
             'default_model': model
         }
         if channel_finder_mode:
             context['channel_finder_mode'] = channel_finder_mode
+        if code_generator:
+            context['code_generator'] = code_generator
 
         project_path = manager.create_project(
             project_name=project_name,
