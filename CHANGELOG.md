@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Infrastructure Node Instance Method Migration** ✅ **COMPLETE**
+  - **All 7 infrastructure nodes** migrated from static method pattern to instance method pattern
+  - Aligns infrastructure nodes with capability node implementation from v0.9.2
+  - **Decorator Enhancements**:
+    - Automatic detection of static vs instance methods (backward compatible)
+    - Runtime injection of `_state` for all infrastructure nodes
+    - Selective `_step` injection only for in-execution nodes (clarify, respond)
+    - Defensive None checks for step injection with warning logs
+    - Validation for invalid method types (classmethod, property)
+  - **Migrated Nodes**:
+    - ✅ Router: Minimal state usage, routing metadata
+    - ✅ Task Extraction: Data source integration, state refs updated
+    - ✅ Classification: Extensive state usage (100+ refs), bypass mode
+    - ✅ Clarify: First `_step` injection, task_objective extraction
+    - ✅ Respond: `_step` injection, response generation
+    - ✅ Error: NO `_step` injection (uses `StateManager.get_current_step_index()`)
+    - ✅ Orchestration: 200+ lines, nested functions via closure
+  - **Code Quality**:
+    - Extracted `state = self._state` at top of each method for readability
+    - `classify_error()` and `get_retry_policy()` remain static (pure functions)
+    - Module-level helpers unchanged (just updated call sites)
+  - **Testing**:
+    - Added 15 unit tests for infrastructure pattern (`tests/infrastructure/`)
+    - Tests validate decorator injection logic (_state, _step)
+    - Tests verify backward compatibility with static methods
+    - All 300 tests pass (285 original + 15 new infrastructure tests)
+  - Implementation plan: `_ISSUES/INFRASTRUCTURE_NODE_MIGRATION_PLAN.md`
+
 ### Fixed
 - **Interactive Menu Registry Contamination** ([#29](https://github.com/als-apg/osprey/issues/29))
   - Fixed bug where creating multiple projects in the same interactive menu session caused capability contamination
