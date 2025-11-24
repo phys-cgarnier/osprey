@@ -240,18 +240,19 @@ class TaskExtractionNode(BaseInfrastructureNode):
         :return: Dictionary of state updates to apply
         :rtype: Dict[str, Any]
         """
+        state = self._state
 
         # Explicit logger retrieval - professional practice
         logger = get_logger("task_extraction")
 
         # Define streaming helper here for step awareness
-        streamer = get_streamer("task_extraction", self._state)
+        streamer = get_streamer("task_extraction", state)
 
         # Get native LangGraph messages from flat state structure (move outside try block)
-        messages = self._state["messages"]
+        messages = state["messages"]
 
         # Check if task extraction bypass is enabled
-        bypass_enabled = self._state.get("agent_control", {}).get("task_extraction_bypass_enabled", False)
+        bypass_enabled = state.get("agent_control", {}).get("task_extraction_bypass_enabled", False)
 
         if bypass_enabled:
             logger.info("Task extraction bypass enabled - using full context with data sources")
@@ -264,7 +265,7 @@ class TaskExtractionNode(BaseInfrastructureNode):
             try:
                 data_manager = get_data_source_manager()
                 requester = DataSourceRequester("task_extraction", "task_extraction")
-                request = create_data_source_request(self._state, requester)
+                request = create_data_source_request(state, requester)
                 retrieval_result = await data_manager.retrieve_all_context(request)
                 logger.info(f"Retrieved data from {retrieval_result.total_sources_attempted} sources")
             except (ImportError, ModuleNotFoundError):

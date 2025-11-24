@@ -152,19 +152,20 @@ class ClassificationNode(BaseInfrastructureNode):
         :return: Dictionary of state updates for LangGraph
         :rtype: Dict[str, Any]
         """
+        state = state
 
         # Get the current task from state
-        current_task = self._state.get("task_current_task")
+        current_task = state.get("task_current_task")
 
         if not current_task:
             logger.error("No current task found in state")
             raise ReclassificationRequiredError("No current task found")
 
         # Define streaming helper here for step awareness
-        streamer = get_streamer("classifier", self._state)
+        streamer = get_streamer("classifier", state)
 
         # Check if capability selection bypass is enabled
-        bypass_enabled = self._state.get("agent_control", {}).get("capability_selection_bypass_enabled", False)
+        bypass_enabled = state.get("agent_control", {}).get("capability_selection_bypass_enabled", False)
 
         if bypass_enabled:
             logger.info("Capability selection bypass enabled - activating all capabilities")
@@ -180,7 +181,7 @@ class ClassificationNode(BaseInfrastructureNode):
             # Return standardized classification result
             return _create_classification_result(
                 active_capabilities=active_capabilities,
-                state=self._state,
+                state=state,
                 message=f"Bypass mode: activated all {len(active_capabilities)} capabilities",
                 is_bypass=True
             )
@@ -188,9 +189,9 @@ class ClassificationNode(BaseInfrastructureNode):
         # Original classification logic continues here...
 
         # Detect reclassification scenario from error state
-        previous_failure = _detect_reclassification_scenario(self._state)
+        previous_failure = _detect_reclassification_scenario(state)
 
-        reclassification_count = self._state.get('control_reclassification_count', 0)
+        reclassification_count = state.get('control_reclassification_count', 0)
 
         if previous_failure:
             streamer.status(f"Reclassifying task (attempt {reclassification_count + 1})...")
@@ -212,7 +213,7 @@ class ClassificationNode(BaseInfrastructureNode):
         active_capabilities = await select_capabilities(
             task=current_task,  # Updated parameter name
             available_capabilities=available_capabilities,
-            state=self._state,
+            state=state,
             logger=logger,
             previous_failure=previous_failure  # Pass failure context for reclassification
         )
@@ -225,7 +226,7 @@ class ClassificationNode(BaseInfrastructureNode):
         # Return standardized classification result
         return _create_classification_result(
             active_capabilities=active_capabilities,
-            state=self._state,
+            state=state,
             message=f"Classification completed with {len(active_capabilities)} capabilities",
             is_bypass=False,
             previous_failure=previous_failure

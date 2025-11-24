@@ -50,11 +50,12 @@ class RouterNode(BaseInfrastructureNode):
         :return: Dictionary of state updates for routing metadata
         :rtype: Dict[str, Any]
         """
+        state = self._state
 
         # Update routing metadata only - no routing logic to avoid duplication
         return {
             "control_routing_timestamp": time.time(),
-            "control_routing_count": self._state.get("control_routing_count", 0) + 1
+            "control_routing_count": state.get("control_routing_count", 0) + 1
         }
 
 

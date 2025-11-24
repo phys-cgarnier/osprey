@@ -423,6 +423,8 @@ class ErrorNode(BaseInfrastructureNode):
            :func:`_generate_error_response` : Response generation pipeline
            :class:`AIMessage` : Response message format
         """
+        state = self._state
+
         logger.key_info("Starting error response generation")
 
         streaming = get_stream_writer()
@@ -434,8 +436,8 @@ class ErrorNode(BaseInfrastructureNode):
             })
 
         try:
-            error_context = _create_error_context_from_state(self._state)
-            _populate_error_context(error_context, self._state)
+            error_context = _create_error_context_from_state(state)
+            _populate_error_context(error_context, state)
 
             if streaming:
                 streaming({

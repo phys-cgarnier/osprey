@@ -77,6 +77,7 @@ class ClarifyCapability(BaseCapability):
         :return: State update with clarification response
         :rtype: Dict[str, Any]
         """
+        state = state
 
         # Explicit logger retrieval - professional practice
         logger = get_logger("clarify")
@@ -101,7 +102,7 @@ class ClarifyCapability(BaseCapability):
             # Generate clarifying questions using PydanticAI
             # Run sync function in thread pool to avoid blocking event loop for streaming
             questions_response = await asyncio.to_thread(
-                _generate_clarifying_questions, self._state, task_objective
+                _generate_clarifying_questions, state, task_objective
             )
 
             if streaming:

@@ -103,6 +103,7 @@ class RespondCapability(BaseCapability):
         :return: State update with generated response
         :rtype: Dict[str, Any]
         """
+        state = state
 
         # Explicit logger retrieval - professional practice
         logger = get_logger("respond")
@@ -111,13 +112,13 @@ class RespondCapability(BaseCapability):
         step = self._step
 
         # Define streaming helper here for step awareness
-        streamer = get_streamer("respond", self._state)
+        streamer = get_streamer("respond", state)
 
         try:
             streamer.status("Gathering information for response...")
 
             # Gather all available information
-            response_context = _gather_information(self._state)
+            response_context = _gather_information(state)
 
             streamer.status("Generating response...")
 

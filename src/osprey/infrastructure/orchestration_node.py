@@ -234,22 +234,16 @@ class OrchestrationNode(BaseInfrastructureNode):
         }
 
 
-    @staticmethod
-    async def execute(
-        state: AgentState,
-        **kwargs
-    ) -> dict[str, Any]:
+    async def execute(self) -> dict[str, Any]:
         """Create execution plans with LangGraph native interrupt support.
 
         This implementation creates execution plans from task requirements and
         handles planning mode with native LangGraph interrupts for approval workflows.
 
-        :param state: Current agent state
-        :type state: AgentState
-        :param kwargs: Additional LangGraph parameters
         :return: Dictionary of state updates for LangGraph
         :rtype: Dict[str, Any]
         """
+        state = state
 
         # Explicit logger retrieval - professional practice
         logger = get_logger("orchestrator")
