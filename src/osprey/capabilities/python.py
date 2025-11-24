@@ -520,7 +520,7 @@ class PythonCapability(BaseCapability):
         # Store context using StateManager
         result_updates = StateManager.store_context(
             self._state,
-            registry.context_types.PYTHON_RESULTS,
+            "PYTHON_RESULTS",
             step.get("context_key"),
             results_context
         )

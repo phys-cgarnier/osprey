@@ -45,8 +45,6 @@ if TYPE_CHECKING:
 logger = get_logger("orchestrator")
 
 
-registry = get_registry()
-
 # =============================================================================
 # EXECUTION PLAN VALIDATION
 # =============================================================================
@@ -70,6 +68,8 @@ def _validate_and_fix_execution_plan(
     :return: Fixed execution plan that ends with respond or clarify
     :raises ValueError: If hallucinated capabilities are found requiring re-planning
     """
+    # Get fresh registry instance (not module-level cached)
+    registry = get_registry()
 
     steps = execution_plan.get("steps", [])
 
@@ -329,6 +329,9 @@ class OrchestrationNode(BaseInfrastructureNode):
             raise ReclassificationRequiredError("No active capabilities found for task")
 
         # Get capability instances from registry using capability names
+        # Get fresh registry instance (not module-level cached)
+        registry = get_registry()
+
         active_capabilities = []
         for cap_name in active_capability_names:
             capability = registry.get_capability(cap_name)

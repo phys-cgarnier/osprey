@@ -32,7 +32,6 @@ from osprey.utils.logger import get_logger
 from osprey.utils.streaming import get_streamer
 
 logger = get_logger("task_extraction")
-registry = get_registry()
 
 # =============================================================================
 # PROMPT BUILDING HELPER FUNCTIONS

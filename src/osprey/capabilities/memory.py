@@ -71,8 +71,6 @@ from osprey.utils.streaming import get_streamer
 logger = get_logger("memory")
 
 
-registry = get_registry()
-
 # ===========================================================
 # Context Classes
 # ===========================================================
@@ -584,7 +582,7 @@ class MemoryOperationsCapability(BaseCapability):
             step = self._step
             context_update = StateManager.store_context(
                 self._state,
-                registry.context_types.MEMORY_CONTEXT,
+                "MEMORY_CONTEXT",
                 step.get("context_key"),
                 memory_context
             )
@@ -623,7 +621,7 @@ class MemoryOperationsCapability(BaseCapability):
                 # Store context using StateManager
                 return StateManager.store_context(
                     self._state,
-                    registry.context_types.MEMORY_CONTEXT,
+                    "MEMORY_CONTEXT",
                     step.get("context_key"),
                     memory_context
                 )
@@ -738,7 +736,7 @@ class MemoryOperationsCapability(BaseCapability):
                     # Store context using StateManager
                     return StateManager.store_context(
                         self._state,
-                        registry.context_types.MEMORY_CONTEXT,
+                        "MEMORY_CONTEXT",
                         step.get("context_key"),
                         memory_context
                     )

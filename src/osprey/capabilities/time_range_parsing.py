@@ -604,7 +604,7 @@ class TimeRangeParsingCapability(BaseCapability):
         # Store context using StateManager
         state_updates = StateManager.store_context(
             self._state,
-            registry.context_types.TIME_RANGE,
+            "TIME_RANGE",
             step.get("context_key"),
             time_context
         )
