@@ -1,6 +1,6 @@
 # Testing Guide - Unified Logging Feature
 
-**Branch**: `feat/unified-logging`
+**Branch**: `feat/unified-logging`  
 **Requirements**: Python 3.11+
 
 ## Overview
@@ -59,15 +59,15 @@ Test that the new unified logging pattern works in a capability:
 class TestCapability(BaseCapability):
     name = "test_capability"
     description = "Testing unified logging"
-
+    
     async def execute(self) -> dict[str, Any]:
         # Single logger provides both logging and streaming
         logger = self.get_logger()
-
+        
         logger.status("Processing...")  # Streams to web UI
         logger.info("Detailed info")    # CLI only
         logger.success("Complete!")     # Streams to web UI
-
+        
         return self.store_output_context(result)
 ```
 
