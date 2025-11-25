@@ -85,3 +85,23 @@ ChatMessage.message-assistant {
     margin: 0;
     padding: 0;
 }
+
+/* Streaming message - same style as assistant message */
+StreamingMessage {
+    width: 100%;
+    height: auto;
+    margin: 1 2 1 0;
+    padding: 0 1;
+    border: round $surface-lighten-1;
+    background: $surface-darken-1;
+}
+
+/* Streaming status indicator */
+.streaming-status {
+    width: 100%;
+    height: auto;
+    color: $text-muted;
+    text-style: italic;
+    margin: 0;
+    padding: 0;
+}
