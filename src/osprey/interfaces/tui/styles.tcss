@@ -1,30 +1,87 @@
-/* Osprey TUI Styles */
+/* Osprey TUI Styles - Using Textual theme colors */
 
 Screen {
+    background: $background;
+}
+
+/* Header */
+Header {
+    dock: top;
+    background: $background;
+}
+
+/* Footer */
+Footer {
+    dock: bottom;
+    background: $background;
+}
+
+/* Main content - no gaps with header/footer */
+#main-content {
+    width: 100%;
+    height: 1fr;
+    background: $background;
+}
+
+/* Chat display - no top/bottom padding for seamless look */
+#chat-display {
+    width: 100%;
+    height: 1fr;
+    border: none;
+    padding: 0 2;
+    margin: 0;
+    background: $background;
+}
+
+/* Chat input field */
+#chat-input {
+    width: 100%;
+    min-height: 3;
+    max-height: 6;
+    height: auto;
+    margin: 0 2 1 2;
+    background: $surface;
+    border: round $primary-darken-2;
+}
+
+#chat-input:focus {
+    border: round $primary;
+}
+
+/* Individual chat message - compact card style */
+ChatMessage {
+    width: 100%;
+    height: auto;
+    margin: 1 2 1 0;
+    padding: 0 1;
+    border: round $surface-lighten-1;
+}
+
+/* User message styling */
+ChatMessage.message-user {
     background: $surface;
 }
 
-#welcome {
-    width: 100%;
-    height: auto;
-    padding: 2 4;
-    text-align: center;
-    text-style: bold;
-    color: $success;
+/* Assistant message styling */
+ChatMessage.message-assistant {
+    background: $surface-darken-1;
 }
 
-#instructions {
+/* Message content - minimal spacing */
+.message-content {
     width: 100%;
     height: auto;
-    padding: 1 4;
-    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* Role label - grey, italic, bottom-right */
+.role-label {
+    width: 100%;
+    height: auto;
+    text-align: right;
     color: $text-muted;
-}
-
-Header {
-    dock: top;
-}
-
-Footer {
-    dock: bottom;
+    text-style: italic;
+    margin: 0;
+    padding: 0;
 }
