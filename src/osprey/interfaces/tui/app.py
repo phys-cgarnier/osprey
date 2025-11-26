@@ -159,6 +159,9 @@ class ProcessingBlock(Static):
     # Breathing animation frames - asterisk style
     BREATHING_FRAMES = ["*", "✱", "✳", "✱"]
 
+    # Default expanded header text (subclasses override)
+    EXPANDED_HEADER = "Output"
+
     def __init__(self, title: str, **kwargs):
         """Initialize a processing block.
 
@@ -287,11 +290,9 @@ class ProcessingBlock(Static):
         self.remove_class("block-active")
 
     def on_collapsible_expanded(self, event: Collapsible.Expanded) -> None:
-        """Show expanded arrow with spaces to maintain clickable area."""
+        """Show descriptive header when expanded."""
         if event.collapsible.id == "block-output":
-            # Use spaces to maintain clickable width
-            spaces = " " * len(self._output_preview) if self._output_preview else "   "
-            event.collapsible.title = f"[bold]OUT[/bold]   ▾ {spaces}"
+            event.collapsible.title = f"[bold]OUT[/bold]   ▾ {self.EXPANDED_HEADER}"
 
     def on_collapsible_collapsed(self, event: Collapsible.Collapsed) -> None:
         """Show collapsed arrow with preview."""
@@ -326,6 +327,9 @@ class ProcessingBlock(Static):
 class TaskExtractionBlock(ProcessingBlock):
     """Block for task extraction phase."""
 
+    # Expanded header text (overrides base class)
+    EXPANDED_HEADER = "Extracted task"
+
     def __init__(self, **kwargs):
         """Initialize task extraction block."""
         super().__init__("Task Extraction", **kwargs)
@@ -333,6 +337,9 @@ class TaskExtractionBlock(ProcessingBlock):
 
 class ClassificationBlock(ProcessingBlock):
     """Block for capability classification phase with simple text output."""
+
+    # Expanded header text
+    EXPANDED_HEADER = "Activated capabilities"
 
     def __init__(self, **kwargs):
         """Initialize classification block."""
@@ -350,18 +357,38 @@ class ClassificationBlock(ProcessingBlock):
         self._all_capabilities = all_caps
         self._selected_capabilities = selected
 
-        # Format as simple text with checkmarks - much faster than SelectionList
+        # Format full list with checkmarks - gray out unselected
         lines = []
         for cap in all_caps:
-            marker = "✓" if cap in selected else "·"
-            lines.append(f"{marker} {cap}")
+            if cap in selected:
+                lines.append(f"✓ {cap}")
+            else:
+                # Gray out unselected capabilities using Rich dim markup
+                lines.append(f"[dim]· {cap}[/dim]")
 
         output_text = "\n".join(lines) if lines else "No capabilities"
+
+        # Call parent's set_output first
         self.set_output(output_text)
+
+        # Override with custom preview (after set_output overwrites it)
+        if selected:
+            preview = f"Activated: {', '.join(selected)}"
+        else:
+            preview = "No capabilities activated"
+        self._output_preview = self._get_preview(preview)
+
+        # Update the collapsible title with our custom preview
+        if self._mounted:
+            output = self.query_one("#block-output", Collapsible)
+            output.title = f"[bold]OUT[/bold]   ▸ {self._output_preview}"
 
 
 class OrchestrationBlock(ProcessingBlock):
     """Block for orchestration/planning phase."""
+
+    # Expanded header text (overrides base class)
+    EXPANDED_HEADER = "Planned steps"
 
     def __init__(self, **kwargs):
         """Initialize orchestration block."""
