@@ -3,8 +3,10 @@
 A Terminal User Interface for the Osprey Agent Framework built with Textual.
 """
 
+import asyncio
 import textwrap
 import uuid
+from typing import Any
 
 from langgraph.checkpoint.memory import MemorySaver
 from textual import work
@@ -185,6 +187,8 @@ class ProcessingBlock(Static):
         self._log_messages: list[tuple[str, str]] = []  # [(status, message), ...]
         # Track if IN was populated from streaming (vs placeholder)
         self._input_set: bool = False
+        # Data dict for extracted information (task, capabilities, steps, etc.)
+        self._data: dict[str, Any] = {}
 
     def compose(self) -> ComposeResult:
         """Compose the block with header, input, separator, OUT, and LOG sections."""
@@ -510,10 +514,7 @@ class OrchestrationBlock(ProcessingBlock):
 
             # Wrap with hanging indent for continuation lines
             wrapped = textwrap.fill(
-                content,
-                width=width,
-                initial_indent=prefix,
-                subsequent_indent=indent
+                content, width=width, initial_indent=prefix, subsequent_indent=indent
             )
             lines.append(wrapped)
 
@@ -566,6 +567,8 @@ class ChatDisplay(ScrollableContainer):
         # Debug block for showing events (disabled by default)
         self._debug_enabled = False
         self._debug_block: DebugBlock | None = None
+        # Event queue for decoupling streaming from rendering
+        self._event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
     def start_new_query(self, user_query: str) -> None:
         """Reset blocks for a new query and add user message.
@@ -595,9 +598,7 @@ class ChatDisplay(ScrollableContainer):
             self.scroll_end(animate=False)
         return self._debug_block
 
-    def get_or_create_block(
-        self, block_type: str, **kwargs
-    ) -> ProcessingBlock | None:
+    def get_or_create_block(self, block_type: str, **kwargs) -> ProcessingBlock | None:
         """Get existing block or create new one.
 
         Args:
@@ -755,9 +756,7 @@ class OspreyTUI(App):
         """Create child widgets for the app."""
         yield Header()
         yield Vertical(
-            ChatDisplay(id="chat-display"),
-            ChatInput(id="chat-input"),
-            id="main-content"
+            ChatDisplay(id="chat-display"), ChatInput(id="chat-input"), id="main-content"
         )
         yield Footer()
 
@@ -777,17 +776,17 @@ class OspreyTUI(App):
 
         # Build base config
         configurable = get_full_configuration(config_path=self.config_path).copy()
-        configurable.update({
-            "user_id": "tui_user",
-            "thread_id": self.thread_id,
-            "chat_id": "tui_chat",
-            "session_id": self.thread_id,
-            "interface_context": "tui",
-        })
-
-        recursion_limit = get_config_value(
-            "execution_control.limits.graph_recursion_limit"
+        configurable.update(
+            {
+                "user_id": "tui_user",
+                "thread_id": self.thread_id,
+                "chat_id": "tui_chat",
+                "session_id": self.thread_id,
+                "interface_context": "tui",
+            }
         )
+
+        recursion_limit = get_config_value("execution_control.limits.graph_recursion_limit")
         self.base_config = {
             "configurable": configurable,
             "recursion_limit": recursion_limit,
@@ -822,6 +821,306 @@ class OspreyTUI(App):
         # Process with agent (async worker) - start_new_query called inside
         self.process_with_agent(user_input)
 
+    async def _consume_events(self, user_query: str, chat_display: ChatDisplay) -> None:
+        """Event consumer - single gateway for all TUI block updates.
+
+        All block creation, updates, and closure for Task Preparation phase
+        goes through here. Execution phase is handled separately.
+
+        Block lifecycle: Open on first event, close when DIFFERENT component arrives.
+        Only one Task Preparation block is active at any time.
+
+        Args:
+            user_query: The original user query.
+            chat_display: The chat display widget.
+        """
+        # Track single active block (for Task Preparation phase)
+        current_component: str | None = None
+        current_block: ProcessingBlock | None = None
+
+        while True:
+            try:
+                chunk = await chat_display._event_queue.get()
+
+                event_type = chunk.get("event_type", "")
+                component = chunk.get("component", "")
+                phase = chunk.get("phase", "")
+                msg = chunk.get("message", "")
+
+                # Skip if no component or not relevant event type
+                if not component or event_type not in ("status", "success", "error", "warning"):
+                    chat_display._event_queue.task_done()
+                    continue
+
+                # DEBUG: Log events to debug block (if enabled)
+                debug_block = chat_display.get_or_create_debug_block()
+                if debug_block:
+                    debug_block.add_event(chunk)
+
+                # Route by phase
+                if phase == "Task Preparation":
+                    current_component, current_block = self._consume_task_prep_event(
+                        chunk,
+                        component,
+                        event_type,
+                        msg,
+                        user_query,
+                        chat_display,
+                        current_component,
+                        current_block,
+                    )
+                elif phase == "Execution":
+                    # Close last Task Prep block when Execution starts
+                    if current_block:
+                        self._close_task_prep_block(current_block, current_component)
+                        current_component, current_block = None, None
+                    # Execution phase uses different approach (multiple step blocks)
+                    is_complete = (event_type == "success") or chunk.get("complete", False)
+                    self._handle_execution_event(
+                        chunk, component, is_complete, event_type, chat_display
+                    )
+
+                chat_display._event_queue.task_done()
+            except asyncio.CancelledError:
+                # Close last active block when stream ends
+                if current_block:
+                    self._close_task_prep_block(current_block, current_component)
+                break
+
+    def _consume_task_prep_event(
+        self,
+        chunk: dict,
+        component: str,
+        event_type: str,
+        msg: str,
+        user_query: str,
+        display: ChatDisplay,
+        current_component: str | None,
+        current_block: ProcessingBlock | None,
+    ) -> tuple[str | None, ProcessingBlock | None]:
+        """Handle Task Preparation events in the consumer.
+
+        Single gateway for T/C/O blocks. Block lifecycle:
+        - Open: First event for a component
+        - Close: When event from DIFFERENT component arrives
+
+        Args:
+            chunk: The streaming event data.
+            component: The component name.
+            event_type: The event type.
+            msg: The message text.
+            user_query: The original user query.
+            display: The chat display widget.
+            current_component: Currently active component (or None).
+            current_block: Currently active block (or None).
+
+        Returns:
+            Tuple of (new_current_component, new_current_block).
+        """
+        # 1. Detect retry signals - close current block and mark for retry
+        if msg:
+            msg_lower = msg.lower()
+            is_reclassify = any(
+                kw in msg_lower
+                for kw in ["reclassifying", "re-classification", "reclassification"]
+            )
+            is_replan = any(kw in msg_lower for kw in ["re-planning", "replanning"])
+
+            if is_reclassify or is_replan:
+                # Close current block with error status
+                if current_block:
+                    current_block.set_output("Retry required", status="error")
+                current_component, current_block = None, None
+
+        # 2. Component transition: close current block when different component arrives
+        if component != current_component and current_block:
+            self._close_task_prep_block(current_block, current_component)
+            current_component, current_block = None, None
+
+        # 3. Create new block if needed (only on STATUS events)
+        if current_block is None:
+            if event_type != "status":
+                # Ignore non-status events if no block exists
+                return current_component, current_block
+            block = self._create_task_prep_block(component, user_query, display)
+            if block:
+                current_component = component
+                current_block = block
+                block.set_active()
+                # Set initial IN for task_extraction
+                if component == "task_extraction":
+                    block.set_input(user_query)
+                    block._data["user_query"] = user_query
+
+        if not current_block:
+            return current_component, current_block
+
+        # 4. Extract data into block._data dict
+        for key in ["task", "capabilities", "capability_names", "steps", "user_query"]:
+            if key in chunk:
+                current_block._data[key] = chunk[key]
+
+        # 5. Log to LOG section
+        if msg:
+            current_block.add_log(msg, status=event_type)
+
+        # 6. Real-time IN update (when data becomes available)
+        self._update_input_from_data(current_block, component)
+
+        # 7. Real-time OUT update on success/error (but DON'T close block)
+        if event_type == "success":
+            self._update_output_from_data(current_block, component, chunk)
+        elif event_type == "error":
+            error_msg = msg if msg else f"{component} error"
+            current_block.set_output(error_msg, status="error")
+
+        return current_component, current_block
+
+    def _close_task_prep_block(
+        self, block: ProcessingBlock, component: str | None
+    ) -> None:
+        """Close a Task Preparation block by setting its final output.
+
+        Args:
+            block: The block to close.
+            component: The component name.
+        """
+        # If block doesn't have output set yet, set a default
+        if block._status == "active":
+            # Use data from _data dict if available
+            data = block._data
+            if component == "task_extraction":
+                task = data.get("task", "")
+                block.set_output(task if task else "Task extracted")
+            elif component == "classifier":
+                caps = data.get("capability_names", [])
+                if caps and isinstance(block, ClassificationBlock):
+                    block.set_capabilities(self.all_capability_names, caps)
+                else:
+                    block.set_output("Classification complete")
+            elif component == "orchestrator":
+                steps = data.get("steps", [])
+                if steps and isinstance(block, OrchestrationBlock):
+                    block.set_plan(steps)
+                else:
+                    block.set_output("Planning complete")
+            else:
+                block.set_output("Complete")
+
+    def _create_task_prep_block(
+        self, component: str, user_query: str, display: ChatDisplay
+    ) -> ProcessingBlock | None:
+        """Create and mount a Task Preparation block.
+
+        Handles retry numbering by checking existing blocks in display.
+
+        Args:
+            component: The component name.
+            user_query: The original user query.
+            display: The chat display widget.
+
+        Returns:
+            The created block, or None if invalid component.
+        """
+        # Get current attempt index for this component
+        attempt_idx = display._component_attempt_index.get(component, 0)
+
+        # Check if we need to increment (existing block is complete)
+        block_key = f"{component}_{attempt_idx}"
+        existing = display._current_blocks.get(block_key)
+        if existing and existing._status in ("success", "error"):
+            # Previous block exists and is complete - increment for retry
+            attempt_idx += 1
+            display._component_attempt_index[component] = attempt_idx
+            block_key = f"{component}_{attempt_idx}"
+
+        # Determine block class and title
+        block_classes = {
+            "task_extraction": (TaskExtractionBlock, "Task Extraction"),
+            "classifier": (ClassificationBlock, "Classification"),
+            "orchestrator": (OrchestrationBlock, "Orchestration"),
+        }
+
+        if component not in block_classes:
+            return None
+
+        block_class, base_title = block_classes[component]
+
+        # Add retry number to title if not first attempt
+        title = base_title if attempt_idx == 0 else f"{base_title} (retry #{attempt_idx})"
+
+        # Create and mount the block
+        block = block_class()
+        block.title = title
+        display._current_blocks[block_key] = block
+        display.mount(block)
+        display.scroll_end(animate=False)
+
+        return block
+
+    def _update_input_from_data(self, block: ProcessingBlock, component: str) -> None:
+        """Update block IN section from _data dict when data is available.
+
+        Args:
+            block: The processing block.
+            component: The component name.
+        """
+        # Skip if already set from streaming
+        if block._input_set:
+            return
+
+        data = block._data
+
+        if component == "task_extraction":
+            # T:IN = user_query (already set on creation)
+            pass
+        elif component == "classifier":
+            # C:IN = task
+            task = data.get("task", "")
+            if task:
+                block.set_input(task)
+        elif component == "orchestrator":
+            # O:IN = task → [caps]
+            task = data.get("task", "")
+            caps = data.get("capabilities", [])
+            if task and caps:
+                block.set_input(f"{task} → [{', '.join(caps)}]")
+            elif task:
+                # Task available but no caps yet - show partial
+                block.set_input(task, mark_set=False)
+
+    def _update_output_from_data(self, block: ProcessingBlock, component: str, chunk: dict) -> None:
+        """Update block OUT section from _data dict on completion.
+
+        Args:
+            block: The processing block.
+            component: The component name.
+            chunk: The completion event chunk.
+        """
+        data = block._data
+        msg = chunk.get("message", "")
+
+        if component == "task_extraction":
+            # T:OUT = task
+            task = data.get("task", "")
+            block.set_output(task if task else (msg if msg else "Task extracted"))
+
+        elif component == "classifier":
+            # C:OUT = capability checklist
+            selected_caps = data.get("capability_names", [])
+            if selected_caps and isinstance(block, ClassificationBlock):
+                block.set_capabilities(self.all_capability_names, selected_caps)
+            else:
+                block.set_output(msg if msg else "Classification complete")
+
+        elif component == "orchestrator":
+            # O:OUT = planned steps
+            steps = data.get("steps", [])
+            if steps and isinstance(block, OrchestrationBlock):
+                block.set_plan(steps)
+            else:
+                block.set_output(msg if msg else "Planning complete")
+
     @work(exclusive=True)
     async def process_with_agent(self, user_input: str) -> None:
         """Process user input through Gateway and stream response."""
@@ -849,20 +1148,32 @@ class OspreyTUI(App):
                 return
 
             # Determine input for streaming
-            input_data = (
-                result.resume_command if result.resume_command else result.agent_state
-            )
+            input_data = result.resume_command if result.resume_command else result.agent_state
 
             if input_data is None:
                 return
 
-            # Stream with block updates (no StreamingMessage yet)
-            async for chunk in self.graph.astream(
-                input_data,
-                config=self.base_config,
-                stream_mode="custom",
-            ):
-                self._handle_block_update(chunk, user_input, chat_display)
+            # Start event consumer before streaming
+            consumer_task = asyncio.create_task(self._consume_events(user_input, chat_display))
+
+            try:
+                # Stream events to queue (consumer processes them)
+                async for chunk in self.graph.astream(
+                    input_data,
+                    config=self.base_config,
+                    stream_mode="custom",
+                ):
+                    await chat_display._event_queue.put(chunk)
+
+                # Wait for queue to be fully processed
+                await chat_display._event_queue.join()
+            finally:
+                # Cancel consumer when done
+                consumer_task.cancel()
+                try:
+                    await consumer_task
+                except asyncio.CancelledError:
+                    pass
 
             # Get final state
             state = self.graph.get_state(config=self.base_config)
@@ -878,9 +1189,7 @@ class OspreyTUI(App):
             if state.interrupts:
                 interrupt = state.interrupts[0]
                 user_msg = interrupt.value.get("user_message", "Approval required")
-                streaming_msg.finalize(
-                    f"⚠️ {user_msg}\n\nRespond with 'yes'/'no' or feedback."
-                )
+                streaming_msg.finalize(f"⚠️ {user_msg}\n\nRespond with 'yes'/'no' or feedback.")
                 return
 
             # Show final response
@@ -889,359 +1198,11 @@ class OspreyTUI(App):
         except Exception as e:
             chat_display.add_message(f"Error: {e}", "assistant")
 
-    def _get_next_component(self, component: str) -> str | None:
-        """Get the next component in the task preparation sequence."""
-        sequence = {"task_extraction": "classifier", "classifier": "orchestrator"}
-        return sequence.get(component)
-
-    def _get_prev_component(self, component: str) -> str | None:
-        """Get the previous component in the task preparation sequence."""
-        sequence = {"classifier": "task_extraction", "orchestrator": "classifier"}
-        return sequence.get(component)
-
-    def _close_and_create_retry(
-        self,
-        close_component: str,
-        create_component: str,
-        user_query: str,
-        display: ChatDisplay,
-    ) -> None:
-        """Close a block as error and create a retry block.
-
-        Args:
-            close_component: Component whose block to close.
-            create_component: Component to create retry block for.
-            user_query: Original user query.
-            display: Chat display widget.
-        """
-        # Close the current block for close_component
-        block = self._get_current_block(close_component, display)
-        if block and block._status == "active":
-            block.set_output("Retry required", status="error")
-
-        # Mark retry and create new block
-        display._retry_triggered.add(create_component)
-        display._seen_start_events.discard(create_component)
-        self._create_and_activate_block(create_component, user_query, display)
-
-    def _create_and_activate_block(
-        self, component: str, user_query: str, display: ChatDisplay
-    ) -> ProcessingBlock | None:
-        """Create and activate a processing block with automatic retry detection.
-
-        Retry detection is handled here: if a completed block exists for this
-        component, we increment the attempt index and create a new block.
-
-        Args:
-            component: The component name (task_extraction, classifier, orchestrator).
-            user_query: The original user query.
-            display: The chat display widget.
-
-        Returns:
-            The created or existing block, or None if invalid component.
-        """
-        # Get current attempt index for this component
-        attempt_idx = display._component_attempt_index.get(component, 0)
-        block_key = f"{component}_{attempt_idx}"
-
-        # Check existing block state
-        existing = display._current_blocks.get(block_key)
-
-        # If block exists and is still active, return it (no new block needed)
-        if existing and existing._status == "active":
-            return existing
-
-        # If block exists and is COMPLETED, check if retry was triggered
-        if existing and existing._status in ("success", "error"):
-            # Only create new block if retry was explicitly triggered
-            if component in display._retry_triggered:
-                attempt_idx += 1
-                display._component_attempt_index[component] = attempt_idx
-                display._retry_triggered.discard(component)
-                block_key = f"{component}_{attempt_idx}"
-            else:
-                # Block complete, no retry - return existing (don't create new)
-                return existing
-
-        # Determine block class and title
-        block_classes = {
-            "task_extraction": (TaskExtractionBlock, "Task Extraction"),
-            "classifier": (ClassificationBlock, "Classification"),
-            "orchestrator": (OrchestrationBlock, "Orchestration"),
-        }
-
-        if component not in block_classes:
-            return None
-
-        block_class, base_title = block_classes[component]
-
-        # Add retry number to title if not first attempt
-        title = base_title if attempt_idx == 0 else f"{base_title} (retry #{attempt_idx})"
-
-        # Create and mount the block
-        block = block_class()
-        block.title = title  # Override the default title
-        display._current_blocks[block_key] = block
-        display.mount(block)
-        display.scroll_end(animate=False)
-
-        block.set_active()
-
-        # Apply any pending messages that arrived before block existed
-        self._apply_pending_messages(block, component, display)
-
-        # Set appropriate input text (only if not already set from pending messages)
-        if not block._input_set:
-            if component == "task_extraction":
-                block.set_input(user_query)
-            elif component == "classifier":
-                input_text = "Reclassifying..." if attempt_idx > 0 else "Analyzing task..."
-                block.set_input(input_text, mark_set=False)
-            elif component == "orchestrator":
-                input_text = "Re-planning..." if attempt_idx > 0 else "Creating plan..."
-                block.set_input(input_text, mark_set=False)
-
-        return block
-
-    def _handle_block_update(
-        self, chunk: dict, user_query: str, display: ChatDisplay
-    ) -> None:
-        """Route streaming event to appropriate block.
-
-        Handles deferred block creation: START events are recorded, and
-        blocks are created when the previous block completes.
-
-        Args:
-            chunk: The streaming event data.
-            user_query: The original user query.
-            display: The chat display widget.
-        """
-        event_type = chunk.get("event_type", "")
-
-        # DEBUG: Log events to debug block (if enabled)
-        if event_type in ("status", "success", "error", "warning"):
-            debug_block = display.get_or_create_debug_block()
-            if debug_block:
-                debug_block.add_event(chunk)
-
-        # Accept status, success, error, and warning events
-        if event_type not in ("status", "success", "error", "warning"):
-            return
-
-        component = chunk.get("component", "")
-        phase = chunk.get("phase", "")
-        # success event = completion, or explicit complete flag
-        is_complete = (event_type == "success") or chunk.get("complete", False)
-
-        # Dispatch by phase
-        if phase == "Task Preparation":
-            self._handle_task_preparation_event(
-                chunk, component, is_complete, event_type, user_query, display
-            )
-        elif phase == "Execution":
-            self._handle_execution_event(chunk, component, is_complete, event_type, display)
-
-    def _get_current_block(
-        self, component: str, display: ChatDisplay
-    ) -> ProcessingBlock | None:
+    def _get_current_block(self, component: str, display: ChatDisplay) -> ProcessingBlock | None:
         """Get the current active block for a component."""
         attempt_idx = display._component_attempt_index.get(component, 0)
         block_key = f"{component}_{attempt_idx}"
         return display._current_blocks.get(block_key)
-
-    def _queue_pending_message(
-        self,
-        display: ChatDisplay,
-        component: str,
-        event_type: str,
-        msg: str,
-        chunk: dict,
-    ) -> None:
-        """Queue a message for a component whose block doesn't exist yet.
-
-        Args:
-            display: The chat display widget.
-            component: The component name.
-            event_type: The event type (status, success, error, warning).
-            msg: The message text.
-            chunk: The full streaming event data.
-        """
-        if component not in display._pending_messages:
-            display._pending_messages[component] = []
-        display._pending_messages[component].append((event_type, msg, chunk))
-
-    def _apply_pending_messages(
-        self,
-        block: ProcessingBlock,
-        component: str,
-        display: ChatDisplay,
-    ) -> None:
-        """Apply queued messages to a newly created block.
-
-        Args:
-            block: The processing block to apply messages to.
-            component: The component name.
-            display: The chat display widget.
-        """
-        if component not in display._pending_messages:
-            return
-        for event_type, msg, chunk in display._pending_messages[component]:
-            if msg:
-                block.add_log(msg, status=event_type)
-                # Also try to update IN from these messages
-                if not block._input_set:
-                    self._update_block_input_from_streaming(block, component, msg, chunk)
-        # Clear the queue
-        del display._pending_messages[component]
-
-    def _update_block_input_from_streaming(
-        self,
-        block: ProcessingBlock,
-        component: str,
-        msg: str,
-        chunk: dict,
-    ) -> None:
-        """Update block IN from streaming message when info is available.
-
-        Args:
-            block: The processing block to update.
-            component: The component name.
-            msg: The streaming message.
-            chunk: The full streaming event data.
-        """
-        if component == "classifier":
-            # Look for "Classifying task:" in message
-            if "classifying task:" in msg.lower():
-                # Extract task from message (after the colon)
-                idx = msg.lower().find("classifying task:")
-                task = msg[idx + len("classifying task:"):].strip()
-                if task:
-                    block.set_input(task)
-        elif component == "orchestrator":
-            # Look for task and capabilities info
-            task = chunk.get("task", "")
-            caps = chunk.get("capabilities", [])
-            if task and caps:
-                block.set_input(f"{task} → [{', '.join(caps)}]")
-            elif "planning for task:" in msg.lower():
-                # Extract task from message
-                idx = msg.lower().find("planning for task:")
-                task = msg[idx + len("planning for task:"):].strip()
-                if task:
-                    # Set with placeholder - will be updated when caps arrive
-                    block.set_input(task, mark_set=False)
-
-    def _handle_task_preparation_event(
-        self,
-        chunk: dict,
-        component: str,
-        is_complete: bool,
-        event_type: str,
-        user_query: str,
-        display: ChatDisplay,
-    ) -> None:
-        """Handle Task Preparation phase events with LOG/OUT separation.
-
-        Retry detection is handled in _create_and_activate_block(), not here.
-        Status messages go to LOG section, final output goes to OUT section.
-
-        Args:
-            chunk: The streaming event data.
-            component: The component name.
-            is_complete: Whether this is a completion event.
-            event_type: The event type (status, success, error, warning).
-            user_query: The original user query.
-            display: The chat display widget.
-        """
-        msg = chunk.get("message", "")
-
-        # Handle ERROR events - log and finalize block
-        if event_type == "error":
-            block = self._get_current_block(component, display)
-            if block and block._status == "active":
-                if msg:
-                    block.add_log(msg, status="error")
-                block.set_output(msg if msg else f"{component} error", status="error")
-            return
-
-        # Handle WARNING events - just log, don't change block status
-        # Block closure is handled by retry indicators ("Reclassifying...", "Re-planning...")
-        if event_type == "warning":
-            block = self._get_current_block(component, display)
-            if block and block._status == "active" and msg:
-                block.add_log(msg, status="warning")
-            return
-
-        # Handle COMPLETION - log and set final output
-        if is_complete:
-            block = self._get_current_block(component, display)
-            if block:
-                if msg:
-                    block.add_log(msg, status="success")
-
-                # Special handling for classifier - populate capability list
-                if component == "classifier" and isinstance(block, ClassificationBlock):
-                    selected_caps = chunk.get("capability_names", [])
-                    if selected_caps:
-                        block.set_capabilities(self.all_capability_names, selected_caps)
-                    else:
-                        block.set_output(msg if msg else "Classification complete")
-                else:
-                    block.set_output(msg if msg else f"{component} complete")
-
-            # Check if next block's START was already seen, create it now
-            next_component = self._get_next_component(component)
-            if next_component and next_component in display._seen_start_events:
-                self._create_and_activate_block(next_component, user_query, display)
-
-            # When classifier completes, check if orchestrator needs new attempt
-            if component == "classifier":
-                next_component = "orchestrator"
-                next_block = self._get_current_block(next_component, display)
-                if next_block and next_block._status == "error":
-                    # Orchestrator failed earlier, classifier just retried, create new O
-                    display._retry_triggered.add(next_component)
-                    self._create_and_activate_block(next_component, user_query, display)
-            return
-
-        # Check for retry indicators - close old block and create retry immediately
-        if msg:
-            msg_lower = msg.lower()
-            if "reclassifying" in msg_lower:
-                # Orchestrator failed, need new capabilities
-                # Close orchestrator, create classifier retry
-                self._close_and_create_retry("orchestrator", "classifier", user_query, display)
-            elif "re-planning" in msg_lower:
-                # Orchestrator needs to retry planning
-                # Close orchestrator, create new orchestrator
-                self._close_and_create_retry("orchestrator", "orchestrator", user_query, display)
-
-        # Only run block creation on FIRST event for this component
-        is_first_event = component not in display._seen_start_events
-        if is_first_event:
-            display._seen_start_events.add(component)
-
-            if component == "task_extraction":
-                # First block - always create immediately
-                self._create_and_activate_block(component, user_query, display)
-            elif component in ("classifier", "orchestrator"):
-                # Check if previous is complete - if so, create now
-                prev_component = self._get_prev_component(component)
-                prev_block = self._get_current_block(prev_component, display)
-                if prev_block and prev_block._status in ("success", "error"):
-                    self._create_and_activate_block(component, user_query, display)
-                # Otherwise: deferred, will be created when prev completes
-
-        # Handle STATUS events - log message to existing block OR queue it
-        block = self._get_current_block(component, display)
-        if block and msg:
-            block.add_log(msg, status="status")
-            # Update IN from streaming when info is available
-            if not block._input_set:
-                self._update_block_input_from_streaming(block, component, msg, chunk)
-        elif msg:
-            # Block doesn't exist yet - queue the message for later
-            self._queue_pending_message(display, component, "status", msg, chunk)
 
     def _handle_execution_event(
         self,
@@ -1331,9 +1292,7 @@ class OspreyTUI(App):
         te_key = f"task_extraction_{te_idx}"
         if te_key in display._current_blocks:
             task = state.get("task_current_task", "")
-            display._current_blocks[te_key].set_output(
-                task if task else "No task extracted"
-            )
+            display._current_blocks[te_key].set_output(task if task else "No task extracted")
 
         # Classification: update input (if not already set) and capabilities
         cl_key = f"classifier_{cl_idx}"
@@ -1387,9 +1346,7 @@ class OspreyTUI(App):
                         success = result.get("success", True)
                         block.set_output("Completed", status="success" if success else "error")
 
-    def _show_final_response(
-        self, state: dict, streaming_msg: StreamingMessage
-    ) -> None:
+    def _show_final_response(self, state: dict, streaming_msg: StreamingMessage) -> None:
         """Show final AI response.
 
         Args:
