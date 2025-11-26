@@ -3,6 +3,7 @@
 A Terminal User Interface for the Osprey Agent Framework built with Textual.
 """
 
+import textwrap
 import uuid
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -11,8 +12,7 @@ from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer, Vertical
 from textual.events import Key
 from textual.message import Message
-from textual.widgets import Collapsible, Footer, Header, SelectionList, Static, TextArea
-from textual.widgets.selection_list import Selection
+from textual.widgets import Collapsible, Footer, Header, Static, TextArea
 
 from osprey.graph import create_graph
 from osprey.infrastructure.gateway import Gateway
@@ -246,8 +246,8 @@ class ProcessingBlock(Static):
     def _apply_input(self, text: str) -> None:
         """Internal: apply input text with bold label."""
         input_widget = self.query_one("#block-input", Static)
-        # Bold label with fixed width (4 chars: "IN  " or "OUT ")
-        input_widget.update(f"[bold]IN[/bold]    {text}")
+        # Add 2-space prefix to align with Collapsible's inherent padding for OUT
+        input_widget.update(f"  [bold]IN[/bold]    {text}")
 
     def _get_preview(self, text: str, max_len: int = 60) -> str:
         """Get one-line preview of output."""
@@ -332,7 +332,7 @@ class TaskExtractionBlock(ProcessingBlock):
 
 
 class ClassificationBlock(ProcessingBlock):
-    """Block for capability classification phase with checkbox list."""
+    """Block for capability classification phase with simple text output."""
 
     def __init__(self, **kwargs):
         """Initialize classification block."""
@@ -340,51 +340,8 @@ class ClassificationBlock(ProcessingBlock):
         self._all_capabilities: list[str] = []
         self._selected_capabilities: list[str] = []
 
-    def compose(self) -> ComposeResult:
-        """Override to add SelectionList inside Collapsible."""
-        header_text = f"{self.INDICATOR_PENDING} {self.title}"
-        yield Static(header_text, classes="block-header", id="block-header")
-        yield Static("", classes="block-input", id="block-input")
-        yield Static("─" * 120, classes="block-separator", id="block-separator")
-        # Collapsible with SelectionList inside (hide built-in arrows)
-        yield Collapsible(
-            SelectionList[str](id="capability-list"),
-            title="",
-            collapsed=True,
-            collapsed_symbol="",
-            expanded_symbol="",
-            id="block-output",
-        )
-
-    def on_mount(self) -> None:
-        """Apply pending state after widget is mounted."""
-        self._mounted = True
-        separator = self.query_one("#block-separator", Static)
-        separator.display = False
-        output = self.query_one("#block-output", Collapsible)
-        output.display = False
-        # Apply pending state
-        if self._status == "active":
-            self._apply_active()
-        if self._pending_input is not None:
-            self._apply_input(self._pending_input)
-        if self._all_capabilities:
-            self._apply_capability_output()
-
-    def set_output(self, text: str, success: bool = True) -> None:
-        """Override to prevent base class from querying missing widgets.
-
-        ClassificationBlock uses set_capabilities() instead of set_output().
-        This is called during streaming completion but the actual data comes
-        from _finalize_blocks() which calls set_capabilities().
-        """
-        # Store the status but don't try to render - set_capabilities handles
-        self._status = "success" if success else "error"
-
-    def set_capabilities(
-        self, all_caps: list[str], selected: list[str]
-    ) -> None:
-        """Show capabilities as checklist.
+    def set_capabilities(self, all_caps: list[str], selected: list[str]) -> None:
+        """Show capabilities as simple text with checkmarks (fast rendering).
 
         Args:
             all_caps: All available capabilities.
@@ -392,53 +349,15 @@ class ClassificationBlock(ProcessingBlock):
         """
         self._all_capabilities = all_caps
         self._selected_capabilities = selected
-        self._status = "success"
-        if self._mounted:
-            self._apply_capability_output()
 
-    def _apply_capability_output(self) -> None:
-        """Apply capability list with collapsible preview."""
-        self._stop_breathing()
+        # Format as simple text with checkmarks - much faster than SelectionList
+        lines = []
+        for cap in all_caps:
+            marker = "✓" if cap in selected else "·"
+            lines.append(f"{marker} {cap}")
 
-        # Update header indicator
-        header = self.query_one("#block-header", Static)
-        header.update(f"{self.INDICATOR_SUCCESS} {self.title}")
-
-        # Show separator
-        separator = self.query_one("#block-separator", Static)
-        separator.display = True
-
-        # Create preview: comma-separated selected capabilities
-        preview = ", ".join(self._selected_capabilities) if self._selected_capabilities else "None"
-        self._output_preview = self._get_preview(preview)
-
-        # Show and update collapsible
-        output = self.query_one("#block-output", Collapsible)
-        output.display = True
-        output.title = f"[bold]OUT[/bold]   ▸ {self._output_preview}"
-
-        # Populate SelectionList inside collapsible
-        capability_list = self.query_one("#capability-list", SelectionList)
-        capability_list.clear_options()
-        for cap in self._all_capabilities:
-            is_selected = cap in self._selected_capabilities
-            capability_list.add_option(
-                Selection(cap, cap, initial_state=is_selected)
-            )
-        capability_list.disabled = True
-
-        self.remove_class("block-active")
-
-    def on_collapsible_expanded(self, event: Collapsible.Expanded) -> None:
-        """Show expanded arrow with spaces to maintain clickable area."""
-        if event.collapsible.id == "block-output":
-            spaces = " " * len(self._output_preview) if self._output_preview else "   "
-            event.collapsible.title = f"[bold]OUT[/bold]   ▾ {spaces}"
-
-    def on_collapsible_collapsed(self, event: Collapsible.Collapsed) -> None:
-        """Show collapsed arrow with preview."""
-        if event.collapsible.id == "block-output":
-            event.collapsible.title = f"[bold]OUT[/bold]   ▸ {self._output_preview}"
+        output_text = "\n".join(lines) if lines else "No capabilities"
+        self.set_output(output_text)
 
 
 class OrchestrationBlock(ProcessingBlock):
@@ -449,18 +368,32 @@ class OrchestrationBlock(ProcessingBlock):
         super().__init__("Orchestration", **kwargs)
 
     def set_plan(self, steps: list[dict]) -> None:
-        """Show execution plan steps with aligned numbers.
+        """Show execution plan steps with proper wrapping alignment.
 
         Args:
             steps: List of execution plan step dicts.
         """
         lines = []
+        # Prefix width: " 1. " = 4 chars, use 5 for cleaner indent
+        indent = "     "  # 5 spaces for continuation lines
+        width = 90  # Reasonable wrap width
+
         for i, step in enumerate(steps, 1):
             objective = step.get("task_objective", "")
             capability = step.get("capability", "")
-            # Fixed-width number (3 chars: " 1." to "99.")
-            num = f"{i:2}."
-            lines.append(f"{num} {objective} [{capability}]")
+
+            prefix = f"{i:2}. "
+            content = f"{objective} [{capability}]"
+
+            # Wrap with hanging indent for continuation lines
+            wrapped = textwrap.fill(
+                content,
+                width=width,
+                initial_indent=prefix,
+                subsequent_indent=indent
+            )
+            lines.append(wrapped)
+
         self.set_output("\n".join(lines) if lines else "No steps")
 
 
@@ -674,6 +607,9 @@ class OspreyTUI(App):
         initialize_registry(config_path=self.config_path)
         registry = get_registry()
 
+        # Cache all capability names for classification block (avoids delay later)
+        self.all_capability_names = registry.get_stats()["capability_names"]
+
         # Create checkpointer and graph
         checkpointer = MemorySaver()
         self.graph = create_graph(registry, checkpointer=checkpointer)
@@ -854,7 +790,17 @@ class OspreyTUI(App):
             block = display._current_blocks.get(component)
             if block:
                 msg = chunk.get("message", f"{component} complete")
-                block.set_output(msg)
+
+                # Special handling for classifier - populate checkbox list immediately
+                if component == "classifier" and isinstance(block, ClassificationBlock):
+                    selected_caps = chunk.get("capability_names", [])
+                    if selected_caps:
+                        # Use cached all_capabilities + selected from streaming
+                        block.set_capabilities(self.all_capability_names, selected_caps)
+                    else:
+                        block.set_output(msg)
+                else:
+                    block.set_output(msg)
 
             # Check if next block's START was already seen, create it now
             next_component = self._get_next_component(component)
@@ -892,18 +838,15 @@ class OspreyTUI(App):
                 task if task else "No task extracted"
             )
 
-        # Classification output - use set_capabilities for checkbox list
+        # Classification: update input and set capabilities from state
         if "classifier" in display._current_blocks:
-            # Set input from task_current_task
             task = state.get("task_current_task", "")
             if task:
                 display._current_blocks["classifier"].set_input(task)
-            # Get all capabilities from registry and selected ones from state
-            registry = get_registry()
-            all_caps = registry.get_stats()["capability_names"]
+            # Use cached all_capabilities (fast) + selected from state
             selected_caps = state.get("planning_active_capabilities", [])
             display._current_blocks["classifier"].set_capabilities(
-                all_caps, selected_caps
+                self.all_capability_names, selected_caps
             )
 
         # Orchestration output - no truncation
