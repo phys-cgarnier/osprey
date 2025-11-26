@@ -145,20 +145,35 @@ OrchestrationBlock {
     margin: 0;
 }
 
-/* Separator between IN and OUT */
+/* Separator between IN and OUT - full width */
 .block-separator {
     width: 100%;
+    height: 1;
     color: $surface-lighten-2;
     margin: 0;
+    overflow: hidden;
 }
 
-/* Collapsible OUT section - custom widget */
-.block-output-collapsible,
-CollapsibleOutput {
+/* Collapsible OUT section - official Collapsible widget */
+#block-output {
     width: 100%;
-    color: $success;
     margin: 0;
     padding: 0;
+    border: none;
+    background: transparent;
+}
+
+#block-output > CollapsibleTitle {
+    color: $success;
+    padding: 0;
+    background: transparent;
+}
+
+#block-output-content {
+    width: 100%;
+    color: $success-darken-1;
+    padding-left: 2;
+    margin: 0;
 }
 
 /* Debug block for event visualization */

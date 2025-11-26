@@ -11,7 +11,7 @@ from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer, Vertical
 from textual.events import Key
 from textual.message import Message
-from textual.widgets import Footer, Header, Static, TextArea
+from textual.widgets import Collapsible, Footer, Header, Static, TextArea
 
 from osprey.graph import create_graph
 from osprey.infrastructure.gateway import Gateway
@@ -146,37 +146,6 @@ class DebugBlock(Static):
             self._update_display()
 
 
-class CollapsibleOutput(Static):
-    """A clickable output section that toggles between preview and full content."""
-
-    def __init__(self, **kwargs):
-        """Initialize collapsible output."""
-        super().__init__(**kwargs)
-        self._collapsed = True
-        self._preview = ""
-        self._full_content = ""
-
-    def on_click(self) -> None:
-        """Toggle between collapsed and expanded view."""
-        self._collapsed = not self._collapsed
-        self._update_display()
-
-    def set_content(self, preview: str, full_content: str) -> None:
-        """Set the preview and full content."""
-        self._preview = preview
-        self._full_content = full_content
-        self._update_display()
-
-    def _update_display(self) -> None:
-        """Update the displayed content based on collapsed state."""
-        if self._collapsed:
-            symbol = "▸"
-            self.update(f"{symbol} OUT: {self._preview}")
-        else:
-            symbol = "▾"
-            self.update(f"{symbol} OUT: {self._preview}\n{self._full_content}")
-
-
 class ProcessingBlock(Static):
     """Base class for processing blocks with indicator, input, and collapsible output."""
 
@@ -211,9 +180,15 @@ class ProcessingBlock(Static):
         header_text = f"{self.INDICATOR_PENDING} {self.title}"
         yield Static(header_text, classes="block-header", id="block-header")
         yield Static("", classes="block-input", id="block-input")
-        yield Static("─" * 40, classes="block-separator", id="block-separator")
-        # Custom collapsible OUT section
-        yield CollapsibleOutput(classes="block-output-collapsible", id="block-output")
+        # Full-width separator (will be truncated by container)
+        yield Static("─" * 120, classes="block-separator", id="block-separator")
+        # Official Collapsible widget for OUT section
+        yield Collapsible(
+            Static("", id="block-output-content"),
+            title="OUT:",
+            collapsed=True,
+            id="block-output",
+        )
 
     def on_mount(self) -> None:
         """Apply pending state after widget is mounted."""
@@ -221,8 +196,8 @@ class ProcessingBlock(Static):
         # Hide separator initially
         separator = self.query_one("#block-separator", Static)
         separator.display = False
-        # Hide output initially
-        output = self.query_one("#block-output", CollapsibleOutput)
+        # Hide output initially (official Collapsible)
+        output = self.query_one("#block-output", Collapsible)
         output.display = False
         # Apply pending state
         if self._status == "active":
@@ -293,10 +268,13 @@ class ProcessingBlock(Static):
         # Create one-line preview
         preview = self._get_preview(text)
 
-        # Show and update collapsible output
-        output = self.query_one("#block-output", CollapsibleOutput)
+        # Show and update collapsible output (official Collapsible)
+        output = self.query_one("#block-output", Collapsible)
         output.display = True
-        output.set_content(preview, text)
+        output.title = f"OUT: {preview}"
+        # Update the content inside the collapsible
+        content = self.query_one("#block-output-content", Static)
+        content.update(text)
 
         self.remove_class("block-active")
 
