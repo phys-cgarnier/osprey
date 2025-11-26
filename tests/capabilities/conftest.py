@@ -14,6 +14,12 @@ def pytest_configure(config):
     mock_reg.context_types = MagicMock()
     mock_reg.services = MagicMock()
 
+    # Mock registry methods to avoid isinstance() errors
+    mock_reg._registries = {}  # Empty dict to bypass validation
+    mock_reg.is_valid_context_type = MagicMock(return_value=True)
+    mock_reg.get_context_class = MagicMock(return_value=None)  # Return None to skip type validation
+    mock_reg.get_all_context_types = MagicMock(return_value=[])
+
     # Mock the get_registry function at module level
     import osprey.registry.manager
 

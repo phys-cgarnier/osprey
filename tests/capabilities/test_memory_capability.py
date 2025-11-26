@@ -55,10 +55,6 @@ class TestMemoryCapabilityApprovalPath:
             MagicMock(return_value=(True, approved_payload)),
         )
 
-        monkeypatch.setattr(
-            "osprey.capabilities.memory.get_streamer", MagicMock(return_value=MagicMock())
-        )
-
         mock_sm = MagicMock()
         mock_sm.store_context.return_value = {"context_data": {}}
         monkeypatch.setattr("osprey.capabilities.memory.StateManager", mock_sm)
