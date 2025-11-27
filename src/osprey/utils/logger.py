@@ -175,6 +175,34 @@ class ComponentLogger:
             # Graceful degradation for environments where Rich markup fails
             return f"{emoji}{self.component_name.title()}: {message}"
 
+    def _build_extra(self, message: str, log_type: str, **kwargs) -> dict:
+        """Build extra dict with raw message, log type, and all streaming data.
+
+        This embeds all the data that streaming events carry into the Python log,
+        enabling TUI to get all data from a single source (Python logging).
+
+        Args:
+            message: The raw message (without Rich markup)
+            log_type: The log type (status, success, error, info, etc.)
+            **kwargs: Additional data fields (task, capabilities, steps, etc.)
+
+        Returns:
+            Dict to pass as extra= parameter to base_logger
+        """
+        extra = {
+            "raw_message": message,
+            "log_type": log_type,
+        }
+        # Include all streaming data fields (for TUI to extract)
+        for key in ["task", "capabilities", "capability_names", "steps", "phase", "step_num", "step_name"]:
+            if key in kwargs:
+                extra[key] = kwargs[key]
+        # Also include step info from state if available
+        if self._step_info:
+            if "phase" not in extra and "phase" in self._step_info:
+                extra["phase"] = self._step_info.get("phase", "")
+        return extra
+
     def status(self, message: str, **kwargs) -> None:
         """Status update - logs and streams automatically.
 
@@ -189,7 +217,10 @@ class ComponentLogger:
             logger.status("Creating execution plan...")
             logger.status("Processing batch 2/5", batch=2, total=5)
         """
-        self.key_info(message)  # Log to CLI with bold formatting
+        style = f"bold {self.color}" if self.color != "white" else "bold white"
+        formatted = self._format_message(message, style, '⏳ ')
+        extra = self._build_extra(message, "status", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
         self._emit_stream_event(message, "status", **kwargs)
 
     def key_info(self, message: str, stream: bool = False, **kwargs) -> None:
@@ -202,7 +233,8 @@ class ComponentLogger:
         """
         style = f"bold {self.color}" if self.color != "white" else "bold white"
         formatted = self._format_message(message, style, '')
-        self.base_logger.info(formatted)
+        extra = self._build_extra(message, "key_info", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "key_info", **kwargs)
@@ -223,7 +255,8 @@ class ComponentLogger:
             logger.info("Step completed", stream=True)  # CLI + stream
         """
         formatted = self._format_message(message, self.color, '')
-        self.base_logger.info(formatted)
+        extra = self._build_extra(message, "info", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "info", **kwargs)
@@ -240,7 +273,8 @@ class ComponentLogger:
         """
         style = f"dim {self.color}" if self.color != "white" else "dim white"
         formatted = self._format_message(message, style, '🔍 ')
-        self.base_logger.debug(formatted)
+        extra = self._build_extra(message, "debug", **kwargs)
+        self.base_logger.debug(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "debug", **kwargs)
@@ -256,7 +290,8 @@ class ComponentLogger:
             **kwargs: Additional metadata for streaming event
         """
         formatted = self._format_message(message, "bold yellow", '⚠️  ')
-        self.base_logger.warning(formatted)
+        extra = self._build_extra(message, "warning", **kwargs)
+        self.base_logger.warning(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "warning", warning=True, **kwargs)
@@ -272,7 +307,8 @@ class ComponentLogger:
             **kwargs: Additional error metadata for streaming event
         """
         formatted = self._format_message(message, "bold red", '❌ ')
-        self.base_logger.error(formatted, exc_info=exc_info)
+        extra = self._build_extra(message, "error", **kwargs)
+        self.base_logger.error(formatted, exc_info=exc_info, extra=extra)
         self._emit_stream_event(message, "error", error=True, **kwargs)
 
     def success(self, message: str, stream: bool = True, **kwargs) -> None:
@@ -286,7 +322,8 @@ class ComponentLogger:
             **kwargs: Additional metadata for streaming event
         """
         formatted = self._format_message(message, "bold green", '✅ ')
-        self.base_logger.info(formatted)
+        extra = self._build_extra(message, "success", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "success", **kwargs)
@@ -300,7 +337,8 @@ class ComponentLogger:
             **kwargs: Additional metadata for streaming event
         """
         formatted = self._format_message(message, "bold white", '🕒 ')
-        self.base_logger.info(formatted)
+        extra = self._build_extra(message, "timing", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "timing", **kwargs)
@@ -316,7 +354,8 @@ class ComponentLogger:
             **kwargs: Additional metadata for streaming event
         """
         formatted = self._format_message(message, "bold yellow", '🔍⚠️ ')
-        self.base_logger.info(formatted)
+        extra = self._build_extra(message, "approval", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "approval", **kwargs)
@@ -332,7 +371,8 @@ class ComponentLogger:
             **kwargs: Additional metadata for streaming event
         """
         formatted = self._format_message(message, "bold green", '🔄 ')
-        self.base_logger.info(formatted)
+        extra = self._build_extra(message, "resume", **kwargs)
+        self.base_logger.info(formatted, extra=extra)
 
         if stream:
             self._emit_stream_event(message, "resume", **kwargs)
