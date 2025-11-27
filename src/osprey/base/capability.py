@@ -991,7 +991,13 @@ class BaseCapability(ABC):
         :rtype: Optional[OrchestratorGuide]
         """
         if not hasattr(self, '_orchestrator_guide'):
-            self._orchestrator_guide = self._create_orchestrator_guide()
+            try:
+                self._orchestrator_guide = self._create_orchestrator_guide()
+            except Exception as e:
+                self.get_logger().warning(
+                    f"Failed to create orchestrator guide for capability '{self.name}': {e}"
+                )
+                self._orchestrator_guide = None
         return self._orchestrator_guide
 
     @property
@@ -1005,7 +1011,13 @@ class BaseCapability(ABC):
         :rtype: Optional[TaskClassifierGuide]
         """
         if not hasattr(self, '_classifier_guide'):
-            self._classifier_guide = self._create_classifier_guide()
+            try:
+                self._classifier_guide = self._create_classifier_guide()
+            except Exception as e:
+                self.get_logger().warning(
+                    f"Failed to create classifier guide for capability '{self.name}': {e}"
+                )
+                self._classifier_guide = None
         return self._classifier_guide
 
     def __repr__(self) -> str:

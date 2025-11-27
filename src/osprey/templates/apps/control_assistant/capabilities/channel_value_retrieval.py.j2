@@ -28,17 +28,10 @@ Configuration:
     The capability code remains the same - just change the config!
 """
 
-import logging
 import textwrap
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional
-
-if TYPE_CHECKING:
-    pass
+from typing import Any, Dict, Optional
 
 from osprey.base.capability import BaseCapability
-
-# Import production patterns
 from osprey.base.decorators import capability_node
 from osprey.base.errors import ErrorClassification, ErrorSeverity
 from osprey.base.examples import (
@@ -49,22 +42,9 @@ from osprey.base.examples import (
     TaskClassifierGuide,
 )
 from osprey.base.planning import PlannedStep
-
-# Import connector factory for control system integration
 from osprey.connectors.factory import ConnectorFactory
-from osprey.context.context_manager import ContextManager
-from osprey.registry import get_registry
-from osprey.state import AgentState, StateManager
 
-# Import context classes
-from ..context_classes import ChannelAddressesContext, ChannelValue, ChannelValuesContext
-
-if TYPE_CHECKING:
-    pass
-
-logger = get_logger("channel_value_retrieval")
-
-
+from ..context_classes import ChannelValue, ChannelValuesContext
 
 # ========================================================
 # Channel-Related Errors
@@ -182,6 +162,7 @@ class ChannelValueRetrievalCapability(BaseCapability):
         merging them into a flat list of channel addresses.
         """
         channels_raw = contexts["CHANNEL_ADDRESSES"]
+        logger = self.get_logger()
 
         if isinstance(channels_raw, list):
             # Flatten multiple contexts into single channel list
@@ -312,39 +293,35 @@ class ChannelValueRetrievalCapability(BaseCapability):
 
     def _create_classifier_guide(self) -> Optional[TaskClassifierGuide]:
         """Create classifier for channel value retrieval."""
-        try:
-            return TaskClassifierGuide(
-                instructions="Determine if the task requires fetching current channel values. Look for requests about current values, statuses, or readings of specific channels.",
-                examples=[
-                    ClassifierExample(
-                        query="Which tools do you have?",
-                        result=False,
-                        reason="This is a question about the AI's capabilities."
-                    ),
-                    ClassifierExample(
-                        query="What is the current beam energy?",
-                        result=True,
-                        reason="The query asks for a current value."
-                    ),
-                    ClassifierExample(
-                        query="Read the current magnet current.",
-                        result=True,
-                        reason="The query asks to read the current value."
-                    ),
-                    ClassifierExample(
-                        query="What's the beam current right now?",
-                        result=True,
-                        reason="The query asks for a current value, which requires channel value retrieval."
-                    ),
-                    ClassifierExample(
-                        query="Show me historical beam current data.",
-                        result=False,
-                        reason="This is asking for historical data, not current values."
-                    )
-                ],
-                actions_if_true=ClassifierActions()
-            )
-        except Exception as e:
-            logger.warning(f"Failed to create classifier config: {e}")
-            return None
+        return TaskClassifierGuide(
+            instructions="Determine if the task requires fetching current channel values. Look for requests about current values, statuses, or readings of specific channels.",
+            examples=[
+                ClassifierExample(
+                    query="Which tools do you have?",
+                    result=False,
+                    reason="This is a question about the AI's capabilities."
+                ),
+                ClassifierExample(
+                    query="What is the current beam energy?",
+                    result=True,
+                    reason="The query asks for a current value."
+                ),
+                ClassifierExample(
+                    query="Read the current magnet current.",
+                    result=True,
+                    reason="The query asks to read the current value."
+                ),
+                ClassifierExample(
+                    query="What's the beam current right now?",
+                    result=True,
+                    reason="The query asks for a current value, which requires channel value retrieval."
+                ),
+                ClassifierExample(
+                    query="Show me historical beam current data.",
+                    result=False,
+                    reason="This is asking for historical data, not current values."
+                )
+            ],
+            actions_if_true=ClassifierActions()
+        )
 

@@ -17,8 +17,6 @@ if TYPE_CHECKING:
     from osprey.state import AgentState
 
 from osprey.base.capability import BaseCapability
-
-# Framework imports
 from osprey.base.decorators import capability_node
 from osprey.base.errors import ErrorClassification, ErrorSeverity
 from osprey.base.examples import (
@@ -30,13 +28,9 @@ from osprey.base.examples import (
 )
 from osprey.base.planning import PlannedStep
 from osprey.registry import get_registry
-from osprey.state import StateManager
 
-# Application imports
 from ..context_classes import ChannelAddressesContext
 from ..services.channel_finder.service import ChannelFinderService
-
-logger = get_logger("channel_finding")
 
 
 

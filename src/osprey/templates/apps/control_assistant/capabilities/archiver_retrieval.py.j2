@@ -25,14 +25,10 @@ Configuration:
     The capability code remains the same - just change the config!
 """
 
-import logging
 import textwrap
-from datetime import datetime
 from typing import Any, Dict, Optional
 
 from osprey.base.capability import BaseCapability
-
-# Import production patterns
 from osprey.base.decorators import capability_node
 from osprey.base.errors import ErrorClassification, ErrorSeverity
 from osprey.base.examples import (
@@ -43,17 +39,9 @@ from osprey.base.examples import (
     TaskClassifierGuide,
 )
 from osprey.base.planning import PlannedStep
-
-# Import connector factory for control system integration
 from osprey.connectors.factory import ConnectorFactory
-from osprey.context.context_manager import ContextManager
-from osprey.registry import get_registry
-from osprey.state import AgentState, StateManager
 
-# Application imports
-from ..context_classes import ArchiverDataContext, ChannelAddressesContext
-
-logger = get_logger("archiver_retrieval")
+from ..context_classes import ArchiverDataContext
 
 
 
@@ -230,7 +218,7 @@ class ArchiverRetrievalCapability(BaseCapability):
             channels_flat = []
             for ctx in channels_raw:
                 channels_flat.extend(ctx.channels)
-            logger.info(f"Merged {len(channels_raw)} CHANNEL_ADDRESSES contexts into {len(channels_flat)} total channels")
+            self.get_logger().info(f"Merged {len(channels_raw)} CHANNEL_ADDRESSES contexts into {len(channels_flat)} total channels")
             contexts["CHANNEL_ADDRESSES"] = channels_flat
         else:
             # Single context - extract channel list

@@ -45,8 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Backward compatible: existing `get_logger()` and `get_streamer()` patterns continue to work
 
 ### Changed
-- Moved exception handling for classifier/orchestrator guide creation to base class properties
-- Cleaned up unused imports and logger usage in capability templates
+- **Capability Base Class** - Moved exception handling for classifier/orchestrator guide creation to base class properties with warning logs
+- **Capability Templates** - Cleaned up unused imports and logger usage in all capability templates (control_assistant, minimal)
 
 ## [0.9.2] - 2025-11-25
 
