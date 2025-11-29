@@ -175,7 +175,10 @@ class ClassificationNode(BaseInfrastructureNode):
             registry = get_registry()
             active_capabilities = registry.get_stats()["capability_names"]
 
-            logger.success(f"Bypass mode: activated all {len(active_capabilities)} capabilities")
+            logger.success(
+                f"Bypass mode: activated all {len(active_capabilities)} capabilities",
+                capability_names=active_capabilities,
+            )
 
             # Return standardized classification result
             return _create_classification_result(
@@ -216,7 +219,8 @@ class ClassificationNode(BaseInfrastructureNode):
         )
 
         logger.success(
-            f"Classification completed with {len(active_capabilities)} active capabilities"
+            f"Classification completed with {len(active_capabilities)} active capabilities",
+            capability_names=active_capabilities,
         )
         logger.debug(f"Active capabilities: {active_capabilities}")
 

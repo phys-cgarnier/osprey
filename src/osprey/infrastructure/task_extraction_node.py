@@ -300,14 +300,17 @@ class TaskExtractionNode(BaseInfrastructureNode):
                     f" * Builds on previous context: {processed_task.depends_on_chat_history}"
                 )
                 logger.info(f" * Uses memory context: {processed_task.depends_on_user_memory}")
-                logger.success("Task extraction bypassed - full context ready")
+                logger.success(
+                    "Task extraction bypassed - full context ready",
+                    task=processed_task.task,
+                )
             else:
                 logger.info(f" * Extracted: '{processed_task.task[:100]}...'")
                 logger.info(
                     f" * Builds on previous context: {processed_task.depends_on_chat_history}"
                 )
                 logger.info(f" * Uses memory context: {processed_task.depends_on_user_memory}")
-                logger.success("Task extraction completed")
+                logger.success("Task extraction completed", task=processed_task.task)
 
             # Create direct state update with correct field names
             return {
