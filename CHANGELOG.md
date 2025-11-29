@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CLI Code Generator Commands**: New `osprey generate claude-config` command to generate Claude Code generator configuration files with sensible defaults and auto-detection of provider settings
+- **Interactive Menu Enhancements**: Added 'generate' command to project selection submenu, centralized menu choice management with `get_project_menu_choices()`, improved menu consistency between main and project selection flows
+
 ### Changed
 - **API Call Logging**: Enhanced with caller context tracking across all LLM-calling components. Logging metadata now includes capability/module/operation details for better debugging. Improved JSON serialization with Pydantic model support and better error visibility
 - **Claude Code Generator**: Simplified configuration model - removed 'balanced' profile and planning_modes abstraction. Profiles now directly specify phases to run. Default changed to 'fast' profile (single-phase generation). Unified prompt building into data-driven approach
+- **Registry Display**: Filtered infrastructure nodes table to exclude capability nodes, moved context classes to verbose-only mode, improved table clarity and better handling of tuple types in provides/requires fields
+- **MCP Generator Error Handling**: Enhanced with pre-flight connectivity checks using httpx, much clearer error messages when server is not running, and actionable instructions in error messages
 
 ### Removed
 - **Claude Code Generator**: Removed 'balanced' profile (use 'fast' or 'robust'), removed 'workflow_mode' configuration (use direct 'phases' list), removed planning_modes abstraction, removed dead code (_generate_direct, _generate_phased, _build_phase_options)

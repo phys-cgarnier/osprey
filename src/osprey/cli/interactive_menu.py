@@ -34,8 +34,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from rich.markdown import Markdown
-from rich.panel import Panel
 
 # Import centralized styles
 from osprey.cli.styles import (
@@ -555,6 +553,40 @@ def get_code_generator_metadata() -> dict[str, dict[str, Any]]:
 # MAIN MENU
 # ============================================================================
 
+def get_project_menu_choices(exit_action: str = 'exit') -> list[Choice]:
+    """Get standard project menu choices.
+
+    This is the single source of truth for project menu options,
+    used by both the main menu (when in a project) and the project
+    selection submenu (when navigating from parent directory).
+
+    Args:
+        exit_action: Either 'exit' (for main menu) or 'back' (for submenu)
+
+    Returns:
+        List of Choice objects for the project menu
+    """
+    choices = [
+        Choice("[>] chat        - Start CLI conversation", value='chat'),
+        Choice("[>] deploy      - Manage services (web UIs)", value='deploy'),
+        Choice("[>] health      - Run system health check", value='health'),
+        Choice("[>] generate    - Generate components", value='generate'),
+        Choice("[>] config      - Show configuration", value='config'),
+        Choice("[>] registry    - Show registry contents", value='registry'),
+        Choice("─" * 60, value=None, disabled=True),
+        Choice("[+] init        - Create new project", value='init_interactive'),
+        Choice("[?] help        - Show all commands", value='help'),
+    ]
+
+    # Add context-appropriate exit/back option
+    if exit_action == 'back':
+        choices.append(Choice("[<] back        - Return to main menu", value='back'))
+    else:
+        choices.append(Choice("[x] exit        - Exit CLI", value='exit'))
+
+    return choices
+
+
 def show_main_menu() -> str | None:
     """Show context-aware main menu.
 
@@ -605,8 +637,7 @@ def show_main_menu() -> str | None:
         return questionary.select(
             "What would you like to do?",
             choices=choices,
-            style=custom_style,
-            instruction="(Use arrow keys to navigate)"
+            style=custom_style
         ).ask()
     else:
         # Project menu
@@ -618,20 +649,11 @@ def show_main_menu() -> str | None:
             console.print(f"[dim]Provider: {project_info.get('provider', 'unknown')} | "
                          f"Model: {project_info.get('model', 'unknown')}[/dim]")
 
+        # Use centralized project menu choices (with 'exit' action)
         return questionary.select(
             "Select command:",
-            choices=[
-                Choice("[>] chat        - Start CLI conversation", value='chat'),
-                Choice("[>] deploy      - Manage services (web UIs)", value='deploy'),
-                Choice("[>] health      - Run system health check", value='health'),
-                Choice("[>] config      - Show configuration", value='config'),
-                Choice("[>] registry    - Show registry contents", value='registry'),
-                Choice("[+] init        - Create new project", value='init_interactive'),
-                Choice("[?] help        - Show all commands", value='help'),
-                Choice("[x] exit        - Exit CLI", value='exit')
-            ],
-            style=custom_style,
-            instruction="(Use arrow keys to navigate)"
+            choices=get_project_menu_choices(exit_action='exit'),
+            style=custom_style
         ).ask()
 
 
@@ -743,8 +765,7 @@ def select_template(templates: list[str]) -> str | None:
     return questionary.select(
         "Select project template:",
         choices=choices,
-        style=custom_style,
-        instruction="(Use arrow keys to navigate)"
+        style=custom_style
     ).ask()
 
 
@@ -791,8 +812,7 @@ def select_channel_finder_mode() -> str | None:
     return questionary.select(
         "Channel finder mode:",
         choices=choices,
-        style=custom_style,
-        instruction="(Use arrow keys to navigate)"
+        style=custom_style
     ).ask()
 
 
@@ -854,8 +874,7 @@ def select_code_generator(generators: dict[str, dict[str, Any]]) -> str | None:
         "Code generator:",
         choices=choices,
         style=custom_style,
-        default=default_choice,
-        instruction="(Use arrow keys to navigate)"
+        default=default_choice
     ).ask()
 
 
@@ -1517,19 +1536,11 @@ def handle_project_selection(project_path: Path):
             console.print(f"[dim]Provider: {project_info.get('provider', 'unknown')} | "
                          f"Model: {project_info.get('model', 'unknown')}[/dim]\n")
 
-        # Offer actions for the selected project
+        # Use centralized project menu choices (with 'back' action)
         action = questionary.select(
-            "What would you like to do with this project?",
-            choices=[
-                Choice("[>] chat        - Start CLI conversation", value='chat'),
-                Choice("[>] deploy      - Manage services (web UIs)", value='deploy'),
-                Choice("[>] health      - Run system health check", value='health'),
-                Choice("[>] config      - Show configuration", value='config'),
-                Choice("[>] registry    - Show registry contents", value='registry'),
-                Choice("[<] back        - Return to main menu", value='back'),
-            ],
-            style=custom_style,
-            instruction="(Use arrow keys to navigate)"
+            "Select command:",
+            choices=get_project_menu_choices(exit_action='back'),
+            style=custom_style
         ).ask()
 
         if action == 'back' or action is None:
@@ -1542,11 +1553,38 @@ def handle_project_selection(project_path: Path):
             handle_deploy_action(project_path=project_path)
         elif action == 'health':
             handle_health_action(project_path=project_path)
+        elif action == 'generate':
+            # Generate needs to run in the project directory
+            original_dir = Path.cwd()
+            try:
+                os.chdir(project_path)
+                handle_generate_action()
+            finally:
+                try:
+                    os.chdir(original_dir)
+                except (OSError, PermissionError):
+                    pass
         elif action == 'config':
             handle_export_action(project_path=project_path)
         elif action == 'registry':
             from osprey.cli.registry_cmd import handle_registry_action
             handle_registry_action(project_path=project_path)
+        elif action == 'init_interactive':
+            # Save current directory before init flow
+            original_dir = Path.cwd()
+            try:
+                # Init can run from anywhere, but we restore directory after
+                next_action = run_interactive_init()
+                if next_action == 'exit':
+                    # User chose to exit after init, return to main menu instead
+                    return
+            finally:
+                try:
+                    os.chdir(original_dir)
+                except (OSError, PermissionError):
+                    pass
+        elif action == 'help':
+            handle_help_action()
 
         # After action completes, loop continues and shows project menu again
 
@@ -1662,170 +1700,247 @@ def handle_chat_action(project_path: Path | None = None):
     # Return to menu (with pause only for actual errors)
 
 
+def show_deploy_help():
+    """Display detailed help for deployment options."""
+    console.clear()
+    show_banner(context="interactive")
+
+    console.print(f"\n{Messages.header('Deployment Services - Help')}\n")
+
+    console.print(f"[{Styles.HEADER}][^] up - Start all services[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Builds and starts all containers defined in docker-compose.yml")
+    console.print("  • Creates volumes and networks as needed")
+    console.print("  • Runs services in detached mode (background)")
+    console.print(f"  • [{Styles.DIM}]Use this to start your web UI services (Open WebUI, Jupyter, etc.)[/{Styles.DIM}]")
+    console.print()
+
+    console.print(f"[{Styles.HEADER}][v] down - Stop all services[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Stops and removes all running containers")
+    console.print("  • Preserves volumes (data persists)")
+    console.print("  • Removes networks created by compose")
+    console.print(f"  • [{Styles.DIM}]Safe operation - your data remains intact[/{Styles.DIM}]")
+    console.print()
+
+    console.print(f"[{Styles.HEADER}][i] status - Show service status[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Lists all containers for this project")
+    console.print("  • Shows running state, ports, and health status")
+    console.print("  • Displays resource usage if available")
+    console.print(f"  • [{Styles.DIM}]Use this to verify services are running correctly[/{Styles.DIM}]")
+    console.print()
+
+    console.print(f"[{Styles.HEADER}][*] restart - Restart all services[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Stops and restarts all containers")
+    console.print("  • Applies configuration changes")
+    console.print("  • Preserves volumes and data")
+    console.print(f"  • [{Styles.DIM}]Use after modifying docker-compose.yml or environment variables[/{Styles.DIM}]")
+    console.print()
+
+    console.print(f"[{Styles.HEADER}][+] build - Build/prepare compose files only[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Generates docker-compose.yml from templates")
+    console.print("  • Does not start any containers")
+    console.print("  • Validates compose file structure")
+    console.print(f"  • [{Styles.DIM}]Use to inspect generated configuration before deployment[/{Styles.DIM}]")
+    console.print()
+
+    console.print(f"[{Styles.HEADER}][R] rebuild - Clean, rebuild, and restart services[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Stops and removes all containers and volumes")
+    console.print("  • Removes container images")
+    console.print("  • Rebuilds everything from scratch")
+    console.print("  • Starts services with fresh state")
+    console.print(f"  • [{Styles.WARNING}]⚠️  Warning: All data in volumes will be lost[/{Styles.WARNING}]")
+    console.print()
+
+    console.print(f"[{Styles.HEADER}][X] clean - Remove containers and volumes[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Permanently deletes all containers")
+    console.print("  • Permanently deletes all volumes and data")
+    console.print("  • Removes networks and images")
+    console.print(f"  • [{Styles.WARNING}]⚠️  Destructive: Cannot be undone![/{Styles.WARNING}]")
+    console.print()
+
+    input("Press ENTER to continue...")
+
+
 def handle_deploy_action(project_path: Path | None = None):
     """Manage deployment services menu.
 
     Args:
         project_path: Optional project directory path (defaults to current directory)
     """
-    action = questionary.select(
-        "Select deployment action:",
-        choices=[
-            Choice("[^] up      - Start all services", value='up'),
-            Choice("[v] down    - Stop all services", value='down'),
-            Choice("[i] status  - Show service status", value='status'),
-            Choice("[*] restart - Restart all services", value='restart'),
-            Choice("[+] build   - Build/prepare compose files only", value='build'),
-            Choice("[R] rebuild - Clean, rebuild, and restart services", value='rebuild'),
-            Choice("[X] clean   - Remove containers and volumes (WARNING: destructive)", value='clean'),
-            Choice("[<] back    - Back to main menu", value='back'),
-        ],
-        style=custom_style,
-    ).ask()
+    # Loop to allow returning to menu after help
+    while True:
+        action = questionary.select(
+            "Select deployment action:",
+            choices=[
+                Choice("[^] up      - Start all services", value='up'),
+                Choice("[v] down    - Stop all services", value='down'),
+                Choice("[i] status  - Show service status", value='status'),
+                Choice("[*] restart - Restart all services", value='restart'),
+                Choice("[+] build   - Build/prepare compose files only", value='build'),
+                Choice("[R] rebuild - Clean, rebuild, and restart services", value='rebuild'),
+                Choice("[X] clean   - Remove containers and volumes (WARNING: destructive)", value='clean'),
+                Choice("─" * 60, value=None, disabled=True),
+                Choice("[?] help    - Detailed descriptions and usage guide", value='show_help'),
+                Choice("[<] back    - Back to main menu", value='back'),
+            ],
+            style=custom_style,
+        ).ask()
 
-    if action == 'back' or action is None:
-        return
-
-    import subprocess
-
-    # Determine config path
-    if project_path:
-        config_path = str(project_path / "config.yml")
-        # Save and change directory
-        original_dir = Path.cwd()
-
-        try:
-            os.chdir(project_path)
-        except (OSError, PermissionError) as e:
-            console.print(f"\n{Messages.error(f'Cannot change to project directory: {e}')}")
-            input("\nPress ENTER to continue...")
+        if action == 'back' or action is None:
             return
-    else:
-        config_path = "config.yml"
-        original_dir = None
 
-    try:
-        # Confirm destructive operations
-        if action == 'clean':
-            console.print("\n[bold red]⚠️  WARNING: Destructive Operation[/bold red]")
-            console.print("\n[warning]This will permanently delete:[/warning]")
-            console.print("  • All containers for this project")
-            console.print("  • All volumes (including databases and stored data)")
-            console.print("  • All networks created by compose")
-            console.print("  • Container images built for this project")
-            console.print("\n[dim]This action cannot be undone![/dim]\n")
+        if action == 'show_help':
+            show_deploy_help()
+            continue  # Return to menu after help
 
-            confirm = questionary.confirm(
-                "Are you sure you want to proceed?",
-                default=False,
-                style=custom_style
-            ).ask()
+        # Action selected - break out of menu loop and execute
+        import subprocess
 
-            if not confirm:
-                console.print(f"\n{Messages.warning('Operation cancelled')}")
+        # Determine config path
+        if project_path:
+            config_path = str(project_path / "config.yml")
+            # Save and change directory
+            original_dir = Path.cwd()
+
+            try:
+                os.chdir(project_path)
+            except (OSError, PermissionError) as e:
+                console.print(f"\n{Messages.error(f'Cannot change to project directory: {e}')}")
                 input("\nPress ENTER to continue...")
-                if original_dir:
-                    try:
-                        os.chdir(original_dir)
-                    except (OSError, PermissionError):
-                        pass
-                return
-
-        elif action == 'rebuild':
-            console.print("\n[bold yellow]⚠️  Rebuild Operation[/bold yellow]")
-            console.print("\n[warning]This will:[/warning]")
-            console.print("  • Stop and remove all containers")
-            console.print("  • Delete all volumes (data will be lost)")
-            console.print("  • Remove container images")
-            console.print("  • Rebuild everything from scratch")
-            console.print("  • Start services again")
-            console.print("\n[dim]Any data stored in volumes will be lost![/dim]\n")
-
-            confirm = questionary.confirm(
-                "Proceed with rebuild?",
-                default=False,
-                style=custom_style
-            ).ask()
-
-            if not confirm:
-                console.print(f"\n{Messages.warning('Rebuild cancelled')}")
-                input("\nPress ENTER to continue...")
-                if original_dir:
-                    try:
-                        os.chdir(original_dir)
-                    except (OSError, PermissionError):
-                        pass
-                return
-
-        # Build the osprey deploy command
-        # Use 'osprey' command directly to avoid module import warnings
-        cmd = ["osprey", "deploy", action]
-
-        if action in ['up', 'restart', 'rebuild']:
-            cmd.append("-d")  # Run in detached mode
-
-        cmd.extend(["--config", config_path])
-
-        if action == 'up':
-            console.print("\n[bold]Starting services...[/bold]")
-        elif action == 'down':
-            console.print("\n[bold]Stopping services...[/bold]")
-        elif action == 'restart':
-            console.print("\n[bold]Restarting services...[/bold]")
-        elif action == 'build':
-            console.print("\n[bold]Building compose files...[/bold]")
-        elif action == 'rebuild':
-            console.print("\n[bold]Rebuilding services (clean + build + start)...[/bold]")
-        elif action == 'clean':
-            console.print("\n[bold red]⚠️  Cleaning deployment...[/bold red]")
-        # Note: 'status' action doesn't print a header here because show_status() prints its own
+                continue  # Return to menu
+        else:
+            config_path = "config.yml"
+            original_dir = None
 
         try:
-            # Run subprocess with timeout (5 minutes for deploy operations)
-            # Set environment to suppress config/registry warnings in subprocess
-            env = os.environ.copy()
-            env['OSPREY_QUIET'] = '1'  # Signal to suppress non-critical warnings
-            result = subprocess.run(cmd, cwd=project_path or Path.cwd(), timeout=300, env=env)
-        except subprocess.TimeoutExpired:
-            console.print(f"\n{Messages.error('Command timed out after 5 minutes')}")
-            console.print(Messages.warning("The operation took too long. Check your container runtime."))
-            input("\nPress ENTER to continue...")
+            # Confirm destructive operations
+            if action == 'clean':
+                console.print("\n[bold red]⚠️  WARNING: Destructive Operation[/bold red]")
+                console.print("\n[warning]This will permanently delete:[/warning]")
+                console.print("  • All containers for this project")
+                console.print("  • All volumes (including databases and stored data)")
+                console.print("  • All networks created by compose")
+                console.print("  • Container images built for this project")
+                console.print("\n[dim]This action cannot be undone![/dim]\n")
+
+                confirm = questionary.confirm(
+                    "Are you sure you want to proceed?",
+                    default=False,
+                    style=custom_style
+                ).ask()
+
+                if not confirm:
+                    console.print(f"\n{Messages.warning('Operation cancelled')}")
+                    input("\nPress ENTER to continue...")
+                    if original_dir:
+                        try:
+                            os.chdir(original_dir)
+                        except (OSError, PermissionError):
+                            pass
+                    continue  # Return to menu
+
+            elif action == 'rebuild':
+                console.print("\n[bold yellow]⚠️  Rebuild Operation[/bold yellow]")
+                console.print("\n[warning]This will:[/warning]")
+                console.print("  • Stop and remove all containers")
+                console.print("  • Delete all volumes (data will be lost)")
+                console.print("  • Remove container images")
+                console.print("  • Rebuild everything from scratch")
+                console.print("  • Start services again")
+                console.print("\n[dim]Any data stored in volumes will be lost![/dim]\n")
+
+                confirm = questionary.confirm(
+                    "Proceed with rebuild?",
+                    default=False,
+                    style=custom_style
+                ).ask()
+
+                if not confirm:
+                    console.print(f"\n{Messages.warning('Rebuild cancelled')}")
+                    input("\nPress ENTER to continue...")
+                    if original_dir:
+                        try:
+                            os.chdir(original_dir)
+                        except (OSError, PermissionError):
+                            pass
+                    continue  # Return to menu
+
+            # Build the osprey deploy command
+            # Use 'osprey' command directly to avoid module import warnings
+            cmd = ["osprey", "deploy", action]
+
+            if action in ['up', 'restart', 'rebuild']:
+                cmd.append("-d")  # Run in detached mode
+
+            cmd.extend(["--config", config_path])
+
+            if action == 'up':
+                console.print("\n[bold]Starting services...[/bold]")
+            elif action == 'down':
+                console.print("\n[bold]Stopping services...[/bold]")
+            elif action == 'restart':
+                console.print("\n[bold]Restarting services...[/bold]")
+            elif action == 'build':
+                console.print("\n[bold]Building compose files...[/bold]")
+            elif action == 'rebuild':
+                console.print("\n[bold]Rebuilding services (clean + build + start)...[/bold]")
+            elif action == 'clean':
+                console.print("\n[bold red]⚠️  Cleaning deployment...[/bold red]")
+            # Note: 'status' action doesn't print a header here because show_status() prints its own
+
+            try:
+                # Run subprocess with timeout (5 minutes for deploy operations)
+                # Set environment to suppress config/registry warnings in subprocess
+                env = os.environ.copy()
+                env['OSPREY_QUIET'] = '1'  # Signal to suppress non-critical warnings
+                result = subprocess.run(cmd, cwd=project_path or Path.cwd(), timeout=300, env=env)
+            except subprocess.TimeoutExpired:
+                console.print(f"\n{Messages.error('Command timed out after 5 minutes')}")
+                console.print(Messages.warning("The operation took too long. Check your container runtime."))
+                input("\nPress ENTER to continue...")
+                if original_dir:
+                    try:
+                        os.chdir(original_dir)
+                    except (OSError, PermissionError):
+                        pass
+                continue  # Return to menu
+
+            if result.returncode == 0:
+                if action == 'up':
+                    console.print(f"\n{Messages.success('Services started')}")
+                elif action == 'down':
+                    console.print(f"\n{Messages.success('Services stopped')}")
+                elif action == 'restart':
+                    console.print(f"\n{Messages.success('Services restarted')}")
+                elif action == 'build':
+                    console.print(f"\n{Messages.success('Compose files built')}")
+                elif action == 'rebuild':
+                    console.print(f"\n{Messages.success('Services rebuilt and started')}")
+                elif action == 'clean':
+                    console.print(f"\n{Messages.success('Deployment cleaned')}")
+            else:
+                console.print(f"\n{Messages.warning(f'Command exited with code {result.returncode}')}")
+
+        except Exception as e:
+            console.print(f"\n{Messages.error(str(e))}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # Restore original directory
             if original_dir:
                 try:
                     os.chdir(original_dir)
-                except (OSError, PermissionError):
-                    pass
-            return
+                except (OSError, PermissionError) as e:
+                    console.print(f"\n{Messages.warning(f'Could not restore directory: {e}')}")
 
-        if result.returncode == 0:
-            if action == 'up':
-                console.print(f"\n{Messages.success('Services started')}")
-            elif action == 'down':
-                console.print(f"\n{Messages.success('Services stopped')}")
-            elif action == 'restart':
-                console.print(f"\n{Messages.success('Services restarted')}")
-            elif action == 'build':
-                console.print(f"\n{Messages.success('Compose files built')}")
-            elif action == 'rebuild':
-                console.print(f"\n{Messages.success('Services rebuilt and started')}")
-            elif action == 'clean':
-                console.print(f"\n{Messages.success('Deployment cleaned')}")
-        else:
-            console.print(f"\n{Messages.warning(f'Command exited with code {result.returncode}')}")
-
-    except Exception as e:
-        console.print(f"\n{Messages.error(str(e))}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        # Restore original directory
-        if original_dir:
-            try:
-                os.chdir(original_dir)
-            except (OSError, PermissionError) as e:
-                console.print(f"\n{Messages.warning(f'Could not restore directory: {e}')}")
-
-    input("\nPress ENTER to continue...")
+        input("\nPress ENTER to continue...")
+        break  # Exit loop after action completes
 
 
 def handle_health_action(project_path: Path | None = None):
@@ -1965,47 +2080,574 @@ def handle_export_action(project_path: Path | None = None):
     input("\nPress ENTER to continue...")
 
 
-def handle_help_action():
-    """Show CLI help."""
-    help_text = """
-# Osprey Framework CLI
+def handle_help_action_root():
+    """Show help for root menu (no project detected)."""
+    console.clear()
+    show_banner(context="interactive")
 
-## Main Commands
+    console.print(f"\n{Messages.header('Getting Started - Help')}\n")
 
-- `osprey` - Launch interactive menu (you are here!)
-- `osprey init <project>` - Create new project
-- `osprey chat` - Start CLI conversation
-- `osprey deploy up|down|status` - Manage services
-- `osprey health` - Run system health check
-- `osprey export-config` - View configuration
-
-## Examples
-
-Create a new project:
-    osprey init my-agent
-
-Start a conversation (from project directory):
-    osprey chat
-
-Deploy web services:
-    osprey deploy up
-
-## Documentation
-
-- Documentation: https://als-apg.github.io/osprey
-- GitHub: https://github.com/als-apg/osprey
-- Paper: https://arxiv.org/abs/2508.15066
-
-"""
+    # Select existing project
+    console.print(f"[{Styles.HEADER}][→] Select a project[/{Styles.HEADER}]")
     console.print()
-    console.print(Panel(
-        Markdown(help_text),
-        title="[header]Osprey Help[/header]",
-        border_style=ThemeConfig.get_border_style(),
-        width=80
-    ))
+    console.print("  • Navigate into an existing Osprey project in a subdirectory")
+    console.print("  • Opens the project menu with full access to all commands")
+    console.print("  • Use chat, deploy services, generate capabilities, etc.")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Working with an existing agent project[/{Styles.DIM}]")
     console.print()
+
+    # Create new project
+    console.print(f"[{Styles.HEADER}][+] Create new project (interactive)[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Guided wizard to create a new Osprey project from scratch")
+    console.print("  • Choose template: minimal, weather example, or control assistant")
+    console.print("  • Select AI provider (Anthropic, OpenAI, etc.) and model")
+    console.print("  • Configure API keys securely with interactive prompts")
+    console.print("  • Generates complete project structure ready to use")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Starting your first agent or creating a new use case[/{Styles.DIM}]")
+    console.print()
+
+    # Workflow
+    console.print(f"[{Styles.HEADER}]Typical Workflow:[/{Styles.HEADER}]")
+    console.print()
+    console.print("  1. Create a new project (or select existing)")
+    console.print("  2. Navigate into the project directory")
+    console.print("  3. Use the project menu to:")
+    console.print("     • Chat with your agent")
+    console.print("     • Deploy web interfaces")
+    console.print("     • Generate new capabilities")
+    console.print("     • Monitor health and configuration")
+    console.print()
+
     input("Press ENTER to continue...")
+
+
+def handle_help_action():
+    """Show help for project menu options."""
+    console.clear()
+    show_banner(context="interactive")
+
+    console.print(f"\n{Messages.header('Project Menu - Help')}\n")
+
+    # chat
+    console.print(f"[{Styles.HEADER}][>] chat - Start CLI conversation[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Opens an interactive chat session with your AI agent")
+    console.print("  • Use natural language to query data, execute code, or control systems")
+    console.print("  • Supports slash commands (type /help in chat for details)")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Testing your agent, exploring capabilities, debugging[/{Styles.DIM}]")
+    console.print()
+
+    # deploy
+    console.print(f"[{Styles.HEADER}][>] deploy - Manage services (web UIs)[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Start, stop, and manage containerized services")
+    console.print("  • Launch web interfaces (Open WebUI, Jupyter notebooks)")
+    console.print("  • View service status and logs")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Production deployments[/{Styles.DIM}]")
+    console.print()
+
+    # health
+    console.print(f"[{Styles.HEADER}][>] health - Run system health check[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Verifies your Osprey installation")
+    console.print("  • Tests API connectivity to your LLM provider")
+    console.print("  • Checks capabilities and registry configuration")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Troubleshooting, validating setup after changes[/{Styles.DIM}]")
+    console.print()
+
+    # generate
+    console.print(f"[{Styles.HEADER}][>] generate - Generate components[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Create capabilities from MCP servers or natural language")
+    console.print("  • Generate demo MCP servers for testing")
+    console.print("  • Create Claude Code generator configurations")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Extending your agent with new capabilities[/{Styles.DIM}]")
+    console.print()
+
+    # config
+    console.print(f"[{Styles.HEADER}][>] config - Show configuration[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • View your current project configuration")
+    console.print("  • See provider, model, and capability settings")
+    console.print("  • Verify registry and execution configuration")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Understanding your project setup, debugging config issues[/{Styles.DIM}]")
+    console.print()
+
+    # registry
+    console.print(f"[{Styles.HEADER}][>] registry - Show registry contents[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • View all registered capabilities, providers, and tools")
+    console.print("  • See what your agent has access to")
+    console.print("  • Inspect capability metadata and parameters")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Understanding available features, debugging capabilities[/{Styles.DIM}]")
+    console.print()
+
+    # init
+    console.print(f"[{Styles.HEADER}][+] init - Create new project[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Guided wizard to create a new Osprey project")
+    console.print("  • Choose template, provider, model, and configure API keys")
+    console.print("  • Generates complete project structure ready to use")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Starting a new agent project from scratch[/{Styles.DIM}]")
+    console.print()
+
+    input("Press ENTER to continue...")
+
+
+# ============================================================================
+# GENERATE MENU
+# ============================================================================
+
+def show_generate_help():
+    """Display detailed help for all generate options."""
+    console.clear()
+    show_banner(context="interactive")
+
+    console.print(f"\n{Messages.header('Generate Components - Help')}\n")
+
+    # capability option
+    console.print(f"[{Styles.HEADER}][→] capability - From MCP server or natural language[/{Styles.HEADER}]")
+    console.print()
+    console.print(f"  [{Styles.ACCENT}]From MCP Server:[/{Styles.ACCENT}]")
+    console.print("  • Connects to a running MCP (Model Context Protocol) server")
+    console.print("  • Introspects available tools and resources")
+    console.print("  • Generates production-ready capability with ReAct agent")
+    console.print("  • Includes automatic retry logic and error handling")
+    console.print(f"  • [{Styles.DIM}]Best for: Integrating external services (weather, databases, APIs)[/{Styles.DIM}]")
+    console.print()
+    console.print(f"  [{Styles.ACCENT}]From Natural Language Prompt:[/{Styles.ACCENT}]")
+    console.print("  • Describe what the capability should do in plain English")
+    console.print("  • LLM generates a skeleton capability class")
+    console.print("  • You implement the actual logic (marked with TODO comments)")
+    console.print("  • Includes type hints and docstrings")
+    console.print(f"  • [{Styles.DIM}]Best for: Custom domain-specific capabilities[/{Styles.DIM}]")
+    console.print()
+
+    # mcp-server option
+    console.print(f"[{Styles.HEADER}][→] mcp-server - Demo MCP server for testing[/{Styles.HEADER}]")
+    console.print()
+    console.print("  • Creates demo weather MCP server for testing and learning")
+    console.print("  • FastMCP-based HTTP server")
+    console.print("  • Includes example tools (get_weather, get_forecast)")
+    console.print(f"  • Ready to run: just [{Styles.VALUE}]pip install fastmcp && python server.py[/{Styles.VALUE}]")
+    console.print(f"  • [{Styles.DIM}]Perfect for: Testing capability generation, learning MCP protocol[/{Styles.DIM}]")
+    console.print()
+
+    # claude-config option
+    console.print(f"[{Styles.HEADER}][→] claude-config - Claude Code generator configuration[/{Styles.HEADER}]")
+    console.print()
+    console.print(f"  • Generates [{Styles.VALUE}]claude_generator_config.yml[/{Styles.VALUE}] for Claude Code SDK")
+    console.print("  • Configures code generation profiles (fast vs robust)")
+    console.print("  • Sets up agentic code execution with Claude")
+    console.print("  • Includes tool definitions and execution limits")
+    console.print(f"  • [{Styles.DIM}]Required for: Using claude_code generator in Python execution[/{Styles.DIM}]")
+    console.print()
+
+    input("Press ENTER to continue...")
+
+
+def show_generate_menu() -> str | None:
+    """Show generate submenu.
+
+    Returns:
+        Selected generation type, or None if user cancels/goes back
+    """
+    if not questionary:
+        return None
+
+    console.print(f"\n{Messages.header('Generate Components')}")
+    console.print("[dim]Generate capabilities, servers, and configurations[/dim]\n")
+
+    return questionary.select(
+        "What would you like to generate?",
+        choices=[
+            Choice("[→] capability     - From MCP server or natural language", value='generate_capability'),
+            Choice("[→] mcp-server     - Demo MCP server for testing", value='generate_mcp_server'),
+            Choice("[→] claude-config  - Claude Code generator configuration", value='generate_claude_config'),
+            Choice("─" * 60, value=None, disabled=True),
+            Choice("[?] help           - Detailed descriptions and usage guide", value='show_help'),
+            Choice("[←] back           - Return to main menu", value='back')
+        ],
+        style=custom_style
+    ).ask()
+
+
+def handle_generate_action():
+    """Handle generate menu and its subcommands."""
+    while True:
+        action = show_generate_menu()
+
+        if action is None or action == 'back':
+            return  # Return to main menu
+
+        if action == 'generate_capability':
+            handle_generate_capability()
+        elif action == 'generate_mcp_server':
+            handle_generate_mcp_server()
+        elif action == 'generate_claude_config':
+            handle_generate_claude_config()
+        elif action == 'show_help':
+            show_generate_help()
+            # Loop continues - returns to generate menu after help
+
+
+def handle_generate_capability():
+    """Handle interactive capability generation."""
+    console.clear()
+    console.print(f"\n{Messages.header('Generate Capability')}\n")
+
+    # Ask which mode
+    mode = questionary.select(
+        "How would you like to generate the capability?",
+        choices=[
+            Choice("[→] From MCP Server - Production-ready with ReAct agent", value='mcp'),
+            Choice("[→] From Prompt - Skeleton with guides (you implement)", value='prompt'),
+            Choice("[←] Back", value='back')
+        ],
+        style=custom_style
+    ).ask()
+
+    if mode is None or mode == 'back':
+        return
+
+    try:
+        from osprey.cli.generate_cmd import _generate_from_mcp, _generate_from_prompt
+
+        if mode == 'mcp':
+            # Check if port 3001 is reachable (default MCP server port)
+            default_url = "simulated"
+            try:
+                import socket
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(0.5)  # 500ms timeout
+                result = sock.connect_ex(('localhost', 3001))
+                sock.close()
+                if result == 0:
+                    # Port 3001 is open, likely our demo MCP server
+                    default_url = "http://localhost:3001"
+            except Exception:
+                # If check fails, just use simulated
+                pass
+
+            # Get MCP URL
+            mcp_url = questionary.text(
+                "MCP server URL (or 'simulated' for demo):",
+                default=default_url,
+                style=custom_style
+            ).ask()
+
+            if not mcp_url:
+                return
+
+            # Get capability name
+            capability_name = questionary.text(
+                "Capability name:",
+                default="weather_mcp",
+                style=custom_style
+            ).ask()
+
+            if not capability_name:
+                return
+
+            # Generate
+            _generate_from_mcp(
+                mcp_url=mcp_url,
+                capability_name=capability_name,
+                server_name=None,
+                output_file=None,
+                provider=None,
+                model_id=None,
+                quiet=False
+            )
+
+        elif mode == 'prompt':
+            # Get prompt
+            prompt = questionary.text(
+                "Describe what the capability should do:",
+                multiline=True,
+                style=custom_style
+            ).ask()
+
+            if not prompt:
+                return
+
+            # Get capability name (optional)
+            capability_name = questionary.text(
+                "Capability name (leave empty for LLM suggestion):",
+                default="",
+                style=custom_style
+            ).ask()
+
+            # Generate
+            _generate_from_prompt(
+                prompt=prompt,
+                capability_name=capability_name if capability_name else None,
+                output_file=None,
+                provider=None,
+                model_id=None,
+                quiet=False
+            )
+
+        console.print()
+        input("Press ENTER to continue...")
+
+    except RuntimeError as e:
+        # RuntimeError with clear message - show it directly
+        error_msg = str(e)
+        if error_msg.startswith('\n'):
+            console.print(error_msg)
+        else:
+            console.print(f"\n{Messages.error('Generation failed: ')}")
+            console.print(f"\n{error_msg}")
+        console.print()
+        input("Press ENTER to continue...")
+    except Exception as e:
+        console.print(f"\n{Messages.error(f'Generation failed: {e}')}")
+        console.print()
+        input("Press ENTER to continue...")
+
+
+def handle_generate_mcp_server():
+    """Handle interactive MCP server generation."""
+    console.clear()
+    console.print(f"\n{Messages.header('Generate MCP Server')}\n")
+    console.print("[dim]Creates a demo weather MCP server for testing[/dim]\n")
+
+    # Get server name
+    server_name = questionary.text(
+        "Server name:",
+        default="demo_mcp",
+        style=custom_style
+    ).ask()
+
+    if not server_name:
+        return
+
+    # Get port
+    port_str = questionary.text(
+        "Port:",
+        default="3001",
+        style=custom_style
+    ).ask()
+
+    if not port_str:
+        return
+
+    try:
+        port = int(port_str)
+    except ValueError:
+        console.print(f"\n{Messages.error('Invalid port number')}")
+        input("Press ENTER to continue...")
+        return
+
+    try:
+        from pathlib import Path
+
+        from osprey.cli.generate_cmd import get_server_template
+
+        output_file = f"{server_name}_server.py"
+        output_path = Path(output_file)
+
+        write_mcp_server_file = get_server_template()
+        output_path = write_mcp_server_file(
+            output_path=output_path,
+            server_name=server_name,
+            port=port
+        )
+
+        console.print(f"\n{Messages.success(f'Server generated: {output_path}')}\n")
+
+        # Check if fastmcp is installed
+        fastmcp_installed = False
+        try:
+            import importlib.util
+            if importlib.util.find_spec("fastmcp") is not None:
+                fastmcp_installed = True
+        except Exception:
+            pass
+
+        # Always show the instructions upfront
+        console.print(f"[{Styles.HEADER}]Usage Instructions:[/{Styles.HEADER}]")
+        if not fastmcp_installed:
+            console.print(f"  1. Install dependencies: [{Styles.ACCENT}]pip install fastmcp[/{Styles.ACCENT}]")
+            console.print(f"  2. Run the server: [{Styles.ACCENT}]python {output_path}[/{Styles.ACCENT}]")
+            console.print(f"  3. Generate capability: [{Styles.ACCENT}]osprey generate capability --from-mcp http://localhost:{port} -n {server_name}[/{Styles.ACCENT}]")
+        else:
+            console.print(f"  • Server file: [{Styles.VALUE}]{output_path}[/{Styles.VALUE}]")
+            console.print(f"  • Server URL: [{Styles.VALUE}]http://localhost:{port}[/{Styles.VALUE}]")
+            console.print(f"  • Manual start: [{Styles.ACCENT}]python {output_path}[/{Styles.ACCENT}]")
+            console.print(f"  • Create capability: [{Styles.ACCENT}]osprey generate capability --from-mcp http://localhost:{port} -n {server_name}[/{Styles.ACCENT}]")
+        console.print()
+
+        # Offer to launch the server immediately with three options
+        if fastmcp_installed:
+            choices = [
+                Choice("[▶] Launch in background - Detached, returns to menu", value='background'),
+                Choice("[▶] Launch in this terminal - Interactive, see output live", value='foreground'),
+                Choice("[←] Back to menu - Launch manually later", value='back'),
+            ]
+        else:
+            choices = [
+                Choice("[!] Cannot launch - fastmcp not installed (pip install fastmcp)", value='install', disabled=True),
+                Choice("[←] Back to menu - Install fastmcp and launch manually later", value='back'),
+            ]
+
+        next_action = questionary.select(
+            "How would you like to launch the server?",
+            choices=choices,
+            style=custom_style,
+        ).ask()
+
+        if next_action == 'background' and fastmcp_installed:
+            # Launch the server in the background (detached)
+            console.print("\n[dim]Starting MCP server in background...[/dim]")
+
+            import subprocess
+            try:
+                # Start the server process in the background
+                process = subprocess.Popen(
+                    [sys.executable, str(output_path)],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True  # Detach from current session
+                )
+
+                # Give it a moment to start
+                import time
+                time.sleep(1)
+
+                # Check if it's still running
+                if process.poll() is None:
+                    console.print(f"\n{Messages.success('✓ Server started in background!')}")
+                    console.print(f"[dim]  PID: {process.pid}[/dim]")
+                    console.print(f"[dim]  URL: http://localhost:{port}[/dim]")
+                    console.print(f"\n[{Styles.ACCENT}]To stop the server:[/{Styles.ACCENT}]")
+                    console.print(f"  kill {process.pid}")
+                    console.print(f"\n[{Styles.ACCENT}]Next step - Generate a capability:[/{Styles.ACCENT}]")
+                    console.print(f"  osprey generate capability --from-mcp http://localhost:{port} -n {server_name}")
+                else:
+                    # Process died immediately, show error
+                    _, stderr = process.communicate(timeout=1)
+                    console.print(f"\n{Messages.error('Server failed to start')}")
+                    if stderr:
+                        console.print(f"[dim]{stderr.decode()[:500]}[/dim]")
+            except Exception as e:
+                console.print(f"\n{Messages.error(f'Failed to launch server: {e}')}")
+
+            console.print()
+            input("Press ENTER to continue...")
+
+        elif next_action == 'foreground' and fastmcp_installed:
+            # Launch the server in the foreground (this terminal)
+            console.print(f"\n{Messages.success('Starting MCP server in this terminal...')}")
+            console.print(f"[dim]Server URL: http://localhost:{port}[/dim]")
+            console.print("[dim]Press Ctrl+C to stop the server and return to menu[/dim]\n")
+
+            import subprocess
+            try:
+                # Start the server in foreground (user can see output)
+                process = subprocess.run(
+                    [sys.executable, str(output_path)],
+                    cwd=Path.cwd()
+                )
+            except KeyboardInterrupt:
+                console.print(f"\n\n{Messages.warning('Server stopped by user')}")
+            except Exception as e:
+                console.print(f"\n{Messages.error(f'Server error: {e}')}")
+
+            console.print()
+            input("Press ENTER to continue...")
+        # If 'back', just continue to menu
+
+    except Exception as e:
+        console.print(f"\n{Messages.error(f'Generation failed: {e}')}")
+        console.print()
+        input("Press ENTER to continue...")
+
+
+def handle_generate_claude_config():
+    """Handle interactive Claude config generation."""
+    console.clear()
+    console.print(f"\n{Messages.header('Generate Claude Code Configuration')}\n")
+    console.print("[dim]Creates claude_generator_config.yml with sensible defaults[/dim]\n")
+
+    # Check if file exists
+    from pathlib import Path
+    output_path = Path("claude_generator_config.yml")
+
+    if output_path.exists():
+        overwrite = questionary.confirm(
+            f"{output_path} already exists. Overwrite?",
+            default=False,
+            style=custom_style
+        ).ask()
+
+        if not overwrite:
+            return
+
+    try:
+        import yaml
+
+        from osprey.cli.templates import TemplateManager
+
+        # Try to detect provider from config.yml if available
+        default_provider = "anthropic"
+        config_path = Path.cwd() / "config.yml"
+
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    config = yaml.safe_load(f)
+                    if config and 'llm' in config:
+                        default_provider = config['llm'].get('default_provider', 'anthropic')
+                        console.print(f"[dim]Detected provider: {default_provider}[/dim]\n")
+            except Exception:
+                pass
+
+        # Create template context
+        ctx = {
+            "default_provider": default_provider,
+            "default_model": "claude-haiku-4-5-20251001"
+        }
+
+        # Render template
+        template_manager = TemplateManager()
+        template_manager.render_template(
+            "apps/control_assistant/claude_generator_config.yml.j2",
+            ctx,
+            output_path
+        )
+
+        console.print(f"\n{Messages.success(f'Configuration generated: {output_path}')}\n")
+
+        # Show next steps
+        console.print(f"[{Styles.HEADER}]Next Steps:[/{Styles.HEADER}]")
+        console.print(f"  1. Review: [{Styles.VALUE}]{output_path}[/{Styles.VALUE}]")
+        console.print()
+        console.print("  2. Enable in [accent]config.yml[/accent]:")
+        console.print()
+        console.print("     [dim]execution:[/dim]")
+        console.print("     [dim]  code_generator: \"claude_code\"[/dim]")
+        console.print("     [dim]  generators:[/dim]")
+        console.print("     [dim]    claude_code:[/dim]")
+        console.print("     [dim]      profile: \"fast\"  # or \"robust\"[/dim]")
+        console.print(f"     [dim]      claude_config_path: \"{output_path.name}\"[/dim]")
+        console.print()
+        console.print("  3. Set API key in [accent].env[/accent]:")
+        if default_provider == "cborg":
+            console.print("     [dim]CBORG_API_KEY=your-key-here[/dim]")
+        else:
+            console.print("     [dim]ANTHROPIC_API_KEY=your-key-here[/dim]")
+        console.print()
+        input("Press ENTER to continue...")
+
+    except Exception as e:
+        console.print(f"\n{Messages.error(f'Generation failed: {e}')}")
+        import traceback
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
+        console.print()
+        input("Press ENTER to continue...")
 
 
 # ============================================================================
@@ -2044,13 +2686,19 @@ def navigation_loop():
             handle_deploy_action()
         elif action == 'health':
             handle_health_action()
+        elif action == 'generate':
+            handle_generate_action()
         elif action == 'config':
             handle_export_action()
         elif action == 'registry':
             from osprey.cli.registry_cmd import handle_registry_action
             handle_registry_action()
         elif action == 'help':
-            handle_help_action()
+            # Show contextual help based on whether we're in a project or not
+            if is_project_initialized():
+                handle_help_action()
+            else:
+                handle_help_action_root()
 
 
 # ============================================================================
