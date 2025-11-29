@@ -8,21 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **CLI Code Generator Commands**: New `osprey generate claude-config` command to generate Claude Code generator configuration files with sensible defaults and auto-detection of provider settings
-- **Interactive Menu Enhancements**: Added 'generate' command to project selection submenu, centralized menu choice management with `get_project_menu_choices()`, improved menu consistency between main and project selection flows
+- **CLI Commands**: New `osprey generate claude-config` command to generate Claude Code generator configuration files with sensible defaults and auto-detection of provider settings
+- **Interactive Menu**: Added 'generate' command to project selection submenu, centralized menu choice management with `get_project_menu_choices()`, improved consistency between main and project selection flows
 
 ### Changed
-- **API Call Logging**: Enhanced with caller context tracking across all LLM-calling components. Logging metadata now includes capability/module/operation details for better debugging. Improved JSON serialization with Pydantic model support and better error visibility
-- **Claude Code Generator**: Simplified configuration model - removed 'balanced' profile and planning_modes abstraction. Profiles now directly specify phases to run. Default changed to 'fast' profile (single-phase generation). Unified prompt building into data-driven approach
-- **Registry Display**: Filtered infrastructure nodes table to exclude capability nodes, moved context classes to verbose-only mode, improved table clarity and better handling of tuple types in provides/requires fields
-- **MCP Generator Error Handling**: Enhanced with pre-flight connectivity checks using httpx, much clearer error messages when server is not running, and actionable instructions in error messages
+- **API Call Logging**: Enhanced with caller context tracking across all LLM-calling components. Logging metadata now includes capability/module/operation details for better debugging. Improved JSON serialization with Pydantic model support (mode='json') and better error visibility (warnings instead of silent failures)
+- **Claude Code Generator Configuration**: Major simplification - profiles now directly specify phases to run instead of using planning_modes abstraction. Default profile changed from 'balanced' to 'fast'. Unified prompt building into single data-driven `_build_phase_prompt()` method. Reduced codebase by 564 lines through elimination of duplicate prompt builders and dead code
+- **Registry Display**: Filtered infrastructure nodes table to exclude capability nodes (avoid duplication with Capabilities table), moved context classes to verbose-only mode, improved handling of tuple types in provides/requires fields
+- **MCP Generator Error Handling**: Added pre-flight connectivity checks using httpx, much clearer error messages when server is not running, and actionable instructions in error messages
 
 ### Removed
-- **Claude Code Generator**: Removed 'balanced' profile (use 'fast' or 'robust'), removed 'workflow_mode' configuration (use direct 'phases' list), removed planning_modes abstraction, removed dead code (_generate_direct, _generate_phased, _build_phase_options)
+- **Claude Code Generator Profiles**: Removed 'balanced' profile (consolidated to 'fast' and 'robust' only)
+- **Claude Code Generator Configuration**: Removed 'workflow_mode' setting (use direct 'phases' list specification), removed 'planning_modes' abstraction (profiles specify phases directly), removed dead code (_generate_direct, _generate_phased, _build_phase_options, 7 duplicate prompt builders)
 
 ### Fixed
-- **Documentation**: Updated all Claude Code generator documentation to reflect new configuration model. Removed references to removed 'balanced' profile and 'workflow_mode'. Restructured generator-claude.rst with improved UX (dropdowns, tabs). Updated all examples to use 'fast' as default
-- **Tests**: Updated Claude Code generator tests to check 'profile_phases' instead of 'workflow_mode', removed tests for removed features, added tests for new phase-based configuration
+- **Documentation**: Updated all Claude Code generator documentation to reflect simplified configuration model. Restructured generator-claude.rst with improved UX using collapsible dropdowns and tabbed sections. Updated all examples to use 'fast' as default profile
+- **Tests**: Updated Claude Code generator tests to check 'profile_phases' instead of removed 'workflow_mode', removed tests for removed features, added tests for new phase-based configuration model
 
 ### Added
 - **Python Executor Service - Complete Modular Refactoring**
