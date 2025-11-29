@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **API Call Logging**: Enhanced with caller context tracking across all LLM-calling components. Logging metadata now includes capability/module/operation details for better debugging. Improved JSON serialization with Pydantic model support and better error visibility
+- **Claude Code Generator**: Simplified configuration model - removed 'balanced' profile and planning_modes abstraction. Profiles now directly specify phases to run. Default changed to 'fast' profile (single-phase generation). Unified prompt building into data-driven approach
+
+### Removed
+- **Claude Code Generator**: Removed 'balanced' profile (use 'fast' or 'robust'), removed 'workflow_mode' configuration (use direct 'phases' list), removed planning_modes abstraction, removed dead code (_generate_direct, _generate_phased, _build_phase_options)
 
 ### Added
 - **Python Executor Service - Complete Modular Refactoring**

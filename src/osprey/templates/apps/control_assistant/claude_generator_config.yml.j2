@@ -3,29 +3,30 @@
 #
 # This file configures the Claude Code SDK-based code generator for Osprey's
 # Python executor service. It provides sophisticated control over code generation
-# quality, performance, and behavior through planning modes and profiles.
+# quality, performance, and behavior through customizable profiles.
 #
 # Quick Start:
 #   1. API access is configured based on your provider ({{ default_provider }})
-#   2. Choose a profile (fast/balanced/robust) in your main config.yml
-#   3. Optionally create _agent_data/example_scripts/ with examples
-#   4. Customize phases and planning modes as needed
+#   2. Default uses "fast" profile (single-phase direct generation) - change in config.yml if needed
+#   3. Optionally create _agent_data/example_scripts/ with examples for Claude to learn from
+#   4. For complex tasks, switch to "robust" profile for multi-phase workflow
 #
 # Configuration Structure:
 #   - api_config: API access configuration (based on your provider)
-#   - phases: Reusable building blocks (scan, plan, generate)
-#   - planning_modes: Workflows composed from phases (generator_driven, capability_driven)
-#   - profiles: Quality/speed tradeoffs with different models
+#   - phases: Reusable building blocks (generate, scan, plan, implement)
+#   - profiles: Quality/speed tradeoffs - each profile specifies which phases to run
 #   - codebase_guidance: Directories for Claude to read for learning
 #
-# Planning Modes:
-#   - generator_driven: Generator scans codebase, plans, and implements (default)
-#   - capability_driven: Implement pre-built plan from sophisticated capabilities
+# Profiles (choose based on quality/speed/cost tradeoffs):
+#   - fast: Single-phase direct generation [generate] (DEFAULT, ~20s)
+#   - robust: Multi-phase workflow [scan, plan, implement] (~60s)
 #
 # Customization:
-#   - Edit phases list in planning_modes to control workflow
-#   - Example: phases: [plan, generate] to skip codebase scanning
-#   - Example: phases: [generate] for direct one-shot generation
+#   - Create new profiles or modify existing ones
+#   - Each profile directly specifies phases list
+#   - fast: phases: [generate] - single-phase direct generation (DEFAULT)
+#   - robust: phases: [scan, plan, implement] - full multi-phase workflow
+#   - Custom: phases: [scan, generate] - scan examples then generate directly
 #
 # Save Prompts:
 #   - Set save_prompts: true to save all prompts and responses (ENABLED BY DEFAULT)
@@ -81,8 +82,43 @@ api_config:
 # These are the individual phases that can be composed into different workflows.
 # Each phase is a discrete step in the code generation process with its own
 # purpose, tools, and prompts.
+#
+# NOTE: The model for ALL phases comes from the profile configuration (not per-phase).
+# This is because ClaudeSDKClient maintains conversation context across phases
+# and requires a single model for the entire workflow.
 
 phases:
+  # GENERATE Phase - Direct code generation with optional example lookup
+  # Single-phase approach: Claude can check examples if relevant, then generates code
+  # All in one phase for speed while maintaining quality
+  generate:
+    agent_name: "code-generator"
+    prompt: |
+      Generate high-quality Python code for this task.
+
+      **Your approach:**
+      1. If relevant examples exist in example_scripts/, quickly check them for patterns
+      2. Apply any useful patterns or best practices you find
+      3. Generate the code directly
+
+      **Code Requirements:**
+      - Include ALL necessary imports at the top
+      - Store results in a dictionary named 'results'
+      - Add comments explaining key steps
+      - Use clear, descriptive variable names
+      - Handle errors appropriately
+      - Output ONLY Python code in a ```python code block
+
+      **Available Tools:**
+      - Glob: Find example files (e.g., `example_scripts/**/*.py`)
+      - Read: Read relevant examples if they exist
+      - Grep: Search for specific patterns
+
+      **Strategy:** Check examples ONLY if they seem relevant. Focus on generating good code quickly.
+
+    tools: ["Read", "Grep", "Glob"]  # Enable codebase reading
+    max_turns: 3                      # Allow a few iterations for reading + generating
+
   # SCAN Phase - Find relevant examples and patterns in codebase
   scan:
     agent_name: "code-scanner"
@@ -101,11 +137,6 @@ phases:
       - Important conventions or best practices observed
 
     tools: ["Read", "Grep", "Glob"]  # Enable codebase reading
-{% if default_provider == 'cborg' %}
-    model: "anthropic/claude-haiku"   # Fast model for searching
-{% else %}
-    model: "claude-haiku-4-5-20251001"         # Fast Anthropic model
-{% endif %}
     max_turns: 3                      # Limit search iterations
 
   # PLAN Phase - Create detailed implementation plan
@@ -128,16 +159,12 @@ phases:
       Make sure to explicitly present this plan - I will use it in the next step to generate code.
 
     tools: ["Read"]                   # Can read specific files for details
-{% if default_provider == 'cborg' %}
-    model: "anthropic/claude-haiku"   # Planning model
-{% else %}
-    model: "claude-sonnet-4-5-20250929"        # Smart Anthropic model for planning
-{% endif %}
     max_turns: 2                      # Focused planning
 
-  # GENERATE Phase - Write Python code
-  generate:
-    agent_name: "code-generator"
+  # IMPLEMENT Phase - Write Python code following a plan
+  # Used in multi-phase workflows after scan and plan phases
+  implement:
+    agent_name: "code-implementer"
     prompt: |
       Generate high-quality Python code following the implementation plan.
 
@@ -155,55 +182,22 @@ phases:
       - EPICS channel access (pyepics)
       - Archiver access (configured)
 
-    tools: []                         # No tools - just generate code
-{% if default_provider == 'cborg' %}
-    model: "anthropic/claude-haiku"   # Generation model
-{% else %}
-    model: "claude-sonnet-4-5-20250929"        # Smart Anthropic model
-{% endif %}
+    tools: []                         # No tools - just implement the plan
     max_turns: 2                      # Focused code writing
-
-# =============================================================================
-# Planning Modes
-# =============================================================================
-# Planning modes determine how code generation is approached:
-# - generator_driven: Generator scans codebase, creates plan, implements it
-# - capability_driven: Capability provides structured plan, generator implements it
-#
-# CUSTOMIZATION EXAMPLES:
-#
-# Fast generation (skip scanning):
-#   generator_driven:
-#     phases: [plan, generate]
-#
-# Direct one-shot generation:
-#   generator_driven:
-#     phases: [generate]
-#
-# Capability-driven with example learning:
-#   capability_driven:
-#     phases: [scan, generate]
-#
-# Just edit the 'phases' list below to customize!
-
-planning_modes:
-  # Generator-Driven Mode - Generator plans and implements
-  generator_driven:
-    phases: [scan, plan, generate]  # Full workflow with all phases
-    description: "Generator creates its own plan and implements it"
-    enforce_result_schema: false    # Flexible result structure
-
-  # Capability-Driven Mode - Implement pre-built plan from capability
-  capability_driven:
-    phases: [generate]               # Just implement the provided plan
-    description: "Implement capability's pre-built structured plan"
-    enforce_result_schema: true     # Strictly match expected_results structure
 
 # =============================================================================
 # Quality/Speed Profiles
 # =============================================================================
-# Profiles provide pre-configured combinations of models, planning modes, and limits
-# to balance code quality, generation speed, and API costs.
+# Profiles control code generation workflow by specifying which phases to run.
+# Choose a profile based on your quality/speed/cost tradeoffs.
+#
+# Each profile directly specifies:
+# - phases: Which phases to execute [generate] or [scan, plan, implement]
+# - model: Which Claude model to use
+# - max_turns: How many conversation turns allowed
+# - max_budget_usd: Cost limit for this generation
+#
+# CUSTOMIZATION: Create new profiles or modify phases list to customize workflow!
 #
 # Model names configured for Claude Code (requires Anthropic Claude models)
 {% if default_provider == 'cborg' %}
@@ -216,56 +210,35 @@ planning_modes:
 {% endif %}
 
 profiles:
-  # FAST Profile - Quick, direct generation
+  # FAST Profile - Single-phase direct generation (DEFAULT)
+  # Quick generation with optional example lookup
+  # Directly specifies phases instead of using a planning_mode
   fast:
-    planning_mode: generator_driven
+    phases: [generate]               # Direct phase specification
     save_prompts: true  # Save all prompts/responses to prompts/ folder for transparency
 {% if default_provider == 'cborg' %}
-    scan_model: "anthropic/claude-haiku"
-    plan_model: "anthropic/claude-haiku"
-    generate_model: "anthropic/claude-haiku"
+    model: "anthropic/claude-haiku"
 {% else %}
-    scan_model: "claude-haiku-4-5-20251001"
-    plan_model: "claude-haiku-4-5-20251001"
-    generate_model: "claude-haiku-4-5-20251001"
+    model: "claude-haiku-4-5-20251001"
 {% endif %}
-    max_turns: 2
-    max_budget_usd: 0.05
-    description: "Quick generation with Haiku (~5s, ~$0.02)"
+    max_turns: 3
+    max_budget_usd: 0.10
+    description: "Single-phase generation with optional example lookup (fast, ~20s, ~$0.03)"
 
-  # BALANCED Profile - DEFAULT - Good quality with reasonable speed
-  balanced:
-    planning_mode: generator_driven
-    save_prompts: true  # Save all prompts/responses to prompts/ folder for transparency
-{% if default_provider == 'cborg' %}
-    scan_model: "anthropic/claude-haiku"
-    plan_model: "anthropic/claude-haiku"
-    generate_model: "anthropic/claude-haiku"
-{% else %}
-    scan_model: "claude-haiku-4-5-20251001"
-    plan_model: "claude-haiku-4-5-20251001"
-    generate_model: "claude-haiku-4-5-20251001"
-{% endif %}
-    max_turns: 5
-    max_budget_usd: 0.25
-    description: "Balanced workflow with Haiku (fast and cost-effective, ~10s, ~$0.02)"
-
-  # ROBUST Profile - Maximum quality with advanced workflow
+  # ROBUST Profile - Multi-phase workflow with thorough analysis
+  # Full scan → plan → implement workflow for complex tasks
+  # Note: All phases use the SAME model (ClaudeSDKClient maintains conversation across phases)
   robust:
-    planning_mode: generator_driven
+    phases: [scan, plan, implement]  # Direct phase specification
     save_prompts: true  # Save all prompts/responses to prompts/ folder for transparency
 {% if default_provider == 'cborg' %}
-    scan_model: "anthropic/claude-haiku"
-    plan_model: "anthropic/claude-sonnet"
-    generate_model: "anthropic/claude-sonnet"
+    model: "anthropic/claude-haiku"
 {% else %}
-    scan_model: "claude-haiku-4-5-20251001"
-    plan_model: "claude-sonnet-4-5-20250929"
-    generate_model: "claude-sonnet-4-5-20250929"
+    model: "claude-haiku-4-5-20251001"
 {% endif %}
     max_turns: 10
-    max_budget_usd: 0.50
-    description: "Maximum quality with Sonnet planning and generation (~30s, ~$0.15)"
+    max_budget_usd: 0.25
+    description: "Multi-phase workflow with thorough analysis (slower, ~60s, ~$0.05)"
 
 # =============================================================================
 # Codebase Reading Configuration - DIRECTORY ISOLATION & SECURITY
@@ -295,7 +268,8 @@ profiles:
 # Each library provides:
 #   - directories: List of paths containing example code to copy
 #                  Use relative paths (from project root) or absolute paths.
-#   - guidance: Instructions about patterns and best practices in those examples
+#   - guidance: High-level description of what scenarios/tasks these examples cover
+#               (tells Claude WHEN to look in this directory for relevant patterns)
 #
 # How It Works:
 #   1. Examples are copied from your project into /tmp/osprey_claude_code_restricted/
@@ -309,53 +283,7 @@ codebase_guidance:
     directories:
       - "_agent_data/example_scripts/plotting/"
     guidance: |
-      Matplotlib best practices for control system visualization:
-      - Use tight_layout() to prevent label cutoff
-      - Set DPI=300 for publication-quality plots
-      - Always include clear axis labels with units in brackets [unit]
-      - Add descriptive titles and legends
-      - Use grid(alpha=0.3) for readability
-      - Close figures after saving: plt.close()
-      - For time series: use proper datetime formatting on x-axis
-      - Save plot path to results['plot_path'] for framework integration
-      - Use color-blind friendly palettes for multi-line plots
-
-# =============================================================================
-# Additional Settings
-# =============================================================================
-
-# Cost controls (applied globally)
-cost_controls:
-  max_budget_per_session: 5.00  # Maximum total cost per user session
-  warn_threshold: 0.50          # Log warning when generation exceeds this
-
-# Logging
-logging:
-  log_prompts: false           # Log full prompts (verbose)
-  log_responses: false         # Log full responses (verbose)
-  log_costs: true             # Always log API costs
-  log_performance: true       # Log timing information
-
-# Safety
-safety:
-  # These tools are NEVER allowed during code generation
-  blocked_tools:
-    - Write
-    - Edit
-    - MultiEdit
-    - Delete
-    - Bash
-    - Python
-    - Execute
-
-  # Maximum code size (characters)
-  max_code_size: 50000  # 50KB limit
-
-# Performance
-performance:
-  # Timeout for Claude Code queries (seconds)
-  query_timeout: 120    # 2 minutes
-
-  # Parallel generation (experimental)
-  parallel_enabled: false
+      Use for any plotting, visualization, or graphing requests including:
+      time series plots, multi-parameter comparisons, correlation matrices,
+      publication-quality figures. See README.md for detailed patterns and best practices.
 

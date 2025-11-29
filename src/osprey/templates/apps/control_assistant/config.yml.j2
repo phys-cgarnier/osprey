@@ -390,7 +390,7 @@ execution:
     # Claude Code configuration (requires claude-agent-sdk)
     claude_code:
       claude_config_path: "claude_generator_config.yml"  # Path to detailed config
-      profile: "balanced"    # Options: fast | balanced | robust
+      profile: "fast"        # Options: fast (DEFAULT, single-phase) | robust (multi-phase)
       # Advanced settings are in claude_generator_config.yml
 
   # EPICS infrastructure (DEPRECATED - use control_system section above)
