@@ -159,7 +159,7 @@ osprey:
     code_generator: "claude_code"
     generators:
       claude_code:
-        profile: "balanced"
+        profile: "fast"
         max_budget_usd: 0.50
       legacy:
         model_config_name: "python_code_generator"
@@ -289,7 +289,7 @@ from osprey.services.python_executor import (
 ### Code Generation
 - Legacy: ~2-5 seconds
 - Claude Code (fast): ~5 seconds
-- Claude Code (balanced): ~15 seconds
+- Claude Code (fast): ~20 seconds
 - Claude Code (robust): ~30 seconds
 
 ### Execution

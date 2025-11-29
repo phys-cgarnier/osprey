@@ -43,16 +43,16 @@ class TestClaudeCodeGeneratorBasics:
         generator = ClaudeCodeGenerator()
 
         assert generator.config is not None
-        assert generator.config.get('profile') in ['balanced', 'fast', 'robust']
-        assert generator.config.get('workflow_mode') in ['single_shot', 'sequential', 'direct', 'phased']
-        assert generator.config.get('model') in ['sonnet', 'haiku', 'opus']
+        assert generator.config.get('profile') in ['fast', 'robust']
+        assert generator.config.get('profile_phases') is not None
+        assert isinstance(generator.config.get('profile_phases'), list)
 
     def test_initialization_with_inline_config(self):
         """Test generator initialization with inline configuration."""
         config = {
             'profile': 'fast',
-            'workflow_mode': 'single_shot',
-            'model': 'haiku',
+            'phases': ['generate'],
+            'model': 'claude-haiku-4-5-20251001',
             'max_turns': 2,
             'max_budget_usd': 0.05
         }
@@ -60,8 +60,8 @@ class TestClaudeCodeGeneratorBasics:
         generator = ClaudeCodeGenerator(model_config=config)
 
         assert generator.config['profile'] == 'fast'
-        assert generator.config['workflow_mode'] == 'single_shot'
-        assert generator.config['model'] == 'haiku'
+        assert generator.config['profile_phases'] == ['generate']
+        assert generator.config['model'] == 'claude-haiku-4-5-20251001'
         assert generator.config['max_turns'] == 2
         assert generator.config['max_budget_usd'] == 0.05
 
@@ -235,7 +235,7 @@ class TestClaudeCodeGeneratorIntegration:
     @pytest.mark.asyncio
     async def test_single_shot_generation(self):
         """Test single-shot code generation with simple task."""
-        generator = ClaudeCodeGenerator({"profile": "fast", "workflow_mode": "single_shot"})
+        generator = ClaudeCodeGenerator({"profile": "fast", "phases": ["generate"]})
 
         request = PythonExecutionRequest(
             user_query="Calculate 2 + 2 and store in results",
@@ -372,12 +372,12 @@ class TestClaudeCodeGeneratorConfiguration:
         assert generator.config['max_budget_usd'] == 1.0
         assert generator.config['max_turns'] == 10
 
-    def test_missing_profile_defaults_to_balanced(self):
-        """Test that missing profile defaults to balanced."""
+    def test_missing_profile_defaults_to_fast(self):
+        """Test that missing profile defaults to fast."""
         generator = ClaudeCodeGenerator({})
 
-        # Should default to balanced or have a reasonable default
-        assert generator.config.get('profile') in ['balanced', 'fast', 'robust', None]
+        # Should default to fast
+        assert generator.config.get('profile') in ['fast', 'robust']
 
     def test_codebase_dirs_empty_without_config(self):
         """Test that codebase_dirs is empty without configuration file."""
@@ -421,20 +421,30 @@ class TestClaudeCodeGeneratorFactoryIntegration:
         pass
 
 
-@pytest.mark.parametrize("workflow_mode", ["single_shot", "sequential"])
 class TestClaudeCodeGeneratorWorkflows:
-    """Test different workflow modes."""
+    """Test different phase configurations."""
 
-    def test_workflow_mode_configuration(self, workflow_mode):
-        """Test configuration of different workflow modes."""
+    def test_single_phase_configuration(self):
+        """Test configuration of single-phase workflow (fast profile)."""
         config = {
-            'workflow_mode': workflow_mode,
-            'profile': 'fast'
+            'profile': 'fast',
+            'phases': ['generate']
         }
 
         generator = ClaudeCodeGenerator(model_config=config)
 
-        assert generator.config['workflow_mode'] == workflow_mode
+        assert generator.config['profile_phases'] == ['generate']
+
+    def test_multi_phase_configuration(self):
+        """Test configuration of multi-phase workflow (robust profile)."""
+        config = {
+            'profile': 'robust',
+            'phases': ['scan', 'plan', 'implement']
+        }
+
+        generator = ClaudeCodeGenerator(model_config=config)
+
+        assert generator.config['profile_phases'] == ['scan', 'plan', 'implement']
 
 
 @pytest.fixture
@@ -498,7 +508,7 @@ class TestClaudeCodeGeneratorStructuredErrors:
 
     def test_builds_prompt_with_structured_errors(self):
         """Verify ClaudeCodeGenerator uses ExecutionError.to_prompt_text()."""
-        generator = ClaudeCodeGenerator({"workflow_mode": "direct"})
+        generator = ClaudeCodeGenerator({"profile": "fast", "phases": ["generate"]})
 
         error_chain = [
             ExecutionError(
@@ -528,7 +538,7 @@ class TestClaudeCodeGeneratorStructuredErrors:
 
     def test_builds_prompt_with_multiple_errors(self):
         """Verify ClaudeCodeGenerator shows last 2 errors with full context."""
-        generator = ClaudeCodeGenerator({"workflow_mode": "direct"})
+        generator = ClaudeCodeGenerator({"profile": "fast", "phases": ["generate"]})
 
         error_chain = [
             ExecutionError(
@@ -574,7 +584,7 @@ class TestClaudeCodeGeneratorStructuredErrors:
 
     def test_builds_prompt_with_analysis_errors(self):
         """Verify ClaudeCodeGenerator shows analysis issues from ExecutionError."""
-        generator = ClaudeCodeGenerator({"workflow_mode": "direct"})
+        generator = ClaudeCodeGenerator({"profile": "fast", "phases": ["generate"]})
 
         error_chain = [
             ExecutionError(
@@ -605,7 +615,7 @@ class TestClaudeCodeGeneratorStructuredErrors:
 
     def test_phased_workflow_uses_structured_errors(self):
         """Verify phased workflow's generate prompt uses ExecutionError."""
-        generator = ClaudeCodeGenerator({"workflow_mode": "phased"})
+        generator = ClaudeCodeGenerator({"profile": "robust", "phases": ["scan", "plan", "implement"]})
 
         error_chain = [
             ExecutionError(

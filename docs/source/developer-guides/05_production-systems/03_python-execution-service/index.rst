@@ -137,7 +137,7 @@ Minimal configuration to get started:
          basic:
            model_config_name: "python_code_generator"
          claude_code:
-           profile: "balanced"  # fast | balanced | robust
+           profile: "fast"  # fast (DEFAULT, single-phase) | robust (multi-phase)
          mock:
            behavior: "success"
 

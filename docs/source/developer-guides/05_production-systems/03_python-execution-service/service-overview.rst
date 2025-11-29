@@ -392,7 +392,7 @@ Configure in ``config.yml``:
          basic:
            model_config_name: "python_code_generator"
          claude_code:
-           profile: "balanced"
+           profile: "fast"
          mock:
            behavior: "success"
 
@@ -592,7 +592,7 @@ Complete Service Configuration
               # model_id: "gpt-4"
 
             claude_code:
-           profile: "balanced"  # fast | balanced | robust
+           profile: "fast"  # fast | balanced | robust
            claude_config_path: "claude_generator_config.yml"  # optional
 
          mock:
@@ -771,7 +771,7 @@ Common Issues
    Verify ``code_generator`` setting in config and that the generator is registered
 
 **Generated code quality issues**
-   Consider using ``claude_code`` generator with ``balanced`` or ``robust`` profile
+   Consider using ``claude_code`` generator with ``fast`` (single-phase) or ``robust`` (multi-phase) profile
 
 See Also
 ========

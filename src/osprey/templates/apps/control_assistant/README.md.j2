@@ -109,11 +109,11 @@ ANTHROPIC_API_KEY=your_anthropic_key  # Required for Claude Code generator
 execution:
   generators:
     claude_code:
-      profile: "balanced"  # Options: fast | balanced | robust
+      profile: "fast"  # Options: fast (DEFAULT, single-phase) | robust (multi-phase)
 ```
 
 - **fast**: Quick one-pass generation (~5s, ~$0.02)
-- **balanced**: 3-phase workflow with codebase learning (~15s, ~$0.05) - DEFAULT
+- **fast**: Single-phase direct generation (~20s, ~$0.03) - DEFAULT
 - **robust**: Maximum quality with extended workflow (~30s, ~$0.15)
 
 **Advanced Features:**

@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **Claude Code Generator**: Removed 'balanced' profile (use 'fast' or 'robust'), removed 'workflow_mode' configuration (use direct 'phases' list), removed planning_modes abstraction, removed dead code (_generate_direct, _generate_phased, _build_phase_options)
 
+### Fixed
+- **Documentation**: Updated all Claude Code generator documentation to reflect new configuration model. Removed references to removed 'balanced' profile and 'workflow_mode'. Restructured generator-claude.rst with improved UX (dropdowns, tabs). Updated all examples to use 'fast' as default
+- **Tests**: Updated Claude Code generator tests to check 'profile_phases' instead of 'workflow_mode', removed tests for removed features, added tests for new phase-based configuration
+
 ### Added
 - **Python Executor Service - Complete Modular Refactoring**
   - **Modular Subdirectory Structure**: Reorganized python_executor service into focused subdirectories

@@ -63,7 +63,7 @@ Examples:
         ...     "execution": {
         ...         "code_generator": "claude_code",
         ...         "generators": {
-        ...             "claude_code": {"profile": "balanced"}
+            ...             "claude_code": {"profile": "fast"}
         ...         }
         ...     }
         ... }
@@ -127,7 +127,7 @@ def create_code_generator(config: dict[str, Any] | None = None):
                 model_config_name: "python_code_generator"
                 # or inline: provider, model_id, etc.
               claude_code:
-                profile: "balanced"  # fast|balanced|robust
+                profile: "fast"  # fast (DEFAULT, single-phase) | robust (multi-phase)
 
     .. note::
        The function gracefully handles missing optional dependencies. For example,

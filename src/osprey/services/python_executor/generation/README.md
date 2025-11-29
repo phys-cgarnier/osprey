@@ -26,7 +26,7 @@ This subsystem handles all Python code generation for the executor, providing a 
 - **`claude_code_generator.py`**: Claude Code SDK-based generator
   - Multi-turn agentic reasoning
   - Codebase-aware (reads successful examples)
-  - Three workflow modes: fast/balanced/robust
+  - Two quality profiles: fast (single-phase, DEFAULT) / robust (multi-phase)
   - Optional dependency: `claude-agent-sdk`
 
 - **`mock_generator.py`**: Mock generator for testing
@@ -137,7 +137,7 @@ osprey:
     code_generator: "claude_code"
     generators:
       claude_code:
-        profile: "balanced"  # fast | balanced | robust
+        profile: "fast"  # fast (DEFAULT, single-phase) | robust (multi-phase)
         max_budget_usd: 0.50
 ```
 
