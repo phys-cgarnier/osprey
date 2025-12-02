@@ -1267,6 +1267,9 @@ class OspreyTUI(App):
         # 6. Real-time IN update (when data becomes available)
         self._update_input_from_data(current_block, component)
 
+        # 7. Update shared_data for downstream blocks (populates task/caps for C/O blocks)
+        self._update_output_from_data(current_block, component, chunk)
+
         return current_component, current_block
 
     def _close_task_prep_block(self, block: ProcessingBlock, component: str | None) -> None:
@@ -1379,14 +1382,15 @@ class OspreyTUI(App):
             # T:IN = user_query (already set on creation)
             pass
         elif component == "classifier":
-            # C:IN = task
-            task = data.get("task", "")
+            # C:IN = task (check both block._data and _shared_data)
+            task = data.get("task") or self._shared_data.get("task", "")
             if task:
                 block.set_input(task)
+                block._data["task"] = task  # Store for future reference
         elif component == "orchestrator":
-            # O:IN = task → [caps]
-            task = data.get("task", "")
-            caps = data.get("capabilities", [])
+            # O:IN = task → [caps] (check both block._data and _shared_data)
+            task = data.get("task") or self._shared_data.get("task", "")
+            caps = data.get("capabilities") or self._shared_data.get("capability_names", [])
             if task and caps:
                 block.set_input(f"{task} → [{', '.join(caps)}]")
             elif task:
