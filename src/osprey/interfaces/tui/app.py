@@ -309,7 +309,15 @@ class ProcessingBlock(Static):
         if self._pending_input is not None:
             self._apply_input(self._pending_input)
         if self._pending_output is not None:
-            self._apply_output(*self._pending_output)
+            if self._status == "active":
+                # Block still active - use partial output (keeps breathing)
+                self._apply_partial_output(*self._pending_output)
+            else:
+                # Block complete - use full output (stops breathing)
+                self._apply_output(*self._pending_output)
+        # Show LOG section if logs were added before on_mount()
+        if self._log_messages:
+            self._update_log_display()
 
     def _start_breathing(self) -> None:
         """Start the breathing animation timer."""
@@ -455,6 +463,42 @@ class ProcessingBlock(Static):
         self._pending_output = (text, status)
         if self._mounted:
             self._apply_output(text, status)
+
+    def set_partial_output(self, text: str, status: str = "pending") -> None:
+        """Set partial output while block is still active (keeps breathing).
+
+        Unlike set_output(), this doesn't mark the block as complete.
+        Used for real-time status/error updates during streaming.
+
+        Args:
+            text: The output text to display.
+            status: The status for styling ('pending', 'error', etc.).
+        """
+        self._pending_output = (text, status)
+        self._output_preview = self._get_preview(text)
+        if self._mounted:
+            self._apply_partial_output(text, status)
+
+    def _apply_partial_output(self, text: str, status: str) -> None:
+        """Show separator and OUT section without stopping block.
+
+        Args:
+            text: The output text to display.
+            status: The status for styling.
+        """
+        # Show separator
+        separator = self.query_one("#block-separator", Static)
+        separator.display = True
+
+        # Show and update OUT section
+        output = self.query_one("#block-output", Collapsible)
+        output.display = True
+        output.title = f"[bold]OUT[/bold]   ▸ {self._output_preview}"
+        content = self.query_one("#block-output-content", Static)
+        content.update(text)
+
+        # DON'T stop breathing or change header indicator
+        # Block remains "active" with breathing animation
 
     def add_log(self, message: str, status: str = "status") -> None:
         """Add a message to the LOG section.
@@ -1112,19 +1156,14 @@ class OspreyTUI(App):
             if key in chunk:
                 current_block._data[key] = chunk[key]
 
-        # 5. Add to LOG section
+        # 5. Add to LOG section and update OUT with latest message
         if msg:
             current_block.add_log(msg, status=level)
+            # Update OUT section with every log message (real-time feedback)
+            current_block.set_partial_output(msg, status=level)
 
         # 6. Real-time IN update (when data becomes available)
         self._update_input_from_data(current_block, component)
-
-        # 7. Real-time OUT update on success/error (but DON'T close block)
-        if level == "success":
-            self._update_output_from_data(current_block, component, chunk)
-        elif level == "error":
-            error_msg = msg if msg else f"{component} error"
-            current_block.set_output(error_msg, status="error")
 
         return current_component, current_block
 
@@ -1253,8 +1292,9 @@ class OspreyTUI(App):
                 block.set_input(task, mark_set=False)
 
     def _update_output_from_data(self, block: ProcessingBlock, component: str, chunk: dict) -> None:
-        """Update block OUT section from _data dict on completion.
+        """Update block OUT section from _data dict during streaming.
 
+        Uses set_partial_output() for real-time updates (keeps block active).
         Also updates _shared_data for passing info to subsequent blocks.
 
         Args:
@@ -1263,33 +1303,28 @@ class OspreyTUI(App):
             chunk: The completion event chunk.
         """
         data = block._data
-        msg = chunk.get("message", "")
 
         if component == "task_extraction":
-            # T:OUT = task
+            # T:OUT = task (partial - full will be set on close)
             task = data.get("task", "")
-            block.set_output(task if task else (msg if msg else "Task extracted"))
-            # Save task to shared_data for C and O blocks
             if task:
+                block.set_partial_output(task)
+                # Save task to shared_data for C and O blocks
                 self._shared_data["task"] = task
 
         elif component == "classifier":
-            # C:OUT = capability checklist
+            # C:OUT = selected capabilities (partial preview)
             selected_caps = data.get("capability_names", [])
-            if selected_caps and isinstance(block, ClassificationBlock):
-                block.set_capabilities(self.all_capability_names, selected_caps)
+            if selected_caps:
+                block.set_partial_output(f"Selected: {', '.join(selected_caps)}")
                 # Save capability_names to shared_data for O block
                 self._shared_data["capability_names"] = selected_caps
-            else:
-                block.set_output(msg if msg else "Classification complete")
 
         elif component == "orchestrator":
-            # O:OUT = planned steps
+            # O:OUT = planned steps (partial preview)
             steps = data.get("steps", [])
-            if steps and isinstance(block, OrchestrationBlock):
-                block.set_plan(steps)
-            else:
-                block.set_output(msg if msg else "Planning complete")
+            if steps:
+                block.set_partial_output(f"{len(steps)} steps planned")
 
     @work(exclusive=True)
     async def process_with_agent(self, user_input: str) -> None:
