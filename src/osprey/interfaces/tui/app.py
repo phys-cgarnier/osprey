@@ -260,6 +260,8 @@ class ProcessingBlock(Static):
         self._input_set: bool = False
         # Data dict for extracted information (task, capabilities, steps, etc.)
         self._data: dict[str, Any] = {}
+        # Track last error message for OUT section on block close
+        self._last_error_msg: str = ""
 
     def compose(self) -> ComposeResult:
         """Compose the block with header, input, separator, OUT, and LOG sections."""
@@ -464,6 +466,9 @@ class ProcessingBlock(Static):
         if message:
             self._log_messages.append((status, message))
             self._update_log_display()
+            # Track last error message for OUT section on block close
+            if status == "error":
+                self._last_error_msg = message
 
     def _format_log_messages(self) -> str:
         """Format all log messages with status symbols.
@@ -1081,20 +1086,8 @@ class OspreyTUI(App):
         Returns:
             Tuple of (new_current_component, new_current_block).
         """
-        # 1. Detect retry signals for Orchestrator only
-        # Only "re-planning" triggers a new O block - Classifier doesn't need retry blocks
-        # (reclassifying messages are just logged, not used to create retry blocks)
-        if msg:
-            msg_lower = msg.lower()
-            is_replanning = any(
-                kw in msg_lower
-                for kw in ["re-planning", "replanning"]
-            )
-            if is_replanning and current_block:
-                current_block.set_output("Retry triggered", status="error")
-                current_component, current_block = None, None
-
-        # 2. Component transition: close current block when different component arrives
+        # 1. Component transition: close current block when different component arrives
+        # (Same component logs all go to the same block - no retry detection needed)
         if component != current_component and current_block:
             self._close_task_prep_block(current_block, current_component)
             current_component, current_block = None, None
@@ -1159,6 +1152,9 @@ class OspreyTUI(App):
                 steps = data.get("steps", [])
                 if steps and isinstance(block, OrchestrationBlock):
                     block.set_plan(steps)
+                elif block._last_error_msg:
+                    # Use last error message for failed orchestration
+                    block.set_output(block._last_error_msg, status="error")
                 else:
                     block.set_output("Planning complete")
             else:
