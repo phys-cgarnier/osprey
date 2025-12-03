@@ -53,7 +53,7 @@ Footer {
 ChatMessage {
     width: 100%;
     height: auto;
-    margin: 1 2 1 0;
+    margin: 1 0;
     padding: 1 2 0 2;
     border: tall $surface-lighten-1;
     border-title-color: $text;
@@ -85,7 +85,7 @@ ChatMessage.message-assistant {
 StreamingMessage {
     width: 100%;
     height: auto;
-    margin: 1 2 1 0;
+    margin: 1 0;
     padding: 1 2 0 2;
     border: tall $surface-lighten-1;
     background: $surface-darken-1;
@@ -112,7 +112,7 @@ OrchestrationBlock,
 ExecutionStepBlock {
     width: 100%;
     height: auto;
-    margin: 1 2 0 0;
+    margin: 1 0 0 0;
     padding: 0 2;
     border: tall $surface-lighten-1;
     background: transparent;  /* Subtle - blends in, highlight on select */
