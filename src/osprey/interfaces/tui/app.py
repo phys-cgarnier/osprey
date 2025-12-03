@@ -964,6 +964,15 @@ class ChatInput(TextArea):
         super()._on_key(event)
 
 
+class StatusPanel(Static):
+    """Status panel showing tips and shortcuts below the input area."""
+
+    def __init__(self, **kwargs):
+        """Initialize the status panel with default tips."""
+        super().__init__(**kwargs)
+        self.update("Enter to send · Option + Enter for newline · ↑↓ for history")
+
+
 class OspreyTUI(App):
     """Osprey Terminal User Interface.
 
@@ -1004,7 +1013,10 @@ class OspreyTUI(App):
         """Create child widgets for the app."""
         yield Header()
         yield Vertical(
-            ChatDisplay(id="chat-display"), ChatInput(id="chat-input"), id="main-content"
+            ChatDisplay(id="chat-display"),
+            ChatInput(id="chat-input"),
+            StatusPanel(id="status-panel"),
+            id="main-content",
         )
         yield Footer()
 
@@ -1046,7 +1058,7 @@ class OspreyTUI(App):
         # Add welcome message
         chat_display = self.query_one("#chat-display", ChatDisplay)
         chat_display.add_message(
-            "Welcome to Osprey TUI! Enter to send, Option+Enter for newline.",
+            "Welcome to Osprey TUI!",
             "assistant",
         )
 
