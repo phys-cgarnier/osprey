@@ -106,8 +106,9 @@ class OspreyTUI(App):
 
     def _show_quit_hint(self) -> None:
         """Show quit confirmation hint in status panel."""
+        panel_id = "#welcome-status" if self._welcome_mode else "#status-panel"
         try:
-            status = self.query_one("#status-panel", StatusPanel)
+            status = self.query_one(panel_id, StatusPanel)
             status.update("Press Ctrl-C again to exit")
         except Exception:
             pass
@@ -116,8 +117,9 @@ class OspreyTUI(App):
         """Reset quit state and restore status panel."""
         self._quit_pending = False
         self._quit_timer = None
+        panel_id = "#welcome-status" if self._welcome_mode else "#status-panel"
         try:
-            status = self.query_one("#status-panel", StatusPanel)
+            status = self.query_one(panel_id, StatusPanel)
             status.update("Enter to send · Option + Enter for newline · ↑↓ for history")
         except Exception:
             pass

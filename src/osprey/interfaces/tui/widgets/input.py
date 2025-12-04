@@ -31,11 +31,28 @@ class ChatInput(TextArea):
             self.value = value
             self.is_command = is_command
 
-    def __init__(self, **kwargs):
-        """Initialize the chat input."""
+    def __init__(
+        self,
+        placeholder: str = "",
+        dropdown_id: str = "#command-dropdown",
+        status_id: str = "#status-panel",
+        **kwargs,
+    ):
+        """Initialize the chat input.
+
+        Args:
+            placeholder: Placeholder text shown when input is empty.
+            dropdown_id: CSS selector for the command dropdown widget.
+            status_id: CSS selector for the status panel widget.
+        """
         super().__init__(**kwargs)
         self.show_line_numbers = False
         self.cursor_blink = False
+        self._dropdown_id = dropdown_id
+        self._status_id = status_id
+        # Set placeholder if provided (TextArea supports this attribute)
+        if placeholder:
+            self.placeholder = placeholder
         # History support
         self._history: list[str] = []
         self._history_index: int = -1  # -1 means current input (not in history)
@@ -131,7 +148,7 @@ class ChatInput(TextArea):
     def _get_dropdown(self) -> CommandDropdown | None:
         """Get the command dropdown widget."""
         try:
-            return self.app.query_one("#command-dropdown", CommandDropdown)
+            return self.app.query_one(self._dropdown_id, CommandDropdown)
         except Exception:
             return None
 
@@ -154,7 +171,7 @@ class ChatInput(TextArea):
     def _get_status_panel(self) -> StatusPanel | None:
         """Get the status panel widget."""
         try:
-            return self.app.query_one("#status-panel", StatusPanel)
+            return self.app.query_one(self._status_id, StatusPanel)
         except Exception:
             return None
 

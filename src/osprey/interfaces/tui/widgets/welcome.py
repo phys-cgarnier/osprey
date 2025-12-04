@@ -4,7 +4,11 @@ from textual.app import ComposeResult
 from textual.containers import Center, Vertical
 from textual.widgets import Static
 
-from osprey.interfaces.tui.widgets.input import ChatInput, CommandDropdown, StatusPanel
+from osprey.interfaces.tui.widgets.input import (
+    ChatInput,
+    CommandDropdown,
+    StatusPanel,
+)
 
 # ASCII art banner from CLI (interactive_menu.py)
 OSPREY_BANNER = """\
@@ -57,13 +61,25 @@ class WelcomeScreen(Static):
 
     def compose(self) -> ComposeResult:
         """Compose the welcome screen layout."""
-        yield Center(
-            Vertical(
-                WelcomeBanner(version=self.version, id="welcome-banner"),
-                CommandDropdown(id="welcome-dropdown"),
-                ChatInput(id="welcome-input"),
-                StatusPanel(id="welcome-status"),
-                id="welcome-content",
+        yield Vertical(
+            Center(
+                Vertical(
+                    WelcomeBanner(version=self.version, id="welcome-banner"),
+                    id="banner-container",
+                ),
             ),
-            id="welcome-center",
+            Center(
+                Vertical(
+                    CommandDropdown(id="welcome-dropdown"),
+                    ChatInput(
+                        id="welcome-input",
+                        placeholder="Ask anything...",
+                        dropdown_id="#welcome-dropdown",
+                        status_id="#welcome-status",
+                    ),
+                    StatusPanel(id="welcome-status"),
+                    id="input-container",
+                ),
+            ),
+            id="welcome-content",
         )
