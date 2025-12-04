@@ -75,6 +75,18 @@ Footer {
 #command-dropdown > .option-list--option-highlighted {
     color: $block-cursor-blurred-foreground;
     background: $block-cursor-blurred-background;
+    text-style: none;
+}
+
+/* Command text in dropdown - component class */
+CommandDropdown > .command-dropdown--command {
+    color: $block-cursor-blurred-foreground;
+    text-style: bold;
+}
+
+/* Description text in command dropdown - component class */
+CommandDropdown > .command-dropdown--description {
+    color: $text-muted;
 }
 
 /* Status panel - tips and shortcuts */

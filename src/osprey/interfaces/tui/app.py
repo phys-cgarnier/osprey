@@ -10,14 +10,16 @@ import re
 import textwrap
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from langgraph.checkpoint.memory import MemorySaver
 from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer, Vertical
+from textual.content import Content
 from textual.events import Key
 from textual.message import Message
+from textual.style import Style
 from textual.widgets import Collapsible, Footer, Header, Markdown, OptionList, Static, TextArea
 from textual.widgets.option_list import Option
 
@@ -1123,6 +1125,11 @@ class StatusPanel(Static):
 class CommandDropdown(OptionList):
     """Dropdown showing matching slash commands with descriptions."""
 
+    COMPONENT_CLASSES: ClassVar[set[str]] = {
+        "command-dropdown--command",
+        "command-dropdown--description",
+    }
+
     # Available commands with metadata (description and options)
     COMMANDS = {
         # Simple commands (no options)
@@ -1204,10 +1211,23 @@ class CommandDropdown(OptionList):
                 matches.append((cmd, meta["desc"]))
 
         if matches:
+            # Get styles from CSS
+            cmd_style = Style.from_styles(
+                self.get_component_styles("command-dropdown--command")
+            )
+            desc_style = Style.from_styles(
+                self.get_component_styles("command-dropdown--description")
+            )
+
             for cmd, desc in matches:
                 # Pad command to align descriptions (table-like)
                 padded_cmd = cmd.ljust(self._MAX_CMD_LEN + 8)
-                self.add_option(Option(f"{padded_cmd}[dim]{desc}[/dim]", id=cmd))
+                # Create styled content: command + description
+                prompt = Content.assemble(
+                    (padded_cmd, cmd_style),  # Command with CSS style
+                    (desc, desc_style),  # Description with CSS style
+                )
+                self.add_option(Option(prompt, id=cmd))
             self.display = True
             self._visible = True
             # Highlight first option
