@@ -824,6 +824,7 @@ class ChatInput(TextArea):
         """Initialize the chat input."""
         super().__init__(**kwargs)
         self.show_line_numbers = False
+        self.cursor_blink = False
         # History support
         self._history: list[str] = []
         self._history_index: int = -1  # -1 means current input (not in history)
@@ -1301,8 +1302,7 @@ class OspreyTUI(App):
     CSS_PATH = "styles.tcss"
 
     BINDINGS = [
-        ("ctrl+c", "quit", "Quit"),
-        ("ctrl+q", "quit", "Quit"),
+        ("ctrl+c", "request_quit", "Quit"),
     ]
 
     def __init__(self, config_path: str = "config.yml"):
@@ -1325,6 +1325,10 @@ class OspreyTUI(App):
         # Shared data for passing info between blocks (T→C→O)
         self._shared_data: dict[str, Any] = {}  # {task, capability_names, ...}
 
+        # Double Ctrl+C quit state
+        self._quit_pending: bool = False
+        self._quit_timer: asyncio.TimerHandle | None = None
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
@@ -1336,6 +1340,45 @@ class OspreyTUI(App):
             id="main-content",
         )
         yield Footer()
+
+    def action_request_quit(self) -> None:
+        """Handle Ctrl+C - requires double press within 0.5s to quit."""
+        if self._quit_pending:
+            # Second Ctrl+C within timeout - actually quit
+            self._cancel_quit_timer()
+            self.exit()
+        else:
+            # First Ctrl+C - show confirmation message
+            self._quit_pending = True
+            self._show_quit_hint()
+            # Set timer to reset after 0.5s
+            self._quit_timer = asyncio.get_event_loop().call_later(
+                0.5, self._reset_quit_state
+            )
+
+    def _show_quit_hint(self) -> None:
+        """Show quit confirmation hint in status panel."""
+        try:
+            status = self.query_one("#status-panel", StatusPanel)
+            status.update("Press Ctrl-C again to exit")
+        except Exception:
+            pass
+
+    def _reset_quit_state(self) -> None:
+        """Reset quit state and restore status panel."""
+        self._quit_pending = False
+        self._quit_timer = None
+        try:
+            status = self.query_one("#status-panel", StatusPanel)
+            status.update("Enter to send · Option + Enter for newline · ↑↓ for history")
+        except Exception:
+            pass
+
+    def _cancel_quit_timer(self) -> None:
+        """Cancel the quit timer if active."""
+        if self._quit_timer:
+            self._quit_timer.cancel()
+            self._quit_timer = None
 
     def on_mount(self) -> None:
         """Handle app mount event - initialize agent components."""
@@ -1398,11 +1441,6 @@ class OspreyTUI(App):
         user_input = event.value.strip()
 
         if not user_input:
-            return
-
-        # Handle quit commands locally
-        if user_input.lower() in ("bye", "end", "quit", "exit"):
-            self.exit()
             return
 
         # Handle slash commands
