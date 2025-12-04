@@ -9,8 +9,13 @@ from osprey.interfaces.tui.widgets.blocks import (
 )
 from osprey.interfaces.tui.widgets.chat_display import ChatDisplay
 from osprey.interfaces.tui.widgets.debug import DebugBlock
-from osprey.interfaces.tui.widgets.input import ChatInput, CommandDropdown, StatusPanel
+from osprey.interfaces.tui.widgets.input import (
+    ChatInput,
+    CommandDropdown,
+    StatusPanel,
+)
 from osprey.interfaces.tui.widgets.messages import ChatMessage
+from osprey.interfaces.tui.widgets.welcome import WelcomeBanner, WelcomeScreen
 
 __all__ = [
     "ChatMessage",
@@ -24,4 +29,6 @@ __all__ = [
     "ChatInput",
     "StatusPanel",
     "CommandDropdown",
+    "WelcomeBanner",
+    "WelcomeScreen",
 ]

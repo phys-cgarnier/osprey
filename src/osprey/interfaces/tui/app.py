@@ -28,6 +28,7 @@ from osprey.interfaces.tui.widgets import (
     ProcessingBlock,
     StatusPanel,
     TaskExtractionBlock,
+    WelcomeScreen,
 )
 from osprey.registry import get_registry, initialize_registry
 from osprey.utils.config import get_config_value, get_full_configuration
@@ -72,9 +73,15 @@ class OspreyTUI(App):
         self._quit_pending: bool = False
         self._quit_timer: asyncio.TimerHandle | None = None
 
+        # Welcome screen mode - starts True, becomes False on first user input
+        self._welcome_mode: bool = True
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header()
+        # Welcome screen (shown initially)
+        yield WelcomeScreen(version=self._get_version(), id="welcome-screen")
+        # Chat screen (hidden initially)
         yield Vertical(
             ChatDisplay(id="chat-display"),
             CommandDropdown(id="command-dropdown"),
@@ -121,6 +128,37 @@ class OspreyTUI(App):
             self._quit_timer.cancel()
             self._quit_timer = None
 
+    def _get_version(self) -> str:
+        """Get the framework version."""
+        try:
+            from osprey import __version__
+
+            return __version__
+        except ImportError:
+            return ""
+
+    def _exit_welcome_mode(self) -> None:
+        """Exit welcome mode by switching from welcome screen to chat UI."""
+        if not self._welcome_mode:
+            return
+
+        self._welcome_mode = False
+
+        # Hide welcome screen, show main content
+        try:
+            welcome_screen = self.query_one("#welcome-screen", WelcomeScreen)
+            welcome_screen.display = False
+        except Exception:
+            pass
+
+        try:
+            main_content = self.query_one("#main-content")
+            main_content.display = True
+            # Focus the chat input
+            self.query_one("#chat-input", ChatInput).focus()
+        except Exception:
+            pass
+
     def on_mount(self) -> None:
         """Handle app mount event - initialize agent components."""
         # Initialize registry
@@ -153,17 +191,14 @@ class OspreyTUI(App):
             "recursion_limit": recursion_limit,
         }
 
-        # Focus the input field when app starts
-        self.query_one("#chat-input", ChatInput).focus()
+        # Hide main content initially (welcome screen is shown)
+        self.query_one("#main-content").display = False
 
-        # Add welcome message
-        chat_display = self.query_one("#chat-display", ChatDisplay)
-        chat_display.add_message(
-            "Welcome to Osprey TUI!",
-            "assistant",
-        )
+        # Focus the welcome input field
+        self.query_one("#welcome-input", ChatInput).focus()
 
         # Set up log handler to capture Python logs via single-channel architecture
+        chat_display = self.query_one("#chat-display", ChatDisplay)
         # All logs from ComponentLogger include raw_message and log_type in extra dict
         loop = asyncio.get_event_loop()
         self._log_handler = QueueLogHandler(chat_display._event_queue, loop)
@@ -183,6 +218,10 @@ class OspreyTUI(App):
 
         if not user_input:
             return
+
+        # Exit welcome mode on any input (message or slash command)
+        if self._welcome_mode:
+            self._exit_welcome_mode()
 
         # Handle slash commands
         if event.is_command:
