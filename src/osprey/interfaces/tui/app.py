@@ -1437,7 +1437,10 @@ class OspreyTUI(App):
         elif cmd_name == "exit":
             self.exit()
         else:
-            chat_display.add_message(f"Unknown command: {command_line}\n\nType /help to see available commands.", "assistant")
+            chat_display.add_message(
+                f"Unknown command: `{command_line}`\n\nType `/help` to see available commands.",
+                "assistant",
+            )
 
     def _parse_command(self, command_line: str) -> tuple[str, str | None]:
         """Parse a command line into command name and option.
@@ -1503,7 +1506,10 @@ class OspreyTUI(App):
             "config": ("Show current configuration", "Usage: `/config`"),
             "status": ("Show system status", "Usage: `/status`"),
             "planning": ("Control planning mode", "Usage: `/planning:on` or `/planning:off`"),
-            "approval": ("Control approval workflow", "Usage: `/approval:on`, `/approval:off`, or `/approval:selective`"),
+            "approval": (
+                "Control approval workflow",
+                "Usage: `/approval:on`, `/approval:off`, or `/approval:selective`",
+            ),
             "task": ("Control task extraction bypass", "Usage: `/task:on` or `/task:off`"),
             "caps": ("Control capability selection bypass", "Usage: `/caps:on` or `/caps:off`"),
             "exit": ("Exit the application", "Usage: `/exit`"),
@@ -1609,12 +1615,19 @@ class OspreyTUI(App):
                 self.base_config["configurable"]["approval_global_mode"] = mode_map[value]
                 chat_display.add_message(f"Approval mode: **{value}**", "assistant")
             else:
-                chat_display.add_message("Invalid option. Use: `/approval:on`, `/approval:off`, or `/approval:selective`", "assistant")
+                chat_display.add_message(
+                    "Invalid option. Use: `/approval:on`, `/approval:off`, or `/approval:selective`",
+                    "assistant",
+                )
         elif cmd in config_keys:
             enabled = value in ("on", "true", "enabled", "1")
             self.base_config["configurable"][config_keys[cmd]] = enabled
             status = "enabled" if enabled else "disabled"
-            cmd_display = {"planning": "Planning mode", "task": "Task extraction", "caps": "Capability selection"}
+            cmd_display = {
+                "planning": "Planning mode",
+                "task": "Task extraction",
+                "caps": "Capability selection",
+            }
             chat_display.add_message(f"{cmd_display[cmd]}: **{status}**", "assistant")
         else:
             chat_display.add_message(f"Unknown command: /{cmd}", "assistant")
