@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation: Fixed RST docstring formatting**: Corrected docstring syntax in `BaseInfrastructureNode.get_current_task()` to use proper RST code block notation (eliminates Sphinx warnings)
 
 ### Added
+- **Hierarchical Channel Finder: Custom Separator Overrides**: Per-node control of channel name separators
+  - New `_separator` metadata field overrides default separators from naming pattern
+  - Solves EPICS naming conventions with mixed delimiters (e.g., `:` for subdevices, `_` for suffixes, `.` for legacy subsystems)
+  - Backward compatible: nodes without `_separator` use pattern defaults
+  - Documentation: New "Custom Separators" tab in Advanced Hierarchy Patterns section
 - **Hierarchical Channel Finder: Automatic Leaf Detection**: Eliminates verbose `_is_leaf` markers for childless nodes
   - Nodes without children are automatically detected as leaves (no explicit marker needed)
   - `_is_leaf` now only required for nodes that have children but are also complete channels
