@@ -593,11 +593,17 @@ class CommandDropdown(OptionList):
         self._position_upward()
 
     def move_highlight_up(self) -> None:
-        """Move highlight to previous option."""
-        if self.highlighted is not None and self.highlighted > 0:
-            self.highlighted = self.highlighted - 1
+        """Move highlight to previous option, cycling to last if at first."""
+        if self.highlighted is not None and self.option_count > 0:
+            if self.highlighted == 0:
+                self.highlighted = self.option_count - 1  # Cycle to last
+            else:
+                self.highlighted = self.highlighted - 1
 
     def move_highlight_down(self) -> None:
-        """Move highlight to next option."""
-        if self.highlighted is not None and self.highlighted < self.option_count - 1:
-            self.highlighted = self.highlighted + 1
+        """Move highlight to next option, cycling to first if at last."""
+        if self.highlighted is not None and self.option_count > 0:
+            if self.highlighted >= self.option_count - 1:
+                self.highlighted = 0  # Cycle to first
+            else:
+                self.highlighted = self.highlighted + 1

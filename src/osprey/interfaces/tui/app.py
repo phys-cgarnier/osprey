@@ -11,6 +11,7 @@ from typing import Any
 from langgraph.checkpoint.memory import MemorySaver
 from textual import work
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Vertical
 
 from osprey.graph import create_graph
@@ -45,7 +46,8 @@ class OspreyTUI(App):
     CSS_PATH = "styles.tcss"
 
     BINDINGS = [
-        ("ctrl+c", "request_quit", "Quit"),
+        ("ctrl+c", "smart_ctrl_c", "Copy/Quit"),
+        Binding("ctrl+q", "noop", "", show=False),  # Disable default ctrl+q quit
     ]
 
     def __init__(self, config_path: str = "config.yml"):
@@ -134,6 +136,35 @@ class OspreyTUI(App):
         if self._quit_timer:
             self._quit_timer.cancel()
             self._quit_timer = None
+
+    def action_smart_ctrl_c(self) -> None:
+        """Smart Ctrl+C: copy if text selected, otherwise trigger quit."""
+        # Try to find focused TextArea with selection
+        try:
+            from textual.widgets import TextArea
+
+            focused = self.focused
+            if isinstance(focused, TextArea) and focused.selected_text:
+                # Copy selected text to clipboard
+                self._copy_to_clipboard(focused.selected_text)
+                return
+        except Exception:
+            pass
+        # No selection - trigger quit behavior
+        self.action_request_quit()
+
+    def _copy_to_clipboard(self, text: str) -> None:
+        """Copy text to clipboard using pyperclip."""
+        try:
+            import pyperclip
+
+            pyperclip.copy(text)
+        except Exception:
+            pass  # Clipboard not available - fail silently
+
+    def action_noop(self) -> None:
+        """Do nothing - used to disable default bindings."""
+        pass
 
     def _get_version(self) -> str:
         """Get the framework version."""
