@@ -225,15 +225,32 @@ ChatMessage {
 ChatMessage.message-user {
     margin: 0 2 1 2;
     background: $surface;
-    border-title-background: $primary;
+    &:dark {
+        border-title-background: $surface-lighten-1;
+    }
+    &:light {
+        border-title-background: $surface-darken-1;
+    }
     border-title-align: right;
 }
 
 /* Assistant message - base immersive style */
 ChatMessage.message-assistant {
-    padding: 0 4;
+    padding: 1 4;
     background: transparent;
     border: none;
+}
+
+/* Remove bottom margin from first/last markdown elements in assistant messages */
+/* Compensates for vertical padding on the message container */
+ChatMessage.message-user .message-content > *:last-child,
+ChatMessage.message-assistant .message-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* No vertical padding for better flow */
+ChatMessage.message-assistant.message-type-agent {
+    padding: 0 4;
 }
 
 /* Slash command responses - subtle background shift */
@@ -259,6 +276,14 @@ ChatMessage.message-assistant.message-type-instant {
 /* Overrides Textual's default light mode "background: white 30%" */
 MarkdownTable {
     background: transparent;
+}
+
+/* Headings always preserve bottom margin (override *:last-child rule) */
+/* More specific selector to take precedence */
+ChatMessage.message-assistant .message-content > MarkdownH1,
+ChatMessage.message-assistant .message-content > MarkdownH2,
+ChatMessage.message-assistant .message-content > MarkdownH3 {
+    margin-bottom: 1;
 }
 
 /* Processing block base styles */
