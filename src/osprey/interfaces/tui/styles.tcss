@@ -306,8 +306,11 @@ ExecutionStepBlock {
 }
 
 /* Active block - highlighted border */
+/* Need &:dark/&:light to match specificity of ProcessingBlock:dark/light */
 .block-active {
-    border: tall $accent;
+    &:dark, &:light {
+        border: tall $accent;
+    }
 }
 
 .block-success {
@@ -320,11 +323,15 @@ ExecutionStepBlock {
 }
 
 .block-error {
-    border: tall $error;
+    &:dark, &:light {
+        border: tall $error;
+    }
 }
 
 .block-warning {
-    border: tall $warning;
+    &:dark, &:light {
+        border: tall $warning;
+    }
 }
 
 /* Block header - title with indicator */
