@@ -166,7 +166,7 @@ WelcomeBanner {
 
 /* Command text in dropdown - component class */
 CommandDropdown > .command-dropdown--command {
-    color: $block-cursor-blurred-foreground;
+    color: $text;
     text-style: bold;
 }
 
@@ -186,7 +186,7 @@ CommandDropdown > .command-dropdown--description {
 
 /* Command text in status panel - component class */
 StatusPanel > .status-panel--command {
-    color: $block-cursor-blurred-foreground;
+    color: $text;
     text-style: bold;
 }
 
