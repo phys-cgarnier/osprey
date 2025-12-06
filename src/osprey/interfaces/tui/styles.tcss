@@ -459,3 +459,79 @@ DebugBlock,
     color: $text-muted;
     margin: 0;
 }
+
+/* =============================================================================
+   Command Palette Modal
+   ============================================================================= */
+
+CommandPalette {
+    align: center middle;
+}
+
+#palette-container {
+    width: 60;
+    max-height: 80%;
+    padding: 1 2;
+    &:dark {
+        background: $surface;
+        border: tall $surface-lighten-1;
+    }
+    &:light {
+        background: $surface;
+        border: tall $surface-darken-1;
+    }
+}
+
+#palette-header {
+    width: 100%;
+    height: 1;
+    margin-bottom: 1;
+}
+
+#palette-title {
+    width: 1fr;
+    text-style: bold;
+}
+
+#palette-dismiss-hint {
+    width: auto;
+    color: $text-muted;
+}
+
+#palette-search {
+    width: 100%;
+    margin-bottom: 1;
+    border: tall $primary-darken-2;
+    background: $background;
+}
+
+#palette-search:focus {
+    border: tall $primary;
+}
+
+#palette-options {
+    width: 100%;
+    height: auto;
+    max-height: 20;
+    background: transparent;
+    border: none;
+    scrollbar-size: 0 0;
+}
+
+#palette-options > .option-list--option {
+    padding: 0 1;
+}
+
+/* Component classes for styled content */
+CommandPalette > .palette--label {
+    color: $text;
+}
+
+CommandPalette > .palette--shortcut {
+    color: $text-muted;
+}
+
+CommandPalette > .palette--category {
+    color: $warning;
+    text-style: bold;
+}

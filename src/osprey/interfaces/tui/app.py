@@ -23,6 +23,7 @@ from osprey.interfaces.tui.widgets import (
     ChatInput,
     ClassificationBlock,
     CommandDropdown,
+    CommandPalette,
     ExecutionStepBlock,
     OrchestrationBlock,
     ProcessingBlock,
@@ -48,6 +49,10 @@ class OspreyTUI(App):
     BINDINGS = [
         ("ctrl+c", "smart_ctrl_c", "Copy/Quit"),
         Binding("ctrl+q", "noop", "", show=False),  # Disable default ctrl+q quit
+        # Command palette
+        ("ctrl+shift+p", "show_command_palette", "Command Palette"),
+        # Focus input (cross-platform: ctrl+l on Linux, cmd+l on macOS)
+        ("ctrl+l", "focus_input", "Focus Input"),
     ]
 
     def __init__(self, config_path: str = "config.yml"):
@@ -165,6 +170,26 @@ class OspreyTUI(App):
     def action_noop(self) -> None:
         """Do nothing - used to disable default bindings."""
         pass
+
+    def action_show_command_palette(self) -> None:
+        """Show the command palette modal."""
+
+        def handle_result(result: str | None) -> None:
+            if result:
+                # Execute the command action
+                action = getattr(self, f"action_{result}", None)
+                if action:
+                    action()
+
+        self.push_screen(CommandPalette(), handle_result)
+
+    def action_focus_input(self) -> None:
+        """Focus the chat input bar."""
+        input_id = "#welcome-input" if self._welcome_mode else "#chat-input"
+        try:
+            self.query_one(input_id, ChatInput).focus()
+        except Exception:
+            pass
 
     def _get_version(self) -> str:
         """Get the framework version."""
