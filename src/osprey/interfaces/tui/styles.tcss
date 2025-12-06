@@ -2,6 +2,7 @@
 
 Screen {
     background: $background;
+    scrollbar-size: 0 0;  /* Hide scrollbars, keep scroll functionality */
 }
 
 /* Header */
@@ -31,6 +32,7 @@ Footer {
     padding: 0 2;
     margin: 0;
     background: $background;
+    scrollbar-size: 0 0;  /* Hide scrollbar */
 }
 
 /* Welcome screen - full height, centered */
@@ -221,10 +223,12 @@ ChatMessage.message-user {
     border-title-align: right;
 }
 
-/* Assistant message styling */
+/* Assistant message - immersive, no visible block (ChatGPT-like) */
 ChatMessage.message-assistant {
-    background: $surface-darken-1;
-    border-title-background: $surface-lighten-1;
+    background: transparent;
+    border: none;
+    padding: 0 2;
+    # margin: 1 0;
 }
 
 /* Message content - minimal spacing */
@@ -251,7 +255,7 @@ ExecutionStepBlock {
 
 /* Active block - highlighted border */
 .block-active {
-    border: tall $primary;
+    border: tall $accent;
 }
 
 .block-success {
