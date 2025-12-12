@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Control Assistant Template: Use Osprey's completion module**: Removed duplicate `completion.py` implementation from channel finder service; now uses `osprey.models.completion` for consistency and maintainability
 
 ### Fixed
+- **Channel Finder: Optional levels navigation**: Fixed bug where direct signals incorrectly appeared as subdevice options in optional hierarchy levels. The system now correctly distinguishes between container nodes (which belong at the current optional level) and leaf/terminal nodes (which belong to the next level). Also fixed `build_channels_from_selections()` to handle missing optional levels and apply automatic separator cleanup (removes `::` and trailing separators).
 - **Hello World Weather Template**: Added service configuration (container runtime, deployed services) to prevent `'services/docker-compose.yml.j2' not found` error when following installation guide
 - **Channel Write Capability**: Removed `verification_levels` field from approval `analysis_details` that incorrectly called `_get_verification_config()` method before connector initialization
 - **Testing**: Added integration test for channel_write approval workflow to catch capability-approval interaction bugs
