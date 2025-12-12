@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Channel Finder Service**: Improved configuration validation with clearer error messages when channel_finder model is not configured
 
 ### Fixed
+- **Hello World Weather Template**: Added service configuration (container runtime, deployed services) to prevent `'services/docker-compose.yml.j2' not found` error when following installation guide
 - **Channel Write Capability**: Removed `verification_levels` field from approval `analysis_details` that incorrectly called `_get_verification_config()` method before connector initialization
 - **Testing**: Added integration test for channel_write approval workflow to catch capability-approval interaction bugs
 
