@@ -97,8 +97,7 @@ def my_control_assistant_config(my_control_assistant_project):
 
 @pytest.mark.asyncio
 async def test_channel_write_approval_workflow_catches_verification_config_bug(
-    my_control_assistant_project,
-    my_control_assistant_config
+    my_control_assistant_project, my_control_assistant_config
 ):
     """
     Test that channel_write capability's approval workflow catches the _get_verification_config bug.
@@ -132,13 +131,15 @@ async def test_channel_write_approval_workflow_catches_verification_config_bug(
 
     # Load config
     configurable = get_full_configuration(str(my_control_assistant_config)).copy()
-    configurable.update({
-        "user_id": "test_user",
-        "thread_id": "test_channel_write_approval",
-        "chat_id": "test_chat",
-        "session_id": "test_session",
-        "interface_context": "test"
-    })
+    configurable.update(
+        {
+            "user_id": "test_user",
+            "thread_id": "test_channel_write_approval",
+            "chat_id": "test_chat",
+            "session_id": "test_session",
+            "interface_context": "test",
+        }
+    )
 
     # Create graph with checkpointer (needed for approval system)
     checkpointer = MemorySaver()
@@ -146,16 +147,16 @@ async def test_channel_write_approval_workflow_catches_verification_config_bug(
 
     # Set up graph config
     recursion_limit = get_config_value("execution_limits.graph_recursion_limit")
-    graph_config = {
-        "configurable": configurable,
-        "recursion_limit": recursion_limit
-    }
+    graph_config = {"configurable": configurable, "recursion_limit": recursion_limit}
 
     def mock_chat_completion(model_config=None, message=None, output_model=None, **kwargs):
         """Mock LLM calls - return proper structured outputs."""
         if output_model is not None:
             # Check if this is the WriteOperationsOutput model
-            if hasattr(output_model, '__name__') and 'WriteOperationsOutput' in output_model.__name__:
+            if (
+                hasattr(output_model, "__name__")
+                and "WriteOperationsOutput" in output_model.__name__
+            ):
                 # Return valid write operation for "Set first quadrupole to 200"
                 return WriteOperationsOutput(
                     write_operations=[
@@ -163,18 +164,19 @@ async def test_channel_write_approval_workflow_catches_verification_config_bug(
                             channel_address="MAG:QF[QF01]:CURRENT:SP",
                             value=200.0,
                             units="A",
-                            notes="Setting quadrupole magnet current"
+                            notes="Setting quadrupole magnet current",
                         )
                     ],
-                    found=True
+                    found=True,
                 )
         # For other LLM calls without output_model, return simple text
         return "Mock LLM response"
 
     # Patch get_config_value to enable writes
     original_get_config_value = get_config_value
+
     def mock_config_value(key, default=None):
-        if key == 'control_system.writes_enabled':
+        if key == "control_system.writes_enabled":
             return True  # Enable writes for this test
         return original_get_config_value(key, default)
 
@@ -188,37 +190,39 @@ async def test_channel_write_approval_workflow_catches_verification_config_bug(
         task_objective=user_request,
         success_criteria="Task completed successfully",
         expected_output=None,
-        inputs=[{"CHANNEL_ADDRESSES": "channel_addresses_001"}]  # Tell it where to find CHANNEL_ADDRESSES
+        inputs=[
+            {"CHANNEL_ADDRESSES": "channel_addresses_001"}
+        ],  # Tell it where to find CHANNEL_ADDRESSES
     )
 
-    execution_plan = ExecutionPlan(
-        steps=[planned_step],
-        final_objective="Test objective"
-    )
+    execution_plan = ExecutionPlan(steps=[planned_step], final_objective="Test objective")
 
     initial_state = create_test_state(
         user_message=user_request,
         task_objective=user_request,
         capability="channel_write",
-        context_key="test_channel_write_001"
+        context_key="test_channel_write_001",
     )
 
     # Override with our custom execution plan that has proper inputs
-    initial_state['planning_execution_plan'] = execution_plan
+    initial_state["planning_execution_plan"] = execution_plan
 
     # Add CHANNEL_ADDRESSES context that channel_write needs
-    initial_state['capability_context_data'] = {
+    initial_state["capability_context_data"] = {
         "CHANNEL_ADDRESSES": {
             "channel_addresses_001": {
                 "channels": ["MAG:QF[QF01]:CURRENT:SP"],
-                "original_query": "first quadrupole magnet focusing"
+                "original_query": "first quadrupole magnet focusing",
             }
         }
     }
 
     # Patch and execute through graph (needed for approval interrupt context)
-    with patch('my_control_assistant.capabilities.channel_write.get_chat_completion', side_effect=mock_chat_completion):
-        with patch('osprey.utils.config.get_config_value', side_effect=mock_config_value):
+    with patch(
+        "my_control_assistant.capabilities.channel_write.get_chat_completion",
+        side_effect=mock_chat_completion,
+    ):
+        with patch("osprey.utils.config.get_config_value", side_effect=mock_config_value):
             final_state = None
             error_occurred = False
             approval_interrupt_occurred = False
@@ -246,27 +250,27 @@ async def test_channel_write_approval_workflow_catches_verification_config_bug(
 
             # Check if capability caught the error and put it in the state
             if final_state and not approval_interrupt_occurred:
-                control_error_info = final_state.get('control_error_info')
+                control_error_info = final_state.get("control_error_info")
                 if control_error_info:
                     # Extract error details from various possible locations
-                    error_details = ''
+                    error_details = ""
 
                     # Check classification.metadata.technical_details
-                    if 'classification' in control_error_info:
-                        classification = control_error_info['classification']
-                        if hasattr(classification, 'metadata'):
-                            error_details = classification.metadata.get('technical_details', '')
+                    if "classification" in control_error_info:
+                        classification = control_error_info["classification"]
+                        if hasattr(classification, "metadata"):
+                            error_details = classification.metadata.get("technical_details", "")
                         elif isinstance(classification, dict):
-                            metadata = classification.get('metadata', {})
-                            error_details = metadata.get('technical_details', '')
+                            metadata = classification.get("metadata", {})
+                            error_details = metadata.get("technical_details", "")
 
                     # Also check original_error and user_message fields
                     if not error_details:
-                        error_details = control_error_info.get('original_error', '')
+                        error_details = control_error_info.get("original_error", "")
                     if not error_details:
-                        error_details = control_error_info.get('user_message', '')
+                        error_details = control_error_info.get("user_message", "")
 
-                    if '_get_verification_config' in str(error_details):
+                    if "_get_verification_config" in str(error_details):
                         pytest.fail(
                             f"Bug detected in channel_write capability: "
                             f"Trying to call _get_verification_config() on capability before connector exists. "
@@ -281,8 +285,7 @@ async def test_channel_write_approval_workflow_catches_verification_config_bug(
 
 @pytest.mark.asyncio
 async def test_channel_write_approval_analysis_details_structure(
-    my_control_assistant_project,
-    my_control_assistant_config
+    my_control_assistant_project, my_control_assistant_config
 ):
     """
     Verify that analysis_details for approval has correct structure.

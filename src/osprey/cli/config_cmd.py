@@ -490,13 +490,9 @@ def set_models(provider: str, model: str, project: str):
       osprey config set-models --provider cborg --model anthropic/claude-haiku
     """
     try:
-        from osprey.generators.config_updater import find_config_file, update_all_models
+        from osprey.generators.config_updater import update_all_models
 
-        from .interactive_menu import (
-            get_provider_metadata,
-            select_model,
-            select_provider,
-        )
+        from .interactive_menu import get_provider_metadata
         from .project_utils import resolve_config_path
 
         # Find config file

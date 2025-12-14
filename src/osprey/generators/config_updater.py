@@ -493,9 +493,7 @@ def get_all_model_configs(config_path: Path) -> dict | None:
     return None
 
 
-def update_all_models(
-    config_path: Path, provider: str, model_id: str
-) -> tuple[str, str]:
+def update_all_models(config_path: Path, provider: str, model_id: str) -> tuple[str, str]:
     """Update all model configurations in config.yml with new provider/model.
 
     This updates ALL model entries in the models section to use the same
@@ -534,25 +532,12 @@ def update_all_models(
     def update_models_section(match):
         section = match.group(0)
         # Replace provider: <anything>
-        section = re.sub(
-            r"(\n    provider:\s*)\S+",
-            rf"\1{provider}",
-            section
-        )
+        section = re.sub(r"(\n    provider:\s*)\S+", rf"\1{provider}", section)
         # Replace model_id: <anything>
-        section = re.sub(
-            r"(\n    model_id:\s*)\S+",
-            rf"\1{model_id}",
-            section
-        )
+        section = re.sub(r"(\n    model_id:\s*)\S+", rf"\1{model_id}", section)
         return section
 
-    new_content = re.sub(
-        provider_pattern,
-        update_models_section,
-        content,
-        flags=re.MULTILINE
-    )
+    new_content = re.sub(provider_pattern, update_models_section, content, flags=re.MULTILINE)
 
     # Create preview showing changes
     model_count = len(current_models)

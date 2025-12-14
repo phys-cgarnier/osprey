@@ -53,7 +53,9 @@ def test_has_capability_react_model(updater_temp_config):
 def test_remove_capability_react_from_config(updater_temp_config):
     """Test removing capability react model from config."""
     # Remove weather_demo_react
-    new_content, preview, found = remove_capability_react_from_config(updater_temp_config, "weather_demo")
+    new_content, preview, found = remove_capability_react_from_config(
+        updater_temp_config, "weather_demo"
+    )
 
     # Check that it was found
     assert found
@@ -70,7 +72,9 @@ def test_remove_capability_react_from_config(updater_temp_config):
 
 def test_remove_nonexistent_model(updater_temp_config):
     """Test removing a model that doesn't exist."""
-    new_content, preview, found = remove_capability_react_from_config(updater_temp_config, "nonexistent")
+    new_content, preview, found = remove_capability_react_from_config(
+        updater_temp_config, "nonexistent"
+    )
 
     # Should not be found
     assert not found

@@ -654,7 +654,9 @@ def test_unknown_pipeline_error(temp_config_file, monkeypatch):
     monkeypatch.setattr(service_module, "_get_config", lambda: mock_config_builder)
     monkeypatch.setattr(service_module, "get_provider_config", lambda p: {})
     monkeypatch.setattr(
-        config_module, "_get_configurable", lambda config_path=None, set_as_default=False: mock_config_builder.configurable
+        config_module,
+        "_get_configurable",
+        lambda config_path=None, set_as_default=False: mock_config_builder.configurable,
     )
 
     from services.channel_finder.core.exceptions import PipelineModeError
@@ -717,7 +719,9 @@ def test_unknown_database_error(temp_config_file, monkeypatch):
     monkeypatch.setattr(service_module, "get_provider_config", lambda p: {})
     monkeypatch.setattr(service_module, "load_prompts", lambda c: Mock())
     monkeypatch.setattr(
-        config_module, "_get_configurable", lambda config_path=None, set_as_default=False: mock_config_builder.configurable
+        config_module,
+        "_get_configurable",
+        lambda config_path=None, set_as_default=False: mock_config_builder.configurable,
     )
 
     from services.channel_finder.core.exceptions import ConfigurationError

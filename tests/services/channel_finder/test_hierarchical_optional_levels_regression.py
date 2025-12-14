@@ -61,16 +61,11 @@ class TestOptionalLevelNavigation:
         direct signals.
         """
         # Navigate to device level
-        selections_to_device = {
-            "system": "CTRL",
-            "subsystem": "MAIN",
-            "device": "MC-01"
-        }
+        selections_to_device = {"system": "CTRL", "subsystem": "MAIN", "device": "MC-01"}
 
         # Get options at subdevice level (the optional level after device)
         subdevice_options = optional_levels_db.get_options_at_level(
-            "subdevice",
-            selections_to_device
+            "subdevice", selections_to_device
         )
 
         # Extract option names
@@ -81,10 +76,18 @@ class TestOptionalLevelNavigation:
         print(f"Number of options: {len(subdevice_names)}")
 
         # Direct signals should NOT be in subdevice options
-        assert "Heartbeat" not in subdevice_names, "Heartbeat should not appear as subdevice (it's a direct signal)"
-        assert "Status" not in subdevice_names, "Status should not appear as subdevice (it's a direct signal)"
-        assert "Mode" not in subdevice_names, "Mode should not appear as subdevice (it's a direct signal)"
-        assert "Config" not in subdevice_names, "Config should not appear as subdevice (it's a direct signal)"
+        assert (
+            "Heartbeat" not in subdevice_names
+        ), "Heartbeat should not appear as subdevice (it's a direct signal)"
+        assert (
+            "Status" not in subdevice_names
+        ), "Status should not appear as subdevice (it's a direct signal)"
+        assert (
+            "Mode" not in subdevice_names
+        ), "Mode should not appear as subdevice (it's a direct signal)"
+        assert (
+            "Config" not in subdevice_names
+        ), "Config should not appear as subdevice (it's a direct signal)"
 
         # Only actual subdevices should be in the list
         assert "PSU" in subdevice_names, "PSU is a real subdevice, should be in list"
@@ -105,16 +108,11 @@ class TestOptionalLevelNavigation:
 
         Only actual subdevices should appear as subdevice options.
         """
-        selections_to_device = {
-            "system": "CTRL",
-            "subsystem": "MAIN",
-            "device": "MC-01"
-        }
+        selections_to_device = {"system": "CTRL", "subsystem": "MAIN", "device": "MC-01"}
 
         # Get subdevice options
         subdevice_options = optional_levels_db.get_options_at_level(
-            "subdevice",
-            selections_to_device
+            "subdevice", selections_to_device
         )
         subdevice_names = [opt["name"] for opt in subdevice_options]
 
@@ -132,15 +130,21 @@ class TestOptionalLevelNavigation:
         # Verify correct behavior
         wrong_nodes_appearing = unexpected_in_subdevices.intersection(set(subdevice_names))
         if wrong_nodes_appearing:
-            print(f"\n🐛 REGRESSION: These signals are wrongly appearing as subdevices: {wrong_nodes_appearing}")
+            print(
+                f"\n🐛 REGRESSION: These signals are wrongly appearing as subdevices: {wrong_nodes_appearing}"
+            )
         else:
             print("\n✅ CORRECT: No signals appearing as subdevices")
 
         # Verify only actual subdevices appear
-        assert set(subdevice_names) == expected_subdevices, f"Expected {expected_subdevices}, got {set(subdevice_names)}"
+        assert (
+            set(subdevice_names) == expected_subdevices
+        ), f"Expected {expected_subdevices}, got {set(subdevice_names)}"
 
         # Verify no signals appear as subdevices
-        assert len(wrong_nodes_appearing) == 0, f"Signals should not appear as subdevices, found: {wrong_nodes_appearing}"
+        assert (
+            len(wrong_nodes_appearing) == 0
+        ), f"Signals should not appear as subdevices, found: {wrong_nodes_appearing}"
 
     def test_channel_map_has_direct_signals(self, optional_levels_db):
         """
@@ -202,14 +206,13 @@ class TestOptionalLevelNavigation:
         selections_to_device = {
             "system": "CTRL",
             "subsystem": "MAIN",
-            "device": "MC-01"
+            "device": "MC-01",
             # Note: NOT selecting subdevice
         }
 
         # Get signal options directly (skipping optional subdevice)
         signal_options = optional_levels_db.get_options_at_level(
-            "signal",
-            selections_to_device  # No subdevice selected
+            "signal", selections_to_device  # No subdevice selected
         )
 
         signal_names = [opt["name"] for opt in signal_options]
@@ -264,7 +267,9 @@ class TestChannelBuildingWithOptionalLevels:
         assert not channel.endswith("_"), f"Channel has trailing underscore: {channel}"
 
         # Verify correct channel name
-        assert channel == "CTRL:MAIN:MC-01:Heartbeat", f"Expected 'CTRL:MAIN:MC-01:Heartbeat', got '{channel}'"
+        assert (
+            channel == "CTRL:MAIN:MC-01:Heartbeat"
+        ), f"Expected 'CTRL:MAIN:MC-01:Heartbeat', got '{channel}'"
 
     def test_build_channel_with_one_optional_included(self, optional_levels_db):
         """
@@ -291,7 +296,9 @@ class TestChannelBuildingWithOptionalLevels:
         # Should work with optional suffix omitted
         assert len(channels) == 1, f"Should build exactly one channel, got {len(channels)}"
         channel = channels[0]
-        assert channel == "CTRL:MAIN:MC-01:PSU:Voltage", f"Expected 'CTRL:MAIN:MC-01:PSU:Voltage', got '{channel}'"
+        assert (
+            channel == "CTRL:MAIN:MC-01:PSU:Voltage"
+        ), f"Expected 'CTRL:MAIN:MC-01:PSU:Voltage', got '{channel}'"
 
     def test_build_channel_with_explicit_empty_optionals(self, optional_levels_db):
         """
@@ -324,14 +331,17 @@ class TestChannelBuildingWithOptionalLevels:
         # Verify no separator artifacts (cleanup is applied automatically)
         assert "::" not in channel, f"Channel should not have double colons: '{channel}'"
         assert not channel.endswith(":"), f"Channel should not have trailing colon: '{channel}'"
-        assert not channel.endswith("_"), f"Channel should not have trailing underscore: '{channel}'"
+        assert not channel.endswith(
+            "_"
+        ), f"Channel should not have trailing underscore: '{channel}'"
 
         # Verify correct channel name
-        assert channel == "CTRL:MAIN:MC-01:Heartbeat", f"Expected 'CTRL:MAIN:MC-01:Heartbeat', got '{channel}'"
+        assert (
+            channel == "CTRL:MAIN:MC-01:Heartbeat"
+        ), f"Expected 'CTRL:MAIN:MC-01:Heartbeat', got '{channel}'"
         print("✅ CORRECT: Separator cleanup applied automatically")
 
 
 if __name__ == "__main__":
     # Allow running this test file directly for debugging
     pytest.main([__file__, "-v", "-s"])
-

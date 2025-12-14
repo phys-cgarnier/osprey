@@ -220,6 +220,7 @@ async def _run_benchmark(project, pipeline_mode: str):
     finally:
         # Reset registry to prevent state pollution between tests
         from osprey.registry import reset_registry
+
         reset_registry()
 
         # Restore original directory

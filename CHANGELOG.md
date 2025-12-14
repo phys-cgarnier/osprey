@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Testing: Channel Finder registration tests**: Updated test mocks to include `channel_finder` model configuration in the mocked `configurable` dict, fixing tests broken by stricter validation introduced in commit 5834de3
 - **Testing: E2E workflow test**: Updated `test_hello_world_template_generates_correctly` to expect services directory and deployment configuration, matching current template structure
 - **Testing: E2E benchmark tests**: Fixed registry initialization in `test_channel_finder_benchmarks.py` by calling `initialize_registry()` before creating `BenchmarkRunner` to prevent "Registry not initialized" errors
+- **Code Quality**: Pre-merge cleanup - removed unused imports, applied black formatting to 13 files, and documented DEBUG and CONFIG_FILE environment variables in env.example
 
 ## [0.9.6] - 2025-12-06
 

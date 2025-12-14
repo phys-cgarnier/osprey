@@ -249,9 +249,10 @@ class TestE2EWorkflow:
         assert "models:" in config_content  # Model configuration
         assert "deployed_services:" in config_content  # Services configuration
         assert "container_runtime:" in config_content  # Container runtime
-        
+
         # Verify it's valid YAML
         import yaml
+
         config_data = yaml.safe_load(config_content)
         assert "models" in config_data
         assert "deployed_services" in config_data

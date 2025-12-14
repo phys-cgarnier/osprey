@@ -780,10 +780,10 @@ class HierarchicalChannelDatabase(BaseDatabase):
             # Get the text before this placeholder
             if i == 0:
                 # First placeholder - get everything before it
-                prefix = pattern[:match.start()]
+                prefix = pattern[: match.start()]
             else:
                 # Get text between previous placeholder end and this one's start
-                prefix = pattern[matches[i-1].end():match.start()]
+                prefix = pattern[matches[i - 1].end() : match.start()]
 
             pattern_parts.append((prefix, level_name))
 
@@ -1149,9 +1149,7 @@ class HierarchicalChannelDatabase(BaseDatabase):
                         complete_path[level] = ""
 
                 # Build channel name using custom separators
-                channel_name = self._build_channel_with_separators(
-                    complete_path, local_overrides
-                )
+                channel_name = self._build_channel_with_separators(complete_path, local_overrides)
 
                 # Store channel
                 channels[channel_name] = {"channel": channel_name, "path": path.copy()}
