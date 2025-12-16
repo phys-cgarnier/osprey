@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation: Framework name cleanup**: Replaced all remaining references to "Alpha Berkeley Framework" with "Osprey Framework" across README, templates, documentation, and test files
 
 ### Fixed
+- **Testing: Channel Finder test path correction**: Fixed incorrect database path in `test_multiple_direct_signals_fix.py` that referenced non-existent `my-control-assistant/` directory. Now correctly points to framework's example database at `src/osprey/templates/apps/control_assistant/data/channel_databases/examples/optional_levels.json`.
 - **Channel Finder: Multiple direct signal selection at optional levels**: Fixed bug where selecting multiple direct signals together (e.g., "status and heartbeat") failed because only single selections were checked for leaf node detection. Now correctly detects and handles multiple direct signals in branching logic.
 - **Channel Finder: Optional levels LLM awareness**: Enhanced database descriptions and prompts to explicitly indicate available children at each level, distinguish direct signals from subdevice-specific signals, and guide LLM on when to skip optional levels.
 

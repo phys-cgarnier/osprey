@@ -19,7 +19,7 @@ class TestMultipleDirectSignalsFix:
     @pytest.fixture
     def optional_levels_db(self):
         """Use the actual optional_levels.json database."""
-        db_path = "my-control-assistant/src/my_control_assistant/data/channel_databases/examples/optional_levels.json"
+        db_path = "src/osprey/templates/apps/control_assistant/data/channel_databases/examples/optional_levels.json"
         return HierarchicalChannelDatabase(db_path)
 
     def test_multiple_direct_signals_all_are_leaves(self, optional_levels_db):
