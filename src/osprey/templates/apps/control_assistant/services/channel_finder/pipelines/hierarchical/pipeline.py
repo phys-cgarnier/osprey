@@ -388,7 +388,44 @@ class HierarchicalPipeline(BasePipeline):
                     f"{indent}  [bold cyan]Branch {i}/{num_branches}:[/bold cyan] {branch_path_str}"
                 )
 
-                # Create new selections dict with single value
+                # OPTIONAL LEVEL LEAF DETECTION IN BRANCHING:
+                # For each branch, check if the selection is a leaf node at an optional level.
+                # If so, skip the optional level and assign to next level instead.
+                # This handles the case where multiple direct signals are selected together.
+                if is_optional and next_levels:
+                    current_node = self.database._navigate_to_node(level, selections)
+                    if current_node:
+                        selected_node = current_node.get(single_selection)
+                        level_idx = self.database.hierarchy_levels.index(level)
+                        if selected_node and self.database._is_leaf_node(selected_node, level_idx + 1):
+                            # This branch is a direct signal! Skip optional level
+                            logger.info(
+                                f"{indent}    [cyan]→ '{single_selection}' is a direct signal - skipping optional level '{level}'[/cyan]"
+                            )
+                            # Create selections that skip this optional level
+                            branch_selections = selections.copy()
+                            next_level = next_levels[0]
+                            branch_selections[next_level] = single_selection
+
+                            # Navigate with next level skipped (since we just filled it)
+                            branch_results = await self._navigate_recursive(
+                                query=query,
+                                remaining_levels=next_levels[1:],
+                                selections=branch_selections,
+                                branch_path=new_branch_path,
+                                branch_num=i,
+                                total_branches=num_branches,
+                            )
+
+                            # Log branch completion
+                            logger.info(
+                                f"{indent}    [green]✓[/green] Branch {i}/{num_branches}: Found {len(branch_results)} channel(s)"
+                            )
+
+                            all_results.extend(branch_results)
+                            continue  # Skip normal branch processing
+
+                # Normal branch processing (not a leaf or not optional)
                 branch_selections = selections.copy()
                 branch_selections[level] = single_selection
 
