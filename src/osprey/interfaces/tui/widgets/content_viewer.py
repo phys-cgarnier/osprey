@@ -59,6 +59,11 @@ class ContentViewer(ModalScreen[None]):
             with ScrollableContainer(id="content-viewer-content"):
                 yield Static(self.content or "[dim]No content available[/dim]")
 
+    def on_mount(self) -> None:
+        """Focus content area so Enter closes immediately, Tab moves to checkbox."""
+        content = self.query_one("#content-viewer-content", ScrollableContainer)
+        content.focus()
+
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
         """Handle markdown checkbox toggle."""
         if event.checkbox.id != "markdown-checkbox":
