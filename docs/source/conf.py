@@ -67,6 +67,9 @@ release = get_version_from_git()
 
 # -- General configuration ---------------------------------------------------
 
+# Add custom extensions directory to path
+sys.path.insert(0, os.path.abspath('_ext'))
+
 extensions = [
     'sphinx.ext.autodoc',        # Auto-generate API docs
     'sphinx.ext.autosummary',    # Auto-generate summary tables
@@ -80,6 +83,7 @@ extensions = [
     'sphinx.ext.todo',           # TODO notes
     'sphinx_design',             # Design components (cards, tabs, etc.)
     'sphinxcontrib.mermaid',     # Mermaid diagram support
+    'workflow_autodoc',          # Custom: Auto-document workflow files
 ]
 
 templates_path = ['_templates']
@@ -109,6 +113,13 @@ html_theme_options = {
     "use_edit_page_button": True,
     # Configure secondary sidebar items - clean layout with TOC and edit button only
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
+    # Version switcher configuration
+    "switcher": {
+        "json_url": "https://als-apg.github.io/osprey/_static/versions.json",
+        "version_match": release,
+    },
+    # Add version switcher to navbar
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
 }
 
 # Repository information for edit buttons
@@ -149,7 +160,7 @@ html_js_files = ["js/execution_plan_viewer.js"]
 #
 # If a module fails to import and is NOT in this list, the build will fail loudly,
 # indicating that we need to either:
-# 1. Add it to requirements-docs.txt (if it's essential for docs)
+# 1. Add it to [project.optional-dependencies].docs in pyproject.toml (if it's essential for docs)
 # 2. Add it to this mock list (if it's an optional heavy dependency)
 # 3. Fix the import structure in the actual code
 
@@ -236,7 +247,7 @@ autodoc_mock_imports = [
 ]
 
 # IMPORTANT: If you see import errors for modules NOT in the above list,
-# that means we need to decide whether to install them (add to requirements-docs.txt)
+# that means we need to decide whether to install them (add to [project.optional-dependencies].docs in pyproject.toml)
 # or mock them (add to the list above). DO NOT add modules to this list without
 # understanding why they're failing to import.
 
