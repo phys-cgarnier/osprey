@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Documentation: Citation update**: Updated paper citation to reflect new title "Osprey: Production-Ready Agentic AI for Safety-Critical Control Systems"
 - **Documentation: Framework name cleanup**: Replaced all remaining references to "Alpha Berkeley Framework" with "Osprey Framework" across README, templates, documentation, and test files
+- **Testing: E2E hello_world_weather tutorial test**: Enhanced test to exercise both weather AND Python capabilities with a multi-step query that validates configuration defaults, context passing, and code generation/execution workflows
+
+### Fixed
+- **Configuration: Execution defaults for Python code generation**: Added missing code generator configuration defaults to `ConfigBuilder._get_execution_defaults()`. Now includes `code_generator: "basic"` and corresponding generators configuration, preventing "Unknown provider: None" errors when using Python capabilities in projects with minimal configuration
+- **Hello World Weather Template**: Fixed template conditional to include execution infrastructure configuration while excluding only EPICS-specific settings, ensuring Python code generation works out-of-the-box
+
 
 ## [0.9.7] - 2025-12-14
 

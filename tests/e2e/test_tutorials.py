@@ -170,15 +170,27 @@ async def test_hello_world_weather_tutorial(e2e_project_factory, llm_judge):
 
     This test validates the complete beginner tutorial experience:
     1. Create a hello_world_weather project
-    2. Query for weather in San Francisco
-    3. Verify the workflow completes successfully with weather data
+    2. Query that exercises BOTH weather AND Python capabilities
+    3. Verify multi-step workflow completes successfully
 
     This is the simplest tutorial in Osprey documentation showing:
     - Basic capability creation and registration
-    - Mock external API integration
+    - Mock external API integration (weather)
+    - Python code generation and execution
     - Context class usage for structured data
-    - Single-step workflow execution
+    - Multi-step workflow execution with context passing
     - Clean registry pattern with extend_framework_registry()
+    - Framework configuration defaults (execution, generators)
+
+    The test uses a query that requires calculating the square root of
+    San Francisco's temperature, which exercises:
+    - Weather capability → retrieves temperature
+    - Python capability → generates and executes code
+    - Context passing → temperature flows from weather to python
+    - Configuration defaults → validates simplified hello_world config works
+
+    This ensures the tutorial works end-to-end including Python execution,
+    which would have caught the missing execution config defaults bug.
     """
     # Step 1: Create project from hello_world_weather template
     project = await e2e_project_factory(
@@ -189,56 +201,77 @@ async def test_hello_world_weather_tutorial(e2e_project_factory, llm_judge):
     await project.initialize()
 
     # Step 3: Execute the tutorial query
-    result = await project.query("What's the weather in San Francisco?")
+    # This query exercises BOTH the weather capability AND Python capability
+    # in a multi-step workflow, validating the complete tutorial experience
+    result = await project.query(
+        "Write a Python script that calculates the square root of the temperature in San Francisco"
+    )
 
     # Step 4: Define expectations in plain text
     expectations = """
     The workflow should successfully complete the following:
 
-    1. **Query Classification**: Correctly identify this as a weather-related request
-       requiring the current_weather capability.
+    1. **Multi-Capability Classification**: Correctly identify this requires both
+       the current_weather capability (to get temperature) and the python capability
+       (to calculate square root).
 
-    2. **Capability Execution**: Execute the current_weather capability without errors.
+    2. **Weather Capability Execution**: Execute the current_weather capability without errors.
        The capability should:
        - Extract "San Francisco" as the location from the query
        - Call the mock weather API service
-       - Return structured weather data
+       - Return structured weather data with temperature (e.g., 18.0°C)
 
-    3. **Weather Data Retrieval**: Successfully retrieve weather information for
-       San Francisco containing:
-       - Location name (should be "San Francisco")
-       - Temperature value (numeric, in Celsius)
-       - Weather conditions (descriptive string like "Sunny", "Cloudy", etc.)
-       - Timestamp of when the data was retrieved
+    3. **Python Code Generation**: Successfully generate Python code that:
+       - Imports necessary libraries (e.g., math.sqrt)
+       - Retrieves the temperature from the CURRENT_WEATHER context
+       - Calculates the square root of the temperature
+       - Stores results in the 'results' dictionary
 
-    4. **Context Creation**: Create a CURRENT_WEATHER context object with the
-       retrieved data that's properly stored in the agent state.
+    4. **Python Code Execution**: Execute the generated code successfully:
+       - No syntax errors
+       - No runtime exceptions
+       - Code produces the expected numerical result
+       - Results are properly formatted and returned
 
-    5. **User Response**: Provide a clear response to the user that:
-       - Confirms the weather for San Francisco was retrieved
-       - Mentions the temperature
-       - Describes the weather conditions
-       - Feels natural and conversational
+    5. **Multi-Step Orchestration**: The orchestrator should create a plan with
+       approximately 2-3 steps:
+       - Step 1: Retrieve weather for San Francisco
+       - Step 2: Execute Python code to calculate square root
+       - Step 3: Respond to user with results
 
-    6. **No Critical Errors**: The workflow should complete without:
-       - Registry initialization errors
-       - Capability execution failures
+    6. **Context Passing**: The temperature from the weather capability should be
+       successfully passed to the Python capability via the CURRENT_WEATHER context.
+
+    7. **Configuration Defaults**: The workflow should work with the simplified
+       hello_world_weather config that relies on framework defaults for:
+       - Python execution configuration (execution_method, code_generator)
+       - Code generator configuration (basic generator with model_config_name)
+       - This validates that configuration defaults are complete and functional
+
+    8. **User Response**: Provide a clear response to the user that:
+       - Mentions the San Francisco temperature
+       - Shows the calculated square root value
+       - References the Python code/notebook created
+       - Feels natural and complete
+
+    9. **No Critical Errors**: The workflow should complete without:
+       - "Unknown provider: None" errors (validates config defaults work)
+       - Code generation failures
+       - Python execution errors
+       - Registry initialization problems
        - Missing context class definitions
-       - Exception traces or crashes
        - Framework routing errors
 
-    7. **Mock API Integration**: The mock weather API should be called successfully,
-       demonstrating proper external service integration patterns (even though
-       it's mocked for the tutorial).
-
     Expected behavior:
-    - Single-step execution (weather retrieval only, or weather + respond)
-    - Fast execution (mock API is instant)
-    - Structured data output (not just free text)
+    - Multi-step execution (weather → python → respond)
+    - Both mock API and Python code generation succeed
+    - Structured data output with numerical results
     - Clean completion without retries
+    - Validates that simplified tutorial config works end-to-end
 
-    This is the "Hello World" of Osprey - it should feel smooth, simple, and
-    work perfectly as a beginner's first experience with the framework.
+    This test validates the COMPLETE hello_world_weather experience including
+    the framework's Python capability, which is essential for any real-world
+    tutorial application.
     """
 
     # Step 5: Evaluate with LLM judge
@@ -255,15 +288,22 @@ async def test_hello_world_weather_tutorial(e2e_project_factory, llm_judge):
     # Additional sanity checks
     assert result.error is None, f"Workflow encountered error: {result.error}"
 
-    # Verify weather capability was mentioned in trace
+    # Verify BOTH capabilities were executed
     trace_lower = result.execution_trace.lower()
     assert (
         "weather" in trace_lower or "current_weather" in trace_lower
     ), "Weather capability not executed"
+    assert "python" in trace_lower, "Python capability not executed"
 
     # Verify San Francisco was mentioned (either in trace or response)
     full_output = (result.execution_trace + result.response).lower()
     assert "san francisco" in full_output, "San Francisco not mentioned in workflow output"
+
+    # Verify numerical result is present (sqrt calculation produced output)
+    # The sqrt of typical SF temps (15-20°C) should be around 3.8-4.5
+    assert any(
+        keyword in full_output for keyword in ["sqrt", "square root", "result", "calculated"]
+    ), "Python calculation results not mentioned in output"
 
 
 # Template for adding new tutorial tests:

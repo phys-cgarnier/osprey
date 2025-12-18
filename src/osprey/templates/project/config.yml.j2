@@ -170,7 +170,6 @@ file_paths:
   api_calls_dir: api_calls
   checkpoints: checkpoints
 
-{% if template_name != 'hello_world_weather' %}
 # ============================================================
 # EXECUTION INFRASTRUCTURE
 # ============================================================
@@ -197,6 +196,7 @@ execution:
       profile: "fast"    # Options: fast | robust (or custom profiles you define)
       # Advanced settings are in claude_generator_config.yml
 
+{% if template_name != 'hello_world_weather' %}
   # EPICS infrastructure (for hardware control applications)
   epics:
     timeout: 5.0
