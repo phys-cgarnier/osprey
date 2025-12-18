@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, ScrollableContainer
 from textual.events import Key
@@ -92,41 +90,6 @@ class ContentViewer(ModalScreen[None]):
             return f"```{self.language}\n{content}\n```"
         return content
 
-    def _calculate_visual_height(self, content: str) -> int:
-        """Calculate visual height accounting for soft-wrap.
-
-        Args:
-            content: The text content to measure.
-
-        Returns:
-            Estimated visual line count.
-        """
-        # Get container width (approximate - container padding is 4 on each side)
-        try:
-            container_width = self.screen.size.width - 16  # Conservative estimate
-        except Exception:
-            container_width = 80  # Fallback
-
-        if container_width <= 0:
-            container_width = 80
-
-        total_lines = 0
-        for line in content.split("\n"):
-            if len(line) == 0:
-                total_lines += 1
-            else:
-                total_lines += math.ceil(len(line) / container_width)
-        return total_lines
-
-    def _get_max_content_height(self) -> int:
-        """Get the maximum visual height across all tab contents."""
-        max_height = 0
-        for content in self._content_dict.values():
-            if content:
-                height = self._calculate_visual_height(content)
-                max_height = max(max_height, height)
-        return max_height
-
     def _compose_footer(self) -> Static:
         """Compose footer with appropriate hints."""
         hints = [
@@ -165,12 +128,10 @@ class ContentViewer(ModalScreen[None]):
             yield self._compose_footer()
 
     def on_mount(self) -> None:
-        """Set initial height for tabbed content to prevent jumping when switching tabs."""
-        if self._is_tabbed:
-            container = self.query_one("#content-viewer-content", ScrollableContainer)
-            # Calculate base height now that we have screen access
-            self._base_height = self._get_max_content_height()
-            container.styles.height = self._base_height
+        """Initialize tabbed content - height auto-adapts on first render."""
+        # For tabbed content, height will be captured on first tab switch
+        # Initial render uses auto height for proper adaptation
+        pass
 
     def _refresh_content(self) -> None:
         """Refresh content based on current markdown mode."""
@@ -194,16 +155,24 @@ class ContentViewer(ModalScreen[None]):
                 )
             )
             if self._is_tabbed:
-                container.styles.height = self._base_height
+                if self._base_height > 0:
+                    # Use captured height from first tab switch
+                    container.styles.height = self._base_height
+                # else: first render, let it auto-adapt
                 # Reset markdown height when leaving markdown mode
                 self._markdown_base_height = None
 
     def _refresh_tab_display(self) -> None:
         """Update tab highlighting and content after tab switch."""
-        # If in markdown mode and height not yet captured, capture it before refresh
-        if self._markdown_mode and self._is_tabbed and self._markdown_base_height is None:
+        # Capture height before refresh (for stable tab switching)
+        if self._is_tabbed:
             container = self.query_one("#content-viewer-content", ScrollableContainer)
-            self._markdown_base_height = container.size.height
+            if self._markdown_mode and self._markdown_base_height is None:
+                # Capture markdown height on first tab switch
+                self._markdown_base_height = container.size.height
+            elif not self._markdown_mode and self._base_height == 0:
+                # Capture raw height on first tab switch
+                self._base_height = container.size.height
 
         for i in range(len(self._tabs)):
             try:
