@@ -97,10 +97,14 @@ class TestOptionalLevelNavigation:
         assert "PSU" in subdevice_names, "PSU is a subdevice container, should be in list"
         assert "ADC" in subdevice_names, "ADC is a subdevice container, should be in list"
         assert "MOTOR" in subdevice_names, "MOTOR is a subdevice container, should be in list"
-        assert "CH" in subdevice_names, "CH is a subdevice container, should be in list"
 
-        # Verify all 8 options are returned (4 direct signals + 4 subdevices)
-        assert len(subdevice_names) == 8, f"Expected 8 options (4 direct + 4 subdevices), got {len(subdevice_names)}"
+        # CH has _expansion, so it appears as CH-1, CH-2 (not "CH")
+        assert "CH-1" in subdevice_names, "CH-1 is an expanded instance, should be in list"
+        assert "CH-2" in subdevice_names, "CH-2 is an expanded instance, should be in list"
+        assert "CH" not in subdevice_names, "CH (base container) should NOT be in list (has _expansion)"
+
+        # Verify all 9 options are returned (4 direct signals + 3 subdevices + 2 CH instances)
+        assert len(subdevice_names) == 9, f"Expected 9 options (4 direct + 3 subdevices + 2 CH instances), got {len(subdevice_names)}"
 
     def test_subdevice_vs_signal_distinction(self, optional_levels_db):
         """
@@ -122,7 +126,8 @@ class TestOptionalLevelNavigation:
         subdevice_names = [opt["name"] for opt in subdevice_options]
 
         # Expected: BOTH containers and leaf nodes
-        expected_containers = {"PSU", "ADC", "MOTOR", "CH"}
+        # Note: CH has _expansion, so it appears as CH-1, CH-2 (not "CH")
+        expected_containers = {"PSU", "ADC", "MOTOR", "CH-1", "CH-2"}
         expected_direct_signals = {"Heartbeat", "Status", "Mode", "Config"}
         expected_all = expected_containers | expected_direct_signals
 

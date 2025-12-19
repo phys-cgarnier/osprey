@@ -69,6 +69,36 @@ QUERY_TEST_CASES = [
         "pipeline": "hierarchical",
         "match_type": "exact",  # exact, partial, or any
     },
+    {
+        "id": "expansion_at_optional_level",
+        "name": "BUG: Expansion at optional tree level shows base container name",
+        "description": (
+            "Tests that nodes with _expansion at optional tree levels do NOT present "
+            "the base container name as a selectable option. Only the expanded instances "
+            "should be presented. This prevents the LLM from selecting invalid base names "
+            "like 'CH' when it should select 'CH-1' or 'CH-2'. "
+            "\n\n"
+            "BUG BEHAVIOR: The hierarchical channel finder incorrectly presents 'CH' as "
+            "a selectable option at the optional subdevice level. When the LLM selects 'CH', "
+            "it builds invalid channels like 'CTRL:MAIN:MC-01:CH:Gain_RB' which get discarded, "
+            "resulting in zero channels found even though valid channels exist. "
+            "\n\n"
+            "EXPECTED BEHAVIOR: Only 'CH-1' and 'CH-2' (the expanded instances) should appear "
+            "as selectable options, not the base container 'CH'."
+        ),
+        "database": "optional_levels.json",
+        "query": "Find the gain readback channels for the main control device hardware channel interfaces",
+        "expected_channels": [
+            "CTRL:MAIN:MC-01:CH-1:Gain_RB",
+            "CTRL:MAIN:MC-01:CH-2:Gain_RB",
+            "CTRL:MAIN:MC-02:CH-1:Gain_RB",
+            "CTRL:MAIN:MC-02:CH-2:Gain_RB",
+            "CTRL:MAIN:MC-03:CH-1:Gain_RB",
+            "CTRL:MAIN:MC-03:CH-2:Gain_RB",
+        ],
+        "pipeline": "hierarchical",
+        "match_type": "exact",
+    },
 ]
 
 
