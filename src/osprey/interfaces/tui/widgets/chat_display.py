@@ -1,5 +1,7 @@
 """Chat display container for the TUI."""
 
+from __future__ import annotations
+
 import asyncio
 from typing import Any
 
@@ -31,6 +33,11 @@ class ChatDisplay(ScrollableContainer):
         self._debug_block: DebugBlock | None = None
         # Event queue for decoupling streaming from rendering
         self._event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        # Plan progress tracking for flow-style updates
+        self._plan_steps: list[dict] = []
+        self._plan_step_states: list[str] = []
+        # Counter for generating unique widget IDs
+        self._plan_progress_counter: int = 0
 
     def start_new_query(self, user_query: str) -> None:
         """Reset blocks for a new query and add user message.
@@ -43,6 +50,9 @@ class ChatDisplay(ScrollableContainer):
         self._component_attempt_index = {}
         self._retry_triggered = set()
         self._pending_messages = {}
+        self._plan_steps = []
+        self._plan_step_states = []
+        self._plan_progress_counter = 0
         if self._debug_block:
             self._debug_block.clear()
         self.add_message(user_query, "user")

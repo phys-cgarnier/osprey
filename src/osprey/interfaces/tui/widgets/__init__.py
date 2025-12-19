@@ -6,13 +6,16 @@ from osprey.interfaces.tui.widgets.blocks import (
     ExecutionStepBlock,
     LogsLink,
     OrchestrationBlock,
+    OrchestrationStep,
     ProcessingBlock,
     ProcessingStep,
     PromptLink,
     ResponseLink,
     TaskExtractionBlock,
     TaskExtractionStep,
+    TodoUpdateStep,
     WrappedStatic,
+    create_plan_progress_content,
 )
 from osprey.interfaces.tui.widgets.chat_display import ChatDisplay
 from osprey.interfaces.tui.widgets.command_palette import CommandPalette
@@ -44,6 +47,8 @@ __all__ = [
     "ClassificationBlock",
     "ClassificationStep",
     "OrchestrationBlock",
+    "OrchestrationStep",
+    "TodoUpdateStep",
     "ExecutionStepBlock",
     "ChatDisplay",
     "ChatInput",
@@ -53,4 +58,5 @@ __all__ = [
     "WelcomeBanner",
     "WelcomeScreen",
     "WrappedStatic",
+    "create_plan_progress_content",
 ]

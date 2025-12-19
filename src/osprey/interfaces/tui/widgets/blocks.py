@@ -827,6 +827,143 @@ class ClassificationStep(ProcessingStep):
         self.set_complete("success", output_text)
 
 
+# Unicode ballot box characters for todo list
+BULLET_PENDING = "☐"  # U+2610 BALLOT BOX
+BULLET_CURRENT = "▣"  # U+25A3 WHITE SQUARE CONTAINING BLACK SMALL SQUARE
+BULLET_DONE = "☑"  # U+2611 BALLOT BOX WITH CHECK
+
+
+def create_plan_progress_content(
+    steps: list[dict], step_states: list[str], width: int = 70
+) -> str:
+    """Generate todo list content for plan progress with proper wrap alignment.
+
+    Creates Rich-formatted content for the plan progress display with
+    proper styling for each state:
+    - Pending: dim text with empty ballot box (☐)
+    - Current: normal text with filled box (▣)
+    - Done: dim text with strikethrough and checked box (☑)
+
+    Each item is pre-wrapped so continuation lines align with text after bullet.
+
+    Args:
+        steps: List of step dicts with 'task_objective'.
+        step_states: List of states ("pending", "current", "done").
+        width: Maximum width for text wrapping.
+
+    Returns:
+        Formatted string with Rich markup for each step.
+    """
+    lines = []
+    for step, state in zip(steps, step_states):
+        objective = step.get("task_objective", "")
+
+        # Select bullet based on state
+        if state == "pending":
+            bullet = BULLET_PENDING
+        elif state == "current":
+            bullet = BULLET_CURRENT
+        else:  # done
+            bullet = BULLET_DONE
+
+        # Pre-wrap objective with 2-space continuation indent (to align after "☐ ")
+        wrapped = textwrap.fill(
+            objective, width=width, initial_indent="", subsequent_indent="  "
+        )
+        full_line = f"{bullet} {wrapped}"
+
+        # Styling: pending/current = normal text, done = dim + strikethrough
+        if state == "done":
+            lines.append(f"[dim][strike]{full_line}[/strike][/dim]")
+        else:
+            lines.append(full_line)
+
+    return "\n".join(lines) if lines else " "
+
+
+class OrchestrationStep(ProcessingStep):
+    """Step widget for orchestration/planning phase - minimal UI.
+
+    Shows "Planning" title with breathing indicator while active,
+    and the todo list (initial plan) on completion.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize orchestration step."""
+        super().__init__("Planning", **kwargs)
+        self._plan_steps: list[dict] = []
+
+    def set_plan(self, steps: list[dict]) -> None:
+        """Store execution plan steps and show initial todo list.
+
+        Args:
+            steps: List of execution plan step dicts with
+                   'task_objective' and 'capability' keys.
+        """
+        self._plan_steps = steps
+        count = len(steps)
+        plural = "s" if count != 1 else ""
+        # Build output: count header + todo list with all pending
+        header = f"{count} step{plural} planned"
+        todos = create_plan_progress_content(steps, ["pending"] * count)
+        self.set_complete("success", f"{header}\n{todos}")
+
+
+class TodoUpdateStep(ProcessingStep):
+    """Semi-step widget for showing todo list updates.
+
+    Used to display todo list progress during execution. Shows as a
+    minimal step with "Update Todos" title and the formatted todo list
+    as output. Can be styled separately from "real" processing steps later.
+
+    Handles deferred initialization - if set_todos() is called before mount,
+    the todos are stored and applied after the first layout pass using
+    call_after_refresh() to ensure WrappedStatic has valid dimensions.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize todo update step."""
+        super().__init__("Update Todos", **kwargs)
+        self._pending_todos: tuple[list[dict], list[str]] | None = None
+
+    def on_mount(self) -> None:
+        """Apply pending state and schedule deferred todos."""
+        super().on_mount()
+        # Apply pending todos AFTER first layout pass (so WrappedStatic has valid size)
+        if self._pending_todos:
+            steps, states = self._pending_todos
+            self._pending_todos = None
+            # Defer until widget is fully laid out
+            self.call_after_refresh(self._apply_todos, steps, states)
+
+    def _apply_todos(self, steps: list[dict], states: list[str]) -> None:
+        """Apply todos after widget is laid out.
+
+        Args:
+            steps: List of step dicts with 'task_objective'.
+            states: List of states ("pending", "current", "done").
+        """
+        content = create_plan_progress_content(steps, states)
+        self.set_complete("success", content)
+
+    def set_todos(self, steps: list[dict], step_states: list[str]) -> None:
+        """Set the todo list content as the step output.
+
+        If called before widget is mounted, stores todos for deferred
+        application after the first layout pass.
+
+        Args:
+            steps: List of step dicts with 'task_objective'.
+            step_states: List of states ("pending", "current", "done").
+        """
+        if self._mounted:
+            content = create_plan_progress_content(steps, step_states)
+            self.set_complete("success", content)
+        else:
+            # Store for later application in on_mount
+            self._pending_todos = (steps, step_states)
+
+
 class TaskExtractionBlock(ProcessingBlock):
     """Block for task extraction phase (deprecated, use TaskExtractionStep)."""
 

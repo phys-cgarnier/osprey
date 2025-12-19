@@ -27,11 +27,13 @@ from osprey.interfaces.tui.widgets import (
     CommandPalette,
     ExecutionStepBlock,
     OrchestrationBlock,
+    OrchestrationStep,
     ProcessingBlock,
     ProcessingStep,
     StatusPanel,
     TaskExtractionStep,
     ThemePicker,
+    TodoUpdateStep,
     WelcomeScreen,
 )
 from osprey.registry import get_registry, initialize_registry
@@ -781,8 +783,13 @@ class OspreyTUI(App):
                     block.set_output("Classification complete")
             elif component == "orchestrator":
                 steps = data.get("steps", [])
-                if steps and isinstance(block, OrchestrationBlock):
-                    block.set_plan(steps)
+                if steps and isinstance(block, OrchestrationStep):
+                    block.set_plan(steps)  # Shows todo list in step output
+                    # Initialize plan state for TodoUpdateStep during execution
+                    display = self.query_one("#chat-display", ChatDisplay)
+                    display._plan_steps = steps
+                    display._plan_step_states = ["pending"] * len(steps)
+                    display._plan_progress_counter = 0
                 elif block._last_error_msg:
                     # Use last error message for failed orchestration
                     block.set_output(block._last_error_msg, status="error")
@@ -820,11 +827,11 @@ class OspreyTUI(App):
             block_key = f"{component}_{attempt_idx}"
 
         # Determine block/step class and title
-        # Task extraction uses minimal step widget, others use full blocks
+        # Task extraction, classification, and orchestration use minimal step widgets
         block_classes = {
             "task_extraction": (TaskExtractionStep, "Task Extraction"),
             "classifier": (ClassificationStep, "Classification"),
-            "orchestrator": (OrchestrationBlock, "Orchestration"),
+            "orchestrator": (OrchestrationStep, "Planning"),
         }
 
         if component not in block_classes:
@@ -1076,6 +1083,22 @@ class OspreyTUI(App):
             block.set_active()
             display.scroll_end(animate=True)
 
+            # Update progress: mount TodoUpdateStep showing current step
+            if display._plan_steps:
+                # Update states: mark previous as done, current as active
+                for i in range(step_index):
+                    if display._plan_step_states[i] != "done":
+                        display._plan_step_states[i] = "done"
+                if step_index < len(display._plan_step_states):
+                    display._plan_step_states[step_index] = "current"
+                # Mount TodoUpdateStep (flow-style updates)
+                display._plan_progress_counter += 1
+                update_step = TodoUpdateStep(
+                    id=f"todo-update-{display._plan_progress_counter}"
+                )
+                display.mount(update_step)
+                update_step.set_todos(display._plan_steps, display._plan_step_states)
+
             # Store first message as potential input (if not using plan objective)
             if not objective and message:
                 setattr(self, f"_step_{step_index}_first_msg", message)
@@ -1170,6 +1193,18 @@ class OspreyTUI(App):
                         result = step_results.get(context_key, {})
                         success = result.get("success", True)
                         block.set_output("Completed", status="success" if success else "error")
+
+        # Mount final TodoUpdateStep with all steps marked done
+        if display._plan_steps and steps:
+            for i in range(len(display._plan_step_states)):
+                display._plan_step_states[i] = "done"
+            display._plan_progress_counter += 1
+            update_step = TodoUpdateStep(
+                id=f"todo-update-{display._plan_progress_counter}"
+            )
+            display.mount(update_step)
+            update_step.set_todos(display._plan_steps, display._plan_step_states)
+            display.scroll_end(animate=False)
 
     def _show_final_response(self, state: dict, chat_display: ChatDisplay) -> None:
         """Show final AI response.

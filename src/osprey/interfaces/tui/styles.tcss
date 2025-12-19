@@ -522,6 +522,33 @@ ClassificationStep {
 }
 
 /* =============================================================================
+   Orchestration Step (minimal like T and C steps)
+   ============================================================================= */
+
+OrchestrationStep {
+    width: 100%;
+    height: auto;
+    margin: 0 2 1 2;
+    padding: 0 2;
+    background: transparent;
+    border: none;
+}
+
+/* =============================================================================
+   Todo Update Step (semi-step for showing todo list updates during execution)
+   ============================================================================= */
+
+TodoUpdateStep {
+    /* Same as ProcessingStep for now - can differentiate later */
+    width: 100%;
+    height: auto;
+    margin: 0 2 1 2;
+    padding: 0 2;
+    background: transparent;
+    border: none;
+}
+
+/* =============================================================================
    Log Viewer Modal
    ============================================================================= */
 

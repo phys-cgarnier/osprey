@@ -421,6 +421,9 @@ class OrchestrationNode(BaseInfrastructureNode):
         model_config = get_model_config("orchestrator")
         message = f"{system_prompt}\n\nTASK TO PLAN: {current_task}"
 
+        # Log the prompt for TUI visibility
+        logger.info("LLM prompt built", llm_prompt=message, stream=False)
+
         # Run sync LLM call in thread pool to avoid blocking event loop for streaming
         execution_plan = await asyncio.to_thread(
             get_chat_completion,
@@ -431,6 +434,10 @@ class OrchestrationNode(BaseInfrastructureNode):
 
         execution_time = time.time() - plan_start_time
         logger.info(f"Orchestrator LLM execution time: {execution_time:.2f} seconds")
+
+        # Log the response for TUI visibility
+        response_json = json.dumps(execution_plan, indent=2)
+        logger.info("LLM response received", llm_response=response_json, stream=False)
 
         # =====================================================================
         # STEP 3.5: VALIDATE AND FIX EXECUTION PLAN
