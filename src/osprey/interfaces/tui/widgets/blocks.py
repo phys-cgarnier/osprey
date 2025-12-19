@@ -833,6 +833,29 @@ BULLET_CURRENT = "▣"  # U+25A3 WHITE SQUARE CONTAINING BLACK SMALL SQUARE
 BULLET_DONE = "☑"  # U+2611 BALLOT BOX WITH CHECK
 
 
+def _apply_strike_preserving_indent(text: str) -> str:
+    """Apply strikethrough markup while preserving leading whitespace.
+
+    For soft-wrapped text, this ensures strikethrough only applies to
+    the text content, not the leading indent on continuation lines.
+
+    Args:
+        text: Text that may contain multiple lines with leading indentation.
+
+    Returns:
+        Text with [strike] markup applied per-line, preserving indents.
+    """
+    result_lines = []
+    for line in text.split("\n"):
+        stripped = line.lstrip()
+        indent = line[: len(line) - len(stripped)]
+        if stripped:
+            result_lines.append(f"{indent}[strike]{stripped}[/strike]")
+        else:
+            result_lines.append(line)
+    return "\n".join(result_lines)
+
+
 def create_plan_progress_content(
     steps: list[dict], step_states: list[str], width: int = 70
 ) -> str:
@@ -874,7 +897,9 @@ def create_plan_progress_content(
 
         # Styling: pending/current = normal text, done = dim + strikethrough
         if state == "done":
-            lines.append(f"[dim][strike]{full_line}[/strike][/dim]")
+            # Apply strikethrough per-line to preserve indent on wrapped lines
+            struck_line = _apply_strike_preserving_indent(full_line)
+            lines.append(f"[dim]{struck_line}[/dim]")
         else:
             lines.append(full_line)
 
