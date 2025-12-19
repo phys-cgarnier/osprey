@@ -7,15 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Testing: Hello World Weather template coverage**: Added comprehensive unit test suite for hello_world_weather template including mock weather API validation, response formatting, and error handling scenarios
+- **Hello World Weather: LLM-based location extraction**: Added structured output parser using LLM to extract locations from natural language queries, replacing simple string matching with intelligent parsing that handles nicknames, abbreviations, and defaults to "local" when no location is specified
+
 ### Changed
+- **Hello World Weather: Mock API simplification**: Refactored mock weather API to accept any location string and generate random weather data, removing hardcoded city list and enabling flexible location support for tutorial demonstrations
 - **Documentation: Citation update**: Updated paper citation to reflect new title "Osprey: Production-Ready Agentic AI for Safety-Critical Control Systems"
 - **Documentation: Framework name cleanup**: Replaced all remaining references to "Alpha Berkeley Framework" with "Osprey Framework" across README, templates, documentation, and test files
 - **Testing: E2E hello_world_weather tutorial test**: Enhanced test to exercise both weather AND Python capabilities with a multi-step query that validates configuration defaults, context passing, and code generation/execution workflows
+- **Hello World Weather Template**: Enhanced mock weather API with improved error handling and response formatting; updated tutorial documentation for better clarity
 
 ### Fixed
 - **Configuration: Execution defaults for Python code generation**: Added missing code generator configuration defaults to `ConfigBuilder._get_execution_defaults()`. Now includes `code_generator: "basic"` and corresponding generators configuration, preventing "Unknown provider: None" errors when using Python capabilities in projects with minimal configuration
 - **Hello World Weather Template**: Fixed template conditional to include execution infrastructure configuration while excluding only EPICS-specific settings, ensuring Python code generation works out-of-the-box
-
+- **Testing: Channel Finder test path correction**: Fixed incorrect database path in `test_multiple_direct_signals_fix.py` to point to correct example database location
+- **Channel Finder: Multiple direct signal selection**: Fixed leaf node detection to properly handle multiple direct signals (e.g., "status and heartbeat") selected together at optional levels
+- **Channel Finder: Optional levels LLM awareness**: Enhanced database descriptions and prompts to better distinguish direct signals from subdevice-specific signals
+- **Channel Finder: Separator overrides**: Fixed `build_channels_from_selections()` to respect `_separator` metadata from tree nodes via new `_collect_separator_overrides()` method
+- **Channel Finder: Separator overrides with expanded instances**: Fixed `_collect_separator_overrides()` navigation through expanded instance names (e.g., `CH-1`) by checking `_expansion` definitions to find container nodes
+- **Channel Finder: Navigation through expanded instances**: Fixed `_navigate_to_node()` and `_extract_tree_options()` to properly handle expanded instances at optional levels - base containers with `_expansion` no longer appear as selectable options, and navigation through expanded instance names works correctly
 
 ## [0.9.7] - 2025-12-14
 
