@@ -1,0 +1,276 @@
+{
+  "SR": {
+    "_description": "Storage Ring: Main synchrotron light source operating at 1.9 GeV. Contains beam position monitors, corrector magnets, RF cavities, and beam diagnostics.",
+    "BPM": {
+      "_description": "Beam Position Monitors: Non-invasive electrostatic pickups that measure beam position in horizontal (X) and vertical (Y) planes. Critical for orbit correction and beam stability.",
+      "X": {
+        "_description": "Horizontal position readback in millimeters. Measured using button electrode signals.",
+        "ChannelNames": [
+          "SR01C:BPM1:X",
+          "SR01C:BPM2:X",
+          "SR02C:BPM1:X",
+          "SR02C:BPM2:X"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "mm",
+        "PhysicsUnits": "Meters",
+        "MemberOf": ["BPM", "Monitor", "PlotFamily", "Save"]
+      },
+      "Y": {
+        "_description": "Vertical position readback in millimeters. Measured using button electrode signals.",
+        "ChannelNames": [
+          "SR01C:BPM1:Y",
+          "SR01C:BPM2:Y",
+          "SR02C:BPM1:Y",
+          "SR02C:BPM2:Y"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "mm",
+        "PhysicsUnits": "Meters",
+        "MemberOf": ["BPM", "Monitor", "PlotFamily", "Save"]
+      },
+      "SumSignal": {
+        "ChannelNames": [
+          "SR01C:BPM1:Sum",
+          "SR01C:BPM2:Sum",
+          "SR02C:BPM1:Sum",
+          "SR02C:BPM2:Sum"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "MemberOf": ["BPM", "Monitor", "PlotFamily"]
+      },
+      "setup": {
+        "CommonNames": ["BPM 1-1", "BPM 1-2", "BPM 2-1", "BPM 2-2"],
+        "DeviceList": [[1, 1], [1, 2], [2, 1], [2, 2]],
+        "ElementList": [1, 2, 3, 4],
+        "Status": [1, 1, 1, 1]
+      }
+    },
+    "HCM": {
+      "_description": "Horizontal Corrector Magnets: Small dipole steering magnets for fine horizontal beam position adjustments. Used in closed-orbit correction algorithms.",
+      "Monitor": {
+        "_description": "Current readback in Amperes. Actual measured corrector current from DCCT.",
+        "ChannelNames": [
+          "SR01C:HCM1:Current",
+          "SR01C:HCM2:Current",
+          "SR02C:HCM1:Current",
+          "SR02C:HCM2:Current"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "Ampere",
+        "PhysicsUnits": "Radian",
+        "MemberOf": ["HCM", "Magnet", "COR", "Monitor", "Save"]
+      },
+      "Setpoint": {
+        "_description": "Current setpoint in Amperes. Commanded corrector current for orbit control.",
+        "ChannelNames": [
+          "SR01C:HCM1:SetCurrent",
+          "SR01C:HCM2:SetCurrent",
+          "SR02C:HCM1:SetCurrent",
+          "SR02C:HCM2:SetCurrent"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "Ampere",
+        "PhysicsUnits": "Radian",
+        "MemberOf": ["HCM", "Magnet", "COR", "Setpoint", "Save/Restore"]
+      },
+      "OnControl": {
+        "ChannelNames": [
+          "SR01C:HCM1:Enable",
+          "SR01C:HCM2:Enable",
+          "SR02C:HCM1:Enable",
+          "SR02C:HCM2:Enable"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["HCM", "Magnet", "Boolean Control"]
+      },
+      "setup": {
+        "CommonNames": ["H Corrector 1-1", "H Corrector 1-2", "H Corrector 2-1", "H Corrector 2-2"],
+        "DeviceList": [[1, 1], [1, 2], [2, 1], [2, 2]],
+        "ElementList": [1, 2, 3, 4],
+        "Status": [1, 1, 1, 1]
+      }
+    },
+    "VCM": {
+      "Monitor": {
+        "ChannelNames": [
+          "SR01C:VCM1:Current",
+          "SR01C:VCM2:Current",
+          "SR02C:VCM1:Current",
+          "SR02C:VCM2:Current"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "MemberOf": ["VCM", "Magnet", "COR", "Monitor"]
+      },
+      "Setpoint": {
+        "ChannelNames": [
+          "SR01C:VCM1:SetCurrent",
+          "SR01C:VCM2:SetCurrent",
+          "SR02C:VCM1:SetCurrent",
+          "SR02C:VCM2:SetCurrent"
+        ],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "MemberOf": ["VCM", "Magnet", "COR", "Setpoint"]
+      },
+      "setup": {
+        "CommonNames": ["V Corrector 1-1", "V Corrector 1-2", "V Corrector 2-1", "V Corrector 2-2"],
+        "DeviceList": [[1, 1], [1, 2], [2, 1], [2, 2]],
+        "ElementList": [1, 2, 3, 4]
+      }
+    },
+    "DCCT": {
+      "_description": "DC Current Transformer: Measures total stored beam current with high precision using magnetic flux detection.",
+      "Monitor": {
+        "_description": "Beam current in milliamperes. Total charge circulating in the storage ring.",
+        "ChannelNames": ["SR:DCCT:Current"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "MemberOf": ["DCCT", "Monitor", "Save"]
+      },
+      "setup": {
+        "CommonNames": ["Beam Current Monitor"],
+        "DeviceList": [[1, 1]],
+        "ElementList": [1]
+      }
+    },
+    "RF": {
+      "_description": "Radio Frequency System: Provides energy to the beam through oscillating electromagnetic fields in RF cavities. Compensates for synchrotron radiation losses.",
+      "FrequencyMonitor": {
+        "_description": "RF cavity frequency readback in MHz",
+        "ChannelNames": ["SR:RF1:Freq", "SR:RF2:Freq"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "MHz",
+        "MemberOf": ["RF", "Monitor", "Save"]
+      },
+      "FrequencySetpoint": {
+        "ChannelNames": ["SR:RF1:FreqSet", "SR:RF2:FreqSet"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "MHz",
+        "MemberOf": ["RF", "Setpoint", "Save/Restore"]
+      },
+      "VoltageMonitor": {
+        "ChannelNames": ["SR:RF1:Volt", "SR:RF2:Volt"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "kV",
+        "MemberOf": ["RF", "Monitor", "Save"]
+      },
+      "VoltageSetpoint": {
+        "ChannelNames": ["SR:RF1:VoltSet", "SR:RF2:VoltSet"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "kV",
+        "MemberOf": ["RF", "Setpoint", "Save/Restore"]
+      },
+      "setup": {
+        "CommonNames": ["RF Cavity 1", "RF Cavity 2"],
+        "DeviceList": [[1, 1], [1, 2]],
+        "ElementList": [1, 2],
+        "Status": [1, 1]
+      }
+    }
+  },
+  "BR": {
+    "_description": "Booster Ring: Accelerates electron beam from 150 MeV (linac) to 1.9 GeV before injection into storage ring. Operates at 1-10 Hz repetition rate.",
+    "BPM": {
+      "X": {
+        "ChannelNames": ["BR:BPM1:X", "BR:BPM2:X"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["BPM", "Monitor"]
+      },
+      "Y": {
+        "ChannelNames": ["BR:BPM1:Y", "BR:BPM2:Y"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["BPM", "Monitor"]
+      },
+      "setup": {
+        "CommonNames": ["BR BPM 1", "BR BPM 2"],
+        "DeviceList": [[1, 1], [1, 2]],
+        "ElementList": [1, 2]
+      }
+    },
+    "DCCT": {
+      "Monitor": {
+        "ChannelNames": ["BR:DCCT:Current"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["DCCT", "Monitor"]
+      },
+      "setup": {
+        "CommonNames": ["BR Beam Current"],
+        "DeviceList": [[1, 1]],
+        "ElementList": [1]
+      }
+    }
+  },
+  "BTS": {
+    "_description": "Booster-to-Storage transfer line: Beam transport line that guides accelerated beam from booster ring to storage ring. Includes steering magnets and diagnostics.",
+    "BPM": {
+      "X": {
+        "ChannelNames": ["BTS:BPM1:X"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["BPM", "Monitor"]
+      },
+      "Y": {
+        "ChannelNames": ["BTS:BPM1:Y"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["BPM", "Monitor"]
+      },
+      "setup": {
+        "CommonNames": ["BTS BPM 1"],
+        "DeviceList": [[1, 1]],
+        "ElementList": [1]
+      }
+    },
+    "Kicker": {
+      "_description": "Injection kicker magnet: Fast pulsed magnet that deflects incoming beam from transfer line onto the storage ring orbit. Pulse width ~1 microsecond.",
+      "Monitor": {
+        "ChannelNames": ["BTS:KICKER:Voltage"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "kV",
+        "MemberOf": ["Kicker", "Monitor"]
+      },
+      "Setpoint": {
+        "ChannelNames": ["BTS:KICKER:VoltSet"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "kV",
+        "MemberOf": ["Kicker", "Setpoint"]
+      },
+      "setup": {
+        "CommonNames": ["BTS Injection Kicker"],
+        "DeviceList": [[1, 1]],
+        "ElementList": [1]
+      }
+    }
+  }
+}
