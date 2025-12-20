@@ -972,27 +972,26 @@
         "DeviceList": [[1, 1]],
         "ElementList": [1]
       }
-    }
-  },
-  "VAC": {
-    "_description": "Vacuum System: Maintains ultra-high vacuum (UHV) in the beam chamber to minimize beam-gas scattering and maximize beam lifetime. Typical operating pressure: 10^-9 to 10^-10 Torr. Distributed system with 72 ion pumps and 24 gauges.",
-    "IonPump": {
-      "_description": "Ion Pumps: Sputter-ion pumps that provide UHV pumping in the storage ring. Use high voltage to ionize and trap gas molecules. 6 pumps per sector for comprehensive coverage.",
+    },
+    "VAC": {
+      "_description": "Storage Ring Vacuum System: Maintains ultra-high vacuum (UHV) to minimize beam-gas scattering and maximize beam lifetime. Typical operating pressure: 10^-9 to 10^-10 Torr. Distributed system with 72 ion pumps and 24 gauges across all 12 sectors.",
+      "IonPump": {
+      "_description": "Ion Pumps: Sputter-ion pumps providing UHV pumping. Use high voltage to ionize and trap gas molecules. 6 pumps per sector for comprehensive coverage.",
       "Pressure": {
         "_description": "Vacuum Pressure readback (Torr). Local chamber pressure calculated from pump current. Target: <1×10^-9 Torr for good beam lifetime.",
         "ChannelNames": [
-          "VAC:SR01C:IP1:Pressure", "VAC:SR01C:IP2:Pressure", "VAC:SR01C:IP3:Pressure", "VAC:SR01C:IP4:Pressure", "VAC:SR01C:IP5:Pressure", "VAC:SR01C:IP6:Pressure",
-          "VAC:SR02C:IP1:Pressure", "VAC:SR02C:IP2:Pressure", "VAC:SR02C:IP3:Pressure", "VAC:SR02C:IP4:Pressure", "VAC:SR02C:IP5:Pressure", "VAC:SR02C:IP6:Pressure",
-          "VAC:SR03C:IP1:Pressure", "VAC:SR03C:IP2:Pressure", "VAC:SR03C:IP3:Pressure", "VAC:SR03C:IP4:Pressure", "VAC:SR03C:IP5:Pressure", "VAC:SR03C:IP6:Pressure",
-          "VAC:SR04C:IP1:Pressure", "VAC:SR04C:IP2:Pressure", "VAC:SR04C:IP3:Pressure", "VAC:SR04C:IP4:Pressure", "VAC:SR04C:IP5:Pressure", "VAC:SR04C:IP6:Pressure",
-          "VAC:SR05C:IP1:Pressure", "VAC:SR05C:IP2:Pressure", "VAC:SR05C:IP3:Pressure", "VAC:SR05C:IP4:Pressure", "VAC:SR05C:IP5:Pressure", "VAC:SR05C:IP6:Pressure",
-          "VAC:SR06C:IP1:Pressure", "VAC:SR06C:IP2:Pressure", "VAC:SR06C:IP3:Pressure", "VAC:SR06C:IP4:Pressure", "VAC:SR06C:IP5:Pressure", "VAC:SR06C:IP6:Pressure",
-          "VAC:SR07C:IP1:Pressure", "VAC:SR07C:IP2:Pressure", "VAC:SR07C:IP3:Pressure", "VAC:SR07C:IP4:Pressure", "VAC:SR07C:IP5:Pressure", "VAC:SR07C:IP6:Pressure",
-          "VAC:SR08C:IP1:Pressure", "VAC:SR08C:IP2:Pressure", "VAC:SR08C:IP3:Pressure", "VAC:SR08C:IP4:Pressure", "VAC:SR08C:IP5:Pressure", "VAC:SR08C:IP6:Pressure",
-          "VAC:SR09C:IP1:Pressure", "VAC:SR09C:IP2:Pressure", "VAC:SR09C:IP3:Pressure", "VAC:SR09C:IP4:Pressure", "VAC:SR09C:IP5:Pressure", "VAC:SR09C:IP6:Pressure",
-          "VAC:SR10C:IP1:Pressure", "VAC:SR10C:IP2:Pressure", "VAC:SR10C:IP3:Pressure", "VAC:SR10C:IP4:Pressure", "VAC:SR10C:IP5:Pressure", "VAC:SR10C:IP6:Pressure",
-          "VAC:SR11C:IP1:Pressure", "VAC:SR11C:IP2:Pressure", "VAC:SR11C:IP3:Pressure", "VAC:SR11C:IP4:Pressure", "VAC:SR11C:IP5:Pressure", "VAC:SR11C:IP6:Pressure",
-          "VAC:SR12C:IP1:Pressure", "VAC:SR12C:IP2:Pressure", "VAC:SR12C:IP3:Pressure", "VAC:SR12C:IP4:Pressure", "VAC:SR12C:IP5:Pressure", "VAC:SR12C:IP6:Pressure"
+          "SR01C:VAC:IP1:Pressure", "SR01C:VAC:IP2:Pressure", "SR01C:VAC:IP3:Pressure", "SR01C:VAC:IP4:Pressure", "SR01C:VAC:IP5:Pressure", "SR01C:VAC:IP6:Pressure",
+          "SR02C:VAC:IP1:Pressure", "SR02C:VAC:IP2:Pressure", "SR02C:VAC:IP3:Pressure", "SR02C:VAC:IP4:Pressure", "SR02C:VAC:IP5:Pressure", "SR02C:VAC:IP6:Pressure",
+          "SR03C:VAC:IP1:Pressure", "SR03C:VAC:IP2:Pressure", "SR03C:VAC:IP3:Pressure", "SR03C:VAC:IP4:Pressure", "SR03C:VAC:IP5:Pressure", "SR03C:VAC:IP6:Pressure",
+          "SR04C:VAC:IP1:Pressure", "SR04C:VAC:IP2:Pressure", "SR04C:VAC:IP3:Pressure", "SR04C:VAC:IP4:Pressure", "SR04C:VAC:IP5:Pressure", "SR04C:VAC:IP6:Pressure",
+          "SR05C:VAC:IP1:Pressure", "SR05C:VAC:IP2:Pressure", "SR05C:VAC:IP3:Pressure", "SR05C:VAC:IP4:Pressure", "SR05C:VAC:IP5:Pressure", "SR05C:VAC:IP6:Pressure",
+          "SR06C:VAC:IP1:Pressure", "SR06C:VAC:IP2:Pressure", "SR06C:VAC:IP3:Pressure", "SR06C:VAC:IP4:Pressure", "SR06C:VAC:IP5:Pressure", "SR06C:VAC:IP6:Pressure",
+          "SR07C:VAC:IP1:Pressure", "SR07C:VAC:IP2:Pressure", "SR07C:VAC:IP3:Pressure", "SR07C:VAC:IP4:Pressure", "SR07C:VAC:IP5:Pressure", "SR07C:VAC:IP6:Pressure",
+          "SR08C:VAC:IP1:Pressure", "SR08C:VAC:IP2:Pressure", "SR08C:VAC:IP3:Pressure", "SR08C:VAC:IP4:Pressure", "SR08C:VAC:IP5:Pressure", "SR08C:VAC:IP6:Pressure",
+          "SR09C:VAC:IP1:Pressure", "SR09C:VAC:IP2:Pressure", "SR09C:VAC:IP3:Pressure", "SR09C:VAC:IP4:Pressure", "SR09C:VAC:IP5:Pressure", "SR09C:VAC:IP6:Pressure",
+          "SR10C:VAC:IP1:Pressure", "SR10C:VAC:IP2:Pressure", "SR10C:VAC:IP3:Pressure", "SR10C:VAC:IP4:Pressure", "SR10C:VAC:IP5:Pressure", "SR10C:VAC:IP6:Pressure",
+          "SR11C:VAC:IP1:Pressure", "SR11C:VAC:IP2:Pressure", "SR11C:VAC:IP3:Pressure", "SR11C:VAC:IP4:Pressure", "SR11C:VAC:IP5:Pressure", "SR11C:VAC:IP6:Pressure",
+          "SR12C:VAC:IP1:Pressure", "SR12C:VAC:IP2:Pressure", "SR12C:VAC:IP3:Pressure", "SR12C:VAC:IP4:Pressure", "SR12C:VAC:IP5:Pressure", "SR12C:VAC:IP6:Pressure"
         ],
         "DataType": "Scalar",
         "Mode": "Online",
@@ -1003,18 +1002,18 @@
       "Voltage": {
         "_description": "High Voltage Supply readback (Volts). Operating voltage for ion pump (typically 3-7 kV).",
         "ChannelNames": [
-          "VAC:SR01C:IP1:HV", "VAC:SR01C:IP2:HV", "VAC:SR01C:IP3:HV", "VAC:SR01C:IP4:HV", "VAC:SR01C:IP5:HV", "VAC:SR01C:IP6:HV",
-          "VAC:SR02C:IP1:HV", "VAC:SR02C:IP2:HV", "VAC:SR02C:IP3:HV", "VAC:SR02C:IP4:HV", "VAC:SR02C:IP5:HV", "VAC:SR02C:IP6:HV",
-          "VAC:SR03C:IP1:HV", "VAC:SR03C:IP2:HV", "VAC:SR03C:IP3:HV", "VAC:SR03C:IP4:HV", "VAC:SR03C:IP5:HV", "VAC:SR03C:IP6:HV",
-          "VAC:SR04C:IP1:HV", "VAC:SR04C:IP2:HV", "VAC:SR04C:IP3:HV", "VAC:SR04C:IP4:HV", "VAC:SR04C:IP5:HV", "VAC:SR04C:IP6:HV",
-          "VAC:SR05C:IP1:HV", "VAC:SR05C:IP2:HV", "VAC:SR05C:IP3:HV", "VAC:SR05C:IP4:HV", "VAC:SR05C:IP5:HV", "VAC:SR05C:IP6:HV",
-          "VAC:SR06C:IP1:HV", "VAC:SR06C:IP2:HV", "VAC:SR06C:IP3:HV", "VAC:SR06C:IP4:HV", "VAC:SR06C:IP5:HV", "VAC:SR06C:IP6:HV",
-          "VAC:SR07C:IP1:HV", "VAC:SR07C:IP2:HV", "VAC:SR07C:IP3:HV", "VAC:SR07C:IP4:HV", "VAC:SR07C:IP5:HV", "VAC:SR07C:IP6:HV",
-          "VAC:SR08C:IP1:HV", "VAC:SR08C:IP2:HV", "VAC:SR08C:IP3:HV", "VAC:SR08C:IP4:HV", "VAC:SR08C:IP5:HV", "VAC:SR08C:IP6:HV",
-          "VAC:SR09C:IP1:HV", "VAC:SR09C:IP2:HV", "VAC:SR09C:IP3:HV", "VAC:SR09C:IP4:HV", "VAC:SR09C:IP5:HV", "VAC:SR09C:IP6:HV",
-          "VAC:SR10C:IP1:HV", "VAC:SR10C:IP2:HV", "VAC:SR10C:IP3:HV", "VAC:SR10C:IP4:HV", "VAC:SR10C:IP5:HV", "VAC:SR10C:IP6:HV",
-          "VAC:SR11C:IP1:HV", "VAC:SR11C:IP2:HV", "VAC:SR11C:IP3:HV", "VAC:SR11C:IP4:HV", "VAC:SR11C:IP5:HV", "VAC:SR11C:IP6:HV",
-          "VAC:SR12C:IP1:HV", "VAC:SR12C:IP2:HV", "VAC:SR12C:IP3:HV", "VAC:SR12C:IP4:HV", "VAC:SR12C:IP5:HV", "VAC:SR12C:IP6:HV"
+          "SR01C:VAC:IP1:HV", "SR01C:VAC:IP2:HV", "SR01C:VAC:IP3:HV", "SR01C:VAC:IP4:HV", "SR01C:VAC:IP5:HV", "SR01C:VAC:IP6:HV",
+          "SR02C:VAC:IP1:HV", "SR02C:VAC:IP2:HV", "SR02C:VAC:IP3:HV", "SR02C:VAC:IP4:HV", "SR02C:VAC:IP5:HV", "SR02C:VAC:IP6:HV",
+          "SR03C:VAC:IP1:HV", "SR03C:VAC:IP2:HV", "SR03C:VAC:IP3:HV", "SR03C:VAC:IP4:HV", "SR03C:VAC:IP5:HV", "SR03C:VAC:IP6:HV",
+          "SR04C:VAC:IP1:HV", "SR04C:VAC:IP2:HV", "SR04C:VAC:IP3:HV", "SR04C:VAC:IP4:HV", "SR04C:VAC:IP5:HV", "SR04C:VAC:IP6:HV",
+          "SR05C:VAC:IP1:HV", "SR05C:VAC:IP2:HV", "SR05C:VAC:IP3:HV", "SR05C:VAC:IP4:HV", "SR05C:VAC:IP5:HV", "SR05C:VAC:IP6:HV",
+          "SR06C:VAC:IP1:HV", "SR06C:VAC:IP2:HV", "SR06C:VAC:IP3:HV", "SR06C:VAC:IP4:HV", "SR06C:VAC:IP5:HV", "SR06C:VAC:IP6:HV",
+          "SR07C:VAC:IP1:HV", "SR07C:VAC:IP2:HV", "SR07C:VAC:IP3:HV", "SR07C:VAC:IP4:HV", "SR07C:VAC:IP5:HV", "SR07C:VAC:IP6:HV",
+          "SR08C:VAC:IP1:HV", "SR08C:VAC:IP2:HV", "SR08C:VAC:IP3:HV", "SR08C:VAC:IP4:HV", "SR08C:VAC:IP5:HV", "SR08C:VAC:IP6:HV",
+          "SR09C:VAC:IP1:HV", "SR09C:VAC:IP2:HV", "SR09C:VAC:IP3:HV", "SR09C:VAC:IP4:HV", "SR09C:VAC:IP5:HV", "SR09C:VAC:IP6:HV",
+          "SR10C:VAC:IP1:HV", "SR10C:VAC:IP2:HV", "SR10C:VAC:IP3:HV", "SR10C:VAC:IP4:HV", "SR10C:VAC:IP5:HV", "SR10C:VAC:IP6:HV",
+          "SR11C:VAC:IP1:HV", "SR11C:VAC:IP2:HV", "SR11C:VAC:IP3:HV", "SR11C:VAC:IP4:HV", "SR11C:VAC:IP5:HV", "SR11C:VAC:IP6:HV",
+          "SR12C:VAC:IP1:HV", "SR12C:VAC:IP2:HV", "SR12C:VAC:IP3:HV", "SR12C:VAC:IP4:HV", "SR12C:VAC:IP5:HV", "SR12C:VAC:IP6:HV"
         ],
         "DataType": "Scalar",
         "Mode": "Online",
@@ -1025,18 +1024,18 @@
       "Current": {
         "_description": "Ion Pump Current readback (microAmperes). Current proportional to gas pumping rate. Low current (<1 μA) indicates good vacuum.",
         "ChannelNames": [
-          "VAC:SR01C:IP1:Current", "VAC:SR01C:IP2:Current", "VAC:SR01C:IP3:Current", "VAC:SR01C:IP4:Current", "VAC:SR01C:IP5:Current", "VAC:SR01C:IP6:Current",
-          "VAC:SR02C:IP1:Current", "VAC:SR02C:IP2:Current", "VAC:SR02C:IP3:Current", "VAC:SR02C:IP4:Current", "VAC:SR02C:IP5:Current", "VAC:SR02C:IP6:Current",
-          "VAC:SR03C:IP1:Current", "VAC:SR03C:IP2:Current", "VAC:SR03C:IP3:Current", "VAC:SR03C:IP4:Current", "VAC:SR03C:IP5:Current", "VAC:SR03C:IP6:Current",
-          "VAC:SR04C:IP1:Current", "VAC:SR04C:IP2:Current", "VAC:SR04C:IP3:Current", "VAC:SR04C:IP4:Current", "VAC:SR04C:IP5:Current", "VAC:SR04C:IP6:Current",
-          "VAC:SR05C:IP1:Current", "VAC:SR05C:IP2:Current", "VAC:SR05C:IP3:Current", "VAC:SR05C:IP4:Current", "VAC:SR05C:IP5:Current", "VAC:SR05C:IP6:Current",
-          "VAC:SR06C:IP1:Current", "VAC:SR06C:IP2:Current", "VAC:SR06C:IP3:Current", "VAC:SR06C:IP4:Current", "VAC:SR06C:IP5:Current", "VAC:SR06C:IP6:Current",
-          "VAC:SR07C:IP1:Current", "VAC:SR07C:IP2:Current", "VAC:SR07C:IP3:Current", "VAC:SR07C:IP4:Current", "VAC:SR07C:IP5:Current", "VAC:SR07C:IP6:Current",
-          "VAC:SR08C:IP1:Current", "VAC:SR08C:IP2:Current", "VAC:SR08C:IP3:Current", "VAC:SR08C:IP4:Current", "VAC:SR08C:IP5:Current", "VAC:SR08C:IP6:Current",
-          "VAC:SR09C:IP1:Current", "VAC:SR09C:IP2:Current", "VAC:SR09C:IP3:Current", "VAC:SR09C:IP4:Current", "VAC:SR09C:IP5:Current", "VAC:SR09C:IP6:Current",
-          "VAC:SR10C:IP1:Current", "VAC:SR10C:IP2:Current", "VAC:SR10C:IP3:Current", "VAC:SR10C:IP4:Current", "VAC:SR10C:IP5:Current", "VAC:SR10C:IP6:Current",
-          "VAC:SR11C:IP1:Current", "VAC:SR11C:IP2:Current", "VAC:SR11C:IP3:Current", "VAC:SR11C:IP4:Current", "VAC:SR11C:IP5:Current", "VAC:SR11C:IP6:Current",
-          "VAC:SR12C:IP1:Current", "VAC:SR12C:IP2:Current", "VAC:SR12C:IP3:Current", "VAC:SR12C:IP4:Current", "VAC:SR12C:IP5:Current", "VAC:SR12C:IP6:Current"
+          "SR01C:VAC:IP1:Current", "SR01C:VAC:IP2:Current", "SR01C:VAC:IP3:Current", "SR01C:VAC:IP4:Current", "SR01C:VAC:IP5:Current", "SR01C:VAC:IP6:Current",
+          "SR02C:VAC:IP1:Current", "SR02C:VAC:IP2:Current", "SR02C:VAC:IP3:Current", "SR02C:VAC:IP4:Current", "SR02C:VAC:IP5:Current", "SR02C:VAC:IP6:Current",
+          "SR03C:VAC:IP1:Current", "SR03C:VAC:IP2:Current", "SR03C:VAC:IP3:Current", "SR03C:VAC:IP4:Current", "SR03C:VAC:IP5:Current", "SR03C:VAC:IP6:Current",
+          "SR04C:VAC:IP1:Current", "SR04C:VAC:IP2:Current", "SR04C:VAC:IP3:Current", "SR04C:VAC:IP4:Current", "SR04C:VAC:IP5:Current", "SR04C:VAC:IP6:Current",
+          "SR05C:VAC:IP1:Current", "SR05C:VAC:IP2:Current", "SR05C:VAC:IP3:Current", "SR05C:VAC:IP4:Current", "SR05C:VAC:IP5:Current", "SR05C:VAC:IP6:Current",
+          "SR06C:VAC:IP1:Current", "SR06C:VAC:IP2:Current", "SR06C:VAC:IP3:Current", "SR06C:VAC:IP4:Current", "SR06C:VAC:IP5:Current", "SR06C:VAC:IP6:Current",
+          "SR07C:VAC:IP1:Current", "SR07C:VAC:IP2:Current", "SR07C:VAC:IP3:Current", "SR07C:VAC:IP4:Current", "SR07C:VAC:IP5:Current", "SR07C:VAC:IP6:Current",
+          "SR08C:VAC:IP1:Current", "SR08C:VAC:IP2:Current", "SR08C:VAC:IP3:Current", "SR08C:VAC:IP4:Current", "SR08C:VAC:IP5:Current", "SR08C:VAC:IP6:Current",
+          "SR09C:VAC:IP1:Current", "SR09C:VAC:IP2:Current", "SR09C:VAC:IP3:Current", "SR09C:VAC:IP4:Current", "SR09C:VAC:IP5:Current", "SR09C:VAC:IP6:Current",
+          "SR10C:VAC:IP1:Current", "SR10C:VAC:IP2:Current", "SR10C:VAC:IP3:Current", "SR10C:VAC:IP4:Current", "SR10C:VAC:IP5:Current", "SR10C:VAC:IP6:Current",
+          "SR11C:VAC:IP1:Current", "SR11C:VAC:IP2:Current", "SR11C:VAC:IP3:Current", "SR11C:VAC:IP4:Current", "SR11C:VAC:IP5:Current", "SR11C:VAC:IP6:Current",
+          "SR12C:VAC:IP1:Current", "SR12C:VAC:IP2:Current", "SR12C:VAC:IP3:Current", "SR12C:VAC:IP4:Current", "SR12C:VAC:IP5:Current", "SR12C:VAC:IP6:Current"
         ],
         "DataType": "Scalar",
         "Mode": "Online",
@@ -1081,12 +1080,12 @@
       "Pressure": {
         "_description": "Measured Pressure readback (Torr). Direct pressure reading from ionization gauge. True measurement (not calculated like ion pump pressure).",
         "ChannelNames": [
-          "VAC:SR01C:Gauge1", "VAC:SR01C:Gauge2", "VAC:SR02C:Gauge1", "VAC:SR02C:Gauge2",
-          "VAC:SR03C:Gauge1", "VAC:SR03C:Gauge2", "VAC:SR04C:Gauge1", "VAC:SR04C:Gauge2",
-          "VAC:SR05C:Gauge1", "VAC:SR05C:Gauge2", "VAC:SR06C:Gauge1", "VAC:SR06C:Gauge2",
-          "VAC:SR07C:Gauge1", "VAC:SR07C:Gauge2", "VAC:SR08C:Gauge1", "VAC:SR08C:Gauge2",
-          "VAC:SR09C:Gauge1", "VAC:SR09C:Gauge2", "VAC:SR10C:Gauge1", "VAC:SR10C:Gauge2",
-          "VAC:SR11C:Gauge1", "VAC:SR11C:Gauge2", "VAC:SR12C:Gauge1", "VAC:SR12C:Gauge2"
+          "SR01C:VAC:Gauge1", "SR01C:VAC:Gauge2", "SR02C:VAC:Gauge1", "SR02C:VAC:Gauge2",
+          "SR03C:VAC:Gauge1", "SR03C:VAC:Gauge2", "SR04C:VAC:Gauge1", "SR04C:VAC:Gauge2",
+          "SR05C:VAC:Gauge1", "SR05C:VAC:Gauge2", "SR06C:VAC:Gauge1", "SR06C:VAC:Gauge2",
+          "SR07C:VAC:Gauge1", "SR07C:VAC:Gauge2", "SR08C:VAC:Gauge1", "SR08C:VAC:Gauge2",
+          "SR09C:VAC:Gauge1", "SR09C:VAC:Gauge2", "SR10C:VAC:Gauge1", "SR10C:VAC:Gauge2",
+          "SR11C:VAC:Gauge1", "SR11C:VAC:Gauge2", "SR12C:VAC:Gauge1", "SR12C:VAC:Gauge2"
         ],
         "DataType": "Scalar",
         "Mode": "Online",
@@ -1110,55 +1109,56 @@
       }
     }
   },
-  "Scraper": {
-    "_description": "Beam Scrapers: Movable collimators that define beam aperture and protect vacuum chamber. Used for beam size measurements and controlled beam loss. 4 scrapers at strategic locations.",
-    "TopPosition": {
-      "_description": "Top scraper position readback in millimeters. Distance from beam center.",
-      "ChannelNames": ["SR01C:Scraper:Top", "SR03S:Scraper:Top", "SR06C:Scraper:Top", "SR12C:Scraper:Top"],
-      "DataType": "Scalar",
-      "Mode": "Online",
-      "Units": "Hardware",
-      "HWUnits": "mm",
-      "MemberOf": ["Scraper", "Monitor", "Save", "Archive"]
-    },
-    "BottomPosition": {
-      "_description": "Bottom scraper position readback in millimeters. Distance from beam center.",
-      "ChannelNames": ["SR01C:Scraper:Bottom", "SR03S:Scraper:Bottom", "SR06C:Scraper:Bottom", "SR12C:Scraper:Bottom"],
-      "DataType": "Scalar",
-      "Mode": "Online",
-      "Units": "Hardware",
-      "HWUnits": "mm",
-      "MemberOf": ["Scraper", "Monitor", "Save", "Archive"]
-    },
-    "TopSetpoint": {
-      "_description": "Top scraper position setpoint in millimeters.",
-      "ChannelNames": ["SR01C:Scraper:TopSet", "SR03S:Scraper:TopSet", "SR06C:Scraper:TopSet", "SR12C:Scraper:TopSet"],
-      "DataType": "Scalar",
-      "Mode": "Online",
-      "Units": "Hardware",
-      "HWUnits": "mm",
-      "MemberOf": ["Scraper", "Setpoint", "Save/Restore"]
-    },
-    "BottomSetpoint": {
-      "_description": "Bottom scraper position setpoint in millimeters.",
-      "ChannelNames": ["SR01C:Scraper:BottomSet", "SR03S:Scraper:BottomSet", "SR06C:Scraper:BottomSet", "SR12C:Scraper:BottomSet"],
-      "DataType": "Scalar",
-      "Mode": "Online",
-      "Units": "Hardware",
-      "HWUnits": "mm",
-      "MemberOf": ["Scraper", "Setpoint", "Save/Restore"]
-    },
-    "Moving": {
-      "_description": "Scraper motion status. 1=moving, 0=stationary.",
-      "ChannelNames": ["SR01C:Scraper:Moving", "SR03S:Scraper:Moving", "SR06C:Scraper:Moving", "SR12C:Scraper:Moving"],
-      "DataType": "Scalar",
-      "Mode": "Online",
-      "MemberOf": ["Scraper", "Boolean Monitor", "Archive"]
-    },
-    "setup": {
-      "CommonNames": ["Scraper 1", "Scraper 3", "Scraper 6", "Scraper 12"],
-      "DeviceList": [[1, 1], [3, 1], [6, 1], [12, 1]],
-      "ElementList": [1, 2, 3, 4]
+    "Scraper": {
+      "_description": "Storage Ring Beam Scrapers: Movable collimators that define beam aperture and protect vacuum chamber. Used for beam size measurements and controlled beam loss. 4 scrapers at strategic locations around the ring.",
+      "TopPosition": {
+        "_description": "Top scraper position readback in millimeters. Distance from beam center.",
+        "ChannelNames": ["SR01C:Scraper:Top", "SR03S:Scraper:Top", "SR06C:Scraper:Top", "SR12C:Scraper:Top"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "mm",
+        "MemberOf": ["Scraper", "Monitor", "Save", "Archive"]
+      },
+      "BottomPosition": {
+        "_description": "Bottom scraper position readback in millimeters. Distance from beam center.",
+        "ChannelNames": ["SR01C:Scraper:Bottom", "SR03S:Scraper:Bottom", "SR06C:Scraper:Bottom", "SR12C:Scraper:Bottom"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "mm",
+        "MemberOf": ["Scraper", "Monitor", "Save", "Archive"]
+      },
+      "TopSetpoint": {
+        "_description": "Top scraper position setpoint in millimeters.",
+        "ChannelNames": ["SR01C:Scraper:TopSet", "SR03S:Scraper:TopSet", "SR06C:Scraper:TopSet", "SR12C:Scraper:TopSet"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "mm",
+        "MemberOf": ["Scraper", "Setpoint", "Save/Restore"]
+      },
+      "BottomSetpoint": {
+        "_description": "Bottom scraper position setpoint in millimeters.",
+        "ChannelNames": ["SR01C:Scraper:BottomSet", "SR03S:Scraper:BottomSet", "SR06C:Scraper:BottomSet", "SR12C:Scraper:BottomSet"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "Units": "Hardware",
+        "HWUnits": "mm",
+        "MemberOf": ["Scraper", "Setpoint", "Save/Restore"]
+      },
+      "Moving": {
+        "_description": "Scraper motion status. 1=moving, 0=stationary.",
+        "ChannelNames": ["SR01C:Scraper:Moving", "SR03S:Scraper:Moving", "SR06C:Scraper:Moving", "SR12C:Scraper:Moving"],
+        "DataType": "Scalar",
+        "Mode": "Online",
+        "MemberOf": ["Scraper", "Boolean Monitor", "Archive"]
+      },
+      "setup": {
+        "CommonNames": ["Scraper 1", "Scraper 3", "Scraper 6", "Scraper 12"],
+        "DeviceList": [[1, 1], [3, 1], [6, 1], [12, 1]],
+        "ElementList": [1, 2, 3, 4]
+      }
     }
   },
   "BR": {
