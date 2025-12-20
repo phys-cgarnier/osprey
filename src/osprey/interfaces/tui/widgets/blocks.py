@@ -139,7 +139,7 @@ class ProcessingBlock(Static):
         self._breathing_index = (self._breathing_index + 1) % len(self.BREATHING_FRAMES)
         indicator = self.BREATHING_FRAMES[self._breathing_index]
         header = self.query_one("#block-header", Static)
-        header.update(f"{indicator} {self.title}")
+        header.update(f"[$accent]{indicator}[/] {self.title}")
 
     def _stop_breathing(self) -> None:
         """Stop the breathing animation."""
@@ -685,7 +685,7 @@ class ProcessingStep(Static):
         self._breathing_index = (self._breathing_index + 1) % len(frames)
         indicator = frames[self._breathing_index]
         title_line = self.query_one("#step-title", Static)
-        title_line.update(f"[bold]{indicator} {self.title}[/bold]")
+        title_line.update(f"[bold][$accent]{indicator}[/] {self.title}[/bold]")
 
     def _stop_breathing(self) -> None:
         """Stop the breathing animation."""
@@ -892,11 +892,12 @@ def create_plan_progress_content(steps: list[dict], step_states: list[str], widt
         wrapped = textwrap.fill(objective, width=width, initial_indent="", subsequent_indent="  ")
         full_line = f"{bullet} {wrapped}"
 
-        # Styling: pending/current = normal text, done = dim + strikethrough
+        # Styling: pending/current = normal text, done = $text-disabled + strikethrough
         if state == "done":
             # Apply strikethrough per-line to preserve indent on wrapped lines
             struck_line = _apply_strike_preserving_indent(full_line)
-            lines.append(f"[dim]{struck_line}[/dim]")
+            # Use [$text-disabled]...[/] syntax (generic close for CSS variables)
+            lines.append(f"[$text 20%]{struck_line}[/]")
         else:
             lines.append(full_line)
 
@@ -1001,7 +1002,7 @@ class TodoUpdateStep(ProcessingStep):
         indicator = self.INDICATOR_SUCCESS if status == "success" else self.INDICATOR_ERROR
 
         # Only color the indicator, keep title bold
-        # Semi-steps: success color indicator on complete (more visible than framework steps)
+        # Semi-steps: $success indicator for prominence, bold title with normal text color
         if status == "success":
             title_markup = f"[$success]{indicator}[/$success] [bold]{self.title}[/bold]"
         else:

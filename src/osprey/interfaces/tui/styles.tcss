@@ -453,7 +453,7 @@ ClassificationStep {
 /* Step title - normal color while processing */
 #step-title {
     width: auto;
-    color: $text;
+    color: $accent;
 }
 
 /* Success state - grayed out title */
@@ -546,6 +546,15 @@ TodoUpdateStep {
     padding: 0 2;
     background: transparent;
     border: none;
+}
+
+/* TodoUpdateStep should stay bright even when "success" - override ProcessingStep muted styling */
+TodoUpdateStep.step-success #step-title {
+    color: $text;
+}
+
+TodoUpdateStep.step-success #step-output {
+    color: $text;
 }
 
 /* =============================================================================
