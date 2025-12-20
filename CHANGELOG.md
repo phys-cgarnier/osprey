@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.8] - 2025-12-19
 
 ### Added
+- **Channel Finder - Middle Layer Testing**: Comprehensive tool and utility tests
+  - 480 lines of tests covering all database query tools
+  - Tests for prompt loader with middle_layer support
+  - Tests for MML converter utility enhancements
 - **Channel Finder - Middle Layer**: React agent prompts for functional navigation
   - Query splitter prompt for decomposing complex queries
   - System prompt with database exploration tools
