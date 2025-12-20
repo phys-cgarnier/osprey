@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Status Badges**: README.md badges for CI status, documentation, code coverage, PyPI version, Python version support, and license
 
 ### Changed
+- **Channel Finder - Middle Layer Pipeline**: Migrated from Pydantic-AI to LangGraph
+  - Now uses LangGraph's create_react_agent for improved agent behavior
+  - Converted tools from Pydantic-AI format to LangChain StructuredTool
+  - Enhanced structured output with ChannelSearchResult model
+  - Better error handling and agent state management
 - **Code Quality: Comprehensive Linting Cleanup**: Fixed multiple code quality issues across 47 files - B904 exception chaining (30 instances), E722 bare except clauses (5 instances), B007 unused loop variables (4 instances), formatting issues; removed B904 from ruff ignore list and added intentional per-file ignores for test files and example scripts; all changes verified with full test suite (968 unit + 15 e2e tests passing)
 - **Code Formatting**: Applied automated Ruff formatting across codebase - modernized type hints to Python 3.10+ style (`Optional[T]` → `T | None`, `List[T]` → `list[T]`), normalized quotes, cleaned whitespace, and removed unused imports; no functional changes
 - **Documentation Workflows**: Migrated workflow files from `docs/resources/other/` to `docs/workflows/` with updated references throughout; workflows now feature consistent YAML frontmatter for machine parsing and AI integration

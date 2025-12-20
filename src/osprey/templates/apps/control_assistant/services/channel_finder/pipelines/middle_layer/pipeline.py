@@ -1,14 +1,15 @@
 """
 Middle Layer React Agent Pipeline
 
-Implements channel finding using a React-style agent with database query tools.
+Implements channel finding using LangGraph's ReAct agent with database query tools.
 This approach mimics production accelerator control systems where an agent
 explores a functional hierarchy (System → Family → Field) using tools rather
 than navigating a tree structure.
 
-Key differences from hierarchical pipeline:
-- Agent queries database using tools instead of navigating tree
-- PV names are retrieved from database instead of built from selections
+Key features:
+- Uses LangGraph's create_react_agent for autonomous exploration
+- Agent queries database using LangChain tools
+- Channel addresses are retrieved from database (not built from patterns)
 - Organization is by function (Monitor, Setpoint) not naming pattern
 - Supports device/sector filtering and subfield navigation
 
@@ -20,12 +21,20 @@ import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
-from osprey.models import get_chat_completion, get_model
-from osprey.utils.config import _get_config
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, ModelRetry, RunContext, Tool
+from osprey.models import get_chat_completion
+from osprey.utils.config import _get_config
+
+# LangGraph and LangChain imports
+try:
+    from langchain_core.tools import tool, StructuredTool
+    from langgraph.prebuilt import create_react_agent
+except ImportError:
+    raise ImportError(
+        "LangGraph not installed. Install with: pip install langgraph langchain-core"
+    )
 
 from ...core.base_pipeline import BasePipeline
 from ...core.models import ChannelFinderResult, ChannelInfo, QuerySplitterOutput
@@ -34,14 +43,16 @@ from ...utils.prompt_loader import load_prompts
 logger = logging.getLogger(__name__)
 
 
-# === Output Models ===
+# === Structured Output Models ===
 
-
-class PVQueryOutput(BaseModel):
-    """Output from PV query agent."""
-
-    pvs: List[str] = Field(description="List of found PV addresses")
-    description: str = Field(description="Description of search process and results")
+class ChannelSearchResult(BaseModel):
+    """Structured result from channel search with validation."""
+    channels: list[str] = Field(
+        description="List of channel addresses found (e.g., ['SR:DCCT:Current', 'SR01C:BPM1:X']). Empty list if none found."
+    )
+    description: str = Field(
+        description="Brief 1-2 sentence summary. State: (1) what channel(s) were found, (2) which system/family/field. Omit detailed search steps."
+    )
 
 
 # === Tool Support Functions ===
@@ -116,18 +127,21 @@ class MiddleLayerPipeline(BasePipeline):
         prompts_module = load_prompts(config_builder.raw_config)
         self.query_splitter = prompts_module.query_splitter
 
-        # Create React agent with tools
-        self._create_agent()
+        # Agent will be created lazily on first use
+        self._agent = None
 
     @property
     def pipeline_name(self) -> str:
         """Return the pipeline name."""
         return "Middle Layer React Agent"
 
-    def _create_agent(self):
-        """Create the React agent with database query tools."""
-        # Tool functions that access database
-        def list_systems() -> List[Dict[str, str]]:
+    def _create_tools(self) -> list:
+        """Create LangChain tools for database queries."""
+        # Use the @tool decorator for each database operation
+        # We'll capture self.database in closures
+
+        @tool
+        def list_systems() -> list[dict[str, str]]:
             """Get list of all available systems in the control system.
 
             Returns:
@@ -143,7 +157,8 @@ class MiddleLayerPipeline(BasePipeline):
             logger.debug(f"  → Returned {len(result)} systems")
             return result
 
-        def list_families(system: str) -> List[Dict[str, str]]:
+        @tool
+        def list_families(system: str) -> list[dict[str, str]]:
             """Get list of device families in a specific system.
 
             Args:
@@ -163,9 +178,10 @@ class MiddleLayerPipeline(BasePipeline):
                 logger.debug(f"  → Returned {len(result)} families")
                 return result
             except ValueError as e:
-                raise ModelRetry(str(e))
+                return {"error": str(e)}
 
-        def inspect_fields(system: str, family: str, field: str = None) -> Dict[str, Dict[str, str]]:
+        @tool
+        def inspect_fields(system: str, family: str, field: str = None) -> dict[str, dict[str, str]]:
             """Inspect the structure of fields within a family.
 
             Use this to discover what fields and subfields are available
@@ -199,16 +215,17 @@ class MiddleLayerPipeline(BasePipeline):
                 logger.debug(f"  → Returned {len(result)} fields")
                 return result
             except ValueError as e:
-                raise ModelRetry(str(e))
+                return {"error": str(e)}
 
+        @tool
         def list_channel_names(
             system: str,
             family: str,
             field: str,
             subfield: str = None,
-            sectors: List[int] = None,
-            devices: List[int] = None,
-        ) -> List[str]:
+            sectors: list[int] = None,
+            devices: list[int] = None,
+        ) -> list[str]:
             """Get the actual PV addresses for a specific field or subfield.
 
             This is the main tool for retrieving channel names. Use after
@@ -236,9 +253,10 @@ class MiddleLayerPipeline(BasePipeline):
                 logger.debug(f"  → Returned {len(result)} channels")
                 return result
             except ValueError as e:
-                raise ModelRetry(str(e))
+                return {"error": str(e)}
 
-        def get_common_names(system: str, family: str) -> List[str]:
+        @tool
+        def get_common_names(system: str, family: str) -> list[str]:
             """Get friendly/common names for devices in a family.
 
             Useful for understanding what devices exist before filtering
@@ -260,19 +278,89 @@ class MiddleLayerPipeline(BasePipeline):
             logger.debug(f"  → Returned {len(result)} common names")
             return result
 
-        # Create agent with tools
-        self.agent = Agent(
-            model=get_model(model_config=self.model_config),
-            tools=[
-                Tool(list_systems, takes_ctx=False),
-                Tool(list_families, takes_ctx=False),
-                Tool(inspect_fields, takes_ctx=False),
-                Tool(list_channel_names, takes_ctx=False),
-                Tool(get_common_names, takes_ctx=False),
-            ],
-            result_type=PVQueryOutput,
-            system_prompt=self._get_system_prompt(),
+        # Create the report_results tool with structured input
+        def report_results_func(channels: list[str], description: str) -> str:
+            """Report your final search results (REQUIRED - call this when done).
+
+            This tool MUST be called when you've completed your search to report findings.
+            Provide the channel addresses you found and a BRIEF description.
+
+            Args:
+                channels: List of channel addresses found. Empty list if none found.
+                    Example: ["SR:DCCT:Current", "SR01C:BPM1:X", "SR01C:BPM2:X"]
+                description: Brief 1-2 sentence summary stating what was found and where (system/family/field).
+                    Keep it concise - omit detailed search steps.
+
+            Returns:
+                Confirmation message
+            """
+            # Results will be extracted from tool call args in the response messages
+            # No need for side-channel storage - this is now thread-safe!
+            return f"✓ Results reported: {len(channels)} channel(s) found"
+
+        # Create a StructuredTool with explicit schema for validation
+        report_results = StructuredTool.from_function(
+            func=report_results_func,
+            name="report_results",
+            description=report_results_func.__doc__,
+            args_schema=ChannelSearchResult
         )
+
+        # Return list of all tools (report_results must be last per instructions to agent)
+        return [list_systems, list_families, inspect_fields, list_channel_names, get_common_names, report_results]
+
+    async def _get_agent(self):
+        """Get or create ReAct agent with database tools (cached)."""
+        if self._agent is None:
+            # Create tools
+            tools = self._create_tools()
+
+            # Get LLM instance for ReAct agent - use model_config passed to __init__
+            # model_config already contains provider, model_id, api_key, base_url, etc.
+            provider = self.model_config.get("provider")
+            model_id = self.model_config.get("model_id")
+            api_key = self.model_config.get("api_key")
+            max_tokens = self.model_config.get("max_tokens", 4096)
+
+            if not provider:
+                raise ValueError(
+                    f"No provider configured for channel finder model. "
+                    f"Please configure a model in config.yml"
+                )
+
+            # Create LangChain ChatModel based on provider
+            # Use api_key from model_config instead of calling get_provider_config()
+            # which requires registry initialization
+            if provider == "anthropic":
+                from langchain_anthropic import ChatAnthropic
+                llm = ChatAnthropic(
+                    model=model_id,
+                    anthropic_api_key=api_key,
+                    max_tokens=max_tokens
+                )
+            elif provider == "openai":
+                from langchain_openai import ChatOpenAI
+                llm = ChatOpenAI(
+                    model=model_id,
+                    api_key=api_key,
+                    max_tokens=max_tokens
+                )
+            elif provider == "cborg":
+                from langchain_openai import ChatOpenAI
+                llm = ChatOpenAI(
+                    model=model_id,
+                    api_key=api_key,
+                    base_url=self.model_config.get("base_url"),
+                    max_tokens=max_tokens
+                )
+            else:
+                raise ValueError(f"Provider {provider} not supported")
+
+            # Create ReAct agent with LangGraph
+            self._agent = create_react_agent(llm, tools)
+            logger.info("Middle Layer ReAct agent initialized")
+
+        return self._agent
 
     def _get_system_prompt(self) -> str:
         """Build system prompt for the React agent."""
@@ -318,22 +406,31 @@ Common Patterns (when descriptions are not available):
 - "beam current" → Usually in DCCT family, Monitor field
 - "BPM positions" → BPM family, Monitor or Setpoint fields, may have X/Y subfields
 - "corrector magnets" → HCM (horizontal) or VCM (vertical) families
-- "readback" or "monitor" → Use Monitor field
+- "quadrupole" or "quad" → QF (focusing) or QD (defocusing) families, Monitor for readbacks
+- "sextupole" or "sext" → SF (focusing) or SD (defocusing) families, Monitor for readbacks
+- "focusing" magnets → QF (quadrupole) or SF (sextupole)
+- "defocusing" magnets → QD (quadrupole) or SD (sextupole)
+- "readback" or "monitor" or "current" → Use Monitor field
 - "setpoint" or "control" → Use Setpoint field
 - Specific device numbers (e.g., "BPM 1") → Use devices parameter for filtering
 
 Important:
-- Always use tools to explore the database - don't guess PV names
+- Always use tools to explore the database - don't guess channel names
 - Descriptions are OPTIONAL - some databases have them, some don't
 - When available, descriptions are the BEST source of information
 - If query mentions specific systems/devices, focus your search there
-- Return ALL matching PVs if query is general (e.g., "all BPM positions")
+- Return ALL matching channels if query is general (e.g., "all BPM positions")
 - Use filtering to narrow down when query specifies particular devices
-- Provide clear description of what you found and how
+- **CRITICAL**: When you've completed your search, you MUST call the `report_results` tool with:
+  - channels: List of channel addresses you found (empty list if none)
+  - description: Brief 1-2 sentence summary - state what was found and where (system/family/field). Keep it concise.
 
-Your response must include:
-- pvs: List of found PV addresses (can be empty if none found)
-- description: Explanation of search process and what was found
+Example workflow:
+1. list_systems() → see what's available
+2. list_families('SR') → find relevant families
+3. inspect_fields('SR', 'DCCT') → check field structure
+4. list_channel_names('SR', 'DCCT', 'Monitor') → get actual PV addresses
+5. **report_results(channels=["SR:DCCT:Current"], description="Found beam current in SR:DCCT:Monitor field in the Storage Ring system.")**
 """
         return prompt
 
@@ -369,7 +466,7 @@ Your response must include:
                 logger.info(f"  → Query {i}: {aq}")
 
         # Stage 2: Process each query with React agent
-        all_pvs = []
+        all_channels = []
         for i, atomic_query in enumerate(atomic_queries, 1):
             if len(atomic_queries) == 1:
                 logger.info(f"[bold cyan]Stage 2:[/bold cyan] Querying database with React agent...")
@@ -380,19 +477,19 @@ Your response must include:
 
             try:
                 result = await self._query_with_agent(atomic_query)
-                all_pvs.extend(result.pvs)
-                logger.info(f"  → Found {len(result.pvs)} PV(s)")
-                logger.debug(f"  → {result.description}")
+                all_channels.extend(result["channels"])
+                logger.info(f"  → Found {len(result['channels'])} channel(s)")
+                logger.info(f"  [dim]→ {result['description']}[/dim]")
             except Exception as e:
                 logger.error(f"  [red]✗[/red] Error processing query: {e}")
                 continue
 
         # Stage 3: Deduplicate and build result
-        unique_pvs = list(dict.fromkeys(all_pvs))  # Preserve order while deduplicating
+        unique_channels = list(dict.fromkeys(all_channels))  # Preserve order while deduplicating
 
-        return self._build_result(query, unique_pvs)
+        return self._build_result(query, unique_channels)
 
-    async def _split_query(self, query: str) -> List[str]:
+    async def _split_query(self, query: str) -> list[str]:
         """Split query into atomic sub-queries."""
         prompt = self.query_splitter.get_prompt(facility_name=self.facility_name)
         message = f"{prompt}\n\nQuery to process: {query}"
@@ -418,7 +515,7 @@ Your response must include:
 
         return response.queries
 
-    async def _query_with_agent(self, query: str) -> PVQueryOutput:
+    async def _query_with_agent(self, query: str) -> dict[str, Any]:
         """Query database using React agent with tools."""
         # Set caller context for API call logging
         from osprey.models import set_api_call_context
@@ -427,25 +524,65 @@ Your response must include:
             function="_query_with_agent",
             module="middle_layer.pipeline",
             class_name="MiddleLayerPipeline",
-            extra={"stage": "pv_query"},
+            extra={"stage": "channel_query"},
         )
 
-        # Run agent
-        result = await self.agent.run(query)
+        # Get agent
+        agent = await self._get_agent()
 
-        return result.data
+        # Build prompt with system context
+        system_prompt = self._get_system_prompt()
+        full_query = f"{system_prompt}\n\nUser Query: {query}"
 
-    def _build_result(self, query: str, pvs: List[str]) -> ChannelFinderResult:
+        # Run LangGraph agent (no stdout suppression needed - we extract from tool call)
+        response = await agent.ainvoke({
+            "messages": [{
+                "role": "user",
+                "content": full_query
+            }]
+        })
+
+        # Extract structured result from report_results tool call in messages
+        # This is thread-safe and works with concurrent queries
+        for message in response.get("messages", []):
+            # Check if message has tool_calls attribute
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    if tool_call.get('name') == 'report_results':
+                        # Extract args directly from the tool call
+                        args = tool_call.get('args', {})
+                        return {
+                            "channels": args.get("channels", []),
+                            "description": args.get("description", "No description provided")
+                        }
+
+            # Also check for ToolMessage responses (where tool results are stored)
+            if hasattr(message, 'name') and message.name == 'report_results':
+                # Tool was called, check if result is available
+                # The actual structured data should be in the tool_calls, but keep this as fallback
+                pass
+
+        # Fallback: If agent didn't call report_results, log warning and return empty
+        logger.warning("Agent did not call report_results tool. Returning empty result.")
+        final_message = response["messages"][-1] if response.get("messages") else None
+        fallback_description = final_message.content if final_message and hasattr(final_message, 'content') else "Agent completed without calling report_results"
+
+        return {
+            "channels": [],
+            "description": f"WARNING: Agent did not report results properly. Agent response: {fallback_description}"
+        }
+
+    def _build_result(self, query: str, channels_list: list[str]) -> ChannelFinderResult:
         """Build final result object."""
         channel_infos = []
 
-        for pv in pvs:
-            channel_data = self.database.get_channel(pv)
+        for channel_address in channels_list:
+            channel_data = self.database.get_channel(channel_address)
             if channel_data:
                 channel_infos.append(
                     ChannelInfo(
-                        channel=pv,
-                        address=channel_data.get("address", pv),
+                        channel=channel_address,
+                        address=channel_data.get("address", channel_address),
                         description=channel_data.get("description"),
                     )
                 )
@@ -461,7 +598,7 @@ Your response must include:
             processing_notes=notes,
         )
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Return pipeline statistics."""
         db_stats = self.database.get_statistics()
         return {
