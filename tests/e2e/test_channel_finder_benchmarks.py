@@ -154,7 +154,7 @@ async def test_middle_layer_pipeline_sample(e2e_project_factory):
     style databases used in production accelerator facilities.
 
     This is a quick smoke test using the first 5 queries from the full benchmark
-    to validate basic functionality without the cost of running all 19 queries.
+    to validate basic functionality without the cost of running all 20 queries.
 
     Success criteria:
     - ≥80% perfect matches (4 out of 5 queries)
@@ -171,16 +171,18 @@ async def test_middle_layer_pipeline_sample(e2e_project_factory):
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
-    config["channel_finder"]["pipeline_mode"] = "middle_layer"
-
-    # Limit to first 5 queries for faster execution
+    # Ensure channel_finder section exists
     if "channel_finder" not in config:
         config["channel_finder"] = {}
+    
+    config["channel_finder"]["pipeline_mode"] = "middle_layer"
+    
+    # Limit to first 5 queries for faster execution
     if "benchmark" not in config["channel_finder"]:
         config["channel_finder"]["benchmark"] = {}
     if "execution" not in config["channel_finder"]["benchmark"]:
         config["channel_finder"]["benchmark"]["execution"] = {}
-
+    
     config["channel_finder"]["benchmark"]["execution"]["query_selection"] = {"start": 0, "end": 5}
 
     with open(config_path, "w") as f:
@@ -212,7 +214,7 @@ async def test_middle_layer_pipeline_sample(e2e_project_factory):
     # Assert high overall F1 score
     assert overall_f1 >= 0.80, f"Overall F1 score too low: {overall_f1:.3f}. Expected ≥0.80"
 
-    # Assert 100% completion rate (all queries should execute)
+    # Assert 100% completion rate (all 5 queries should execute)
     queries_evaluated = benchmark_results["queries_evaluated"]
     completion_rate = (queries_evaluated / total_queries) * 100 if total_queries > 0 else 0
     assert completion_rate == 100.0, (
