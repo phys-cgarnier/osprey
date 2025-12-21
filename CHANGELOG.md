@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workflows**: Moved AI workflow files from `docs/workflows/` to `src/osprey/workflows/` for package bundling
   - Workflows now distributed with installed package
   - Enables version-locked workflow documentation
+- **Documentation**: Updated workflow references to use `@osprey-workflows/` path
+  - Added workflow export instructions to AI-assisted development guide
+  - Updated all @-mention examples across documentation
 
 ### Added
 - **CLI**: New `osprey workflows` command to export AI workflow files
