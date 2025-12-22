@@ -192,34 +192,32 @@ async def test_middle_layer_pipeline_sample(e2e_project_factory):
     benchmark_results = await _run_benchmark(project, "middle_layer")
 
     # Validate benchmark results
-    total_queries = benchmark_results["total_queries"]
+    queries_evaluated = benchmark_results["queries_evaluated"]
     perfect_matches = benchmark_results["perfect_matches"]
     partial_matches = benchmark_results["partial_matches"]
     no_matches = benchmark_results["no_matches"]
     overall_f1 = benchmark_results["overall_f1_score"]
 
-    # Should have exactly 5 queries
-    assert total_queries == 5, f"Expected 5 queries, got {total_queries}"
+    # Should have exactly 5 queries evaluated (limited via query_selection config)
+    assert queries_evaluated == 5, f"Expected 5 queries evaluated, got {queries_evaluated}"
 
     # Calculate success rate
-    success_rate = (perfect_matches / total_queries) * 100 if total_queries > 0 else 0
+    success_rate = (perfect_matches / queries_evaluated) * 100 if queries_evaluated > 0 else 0
 
     # Assert ≥80% perfect match rate (4 out of 5 queries)
     assert success_rate >= 80.0, (
         f"Middle layer pipeline sample failed: {success_rate:.1f}% success rate "
-        f"({perfect_matches}/{total_queries} perfect matches). Expected ≥80% (4/5).\n"
+        f"({perfect_matches}/{queries_evaluated} perfect matches). Expected ≥80% (4/5).\n"
         f"Perfect: {perfect_matches}, Partial: {partial_matches}, Failed: {no_matches}"
     )
 
     # Assert high overall F1 score
     assert overall_f1 >= 0.80, f"Overall F1 score too low: {overall_f1:.3f}. Expected ≥0.80"
 
-    # Assert 100% completion rate (all 5 queries should execute)
-    queries_evaluated = benchmark_results["queries_evaluated"]
-    completion_rate = (queries_evaluated / total_queries) * 100 if total_queries > 0 else 0
-    assert completion_rate == 100.0, (
-        f"Not all queries completed: {completion_rate:.1f}% "
-        f"({queries_evaluated}/{total_queries} queries). Expected 100%"
+    # Verify all 5 limited queries completed successfully
+    expected_evaluated = 5
+    assert queries_evaluated == expected_evaluated, (
+        f"Not all limited queries completed: {queries_evaluated}/{expected_evaluated} queries evaluated"
     )
 
 

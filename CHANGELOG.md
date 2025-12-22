@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Testing**: Fixed middle layer benchmark test to properly limit to first 5 queries via query_selection config
+- **Testing**: Fixed middle layer benchmark test assertion to use `queries_evaluated` instead of `total_queries` field from benchmark results
 
 ### Changed
 - **Workflows**: Moved AI workflow files from `docs/workflows/` to `src/osprey/workflows/` for package bundling
