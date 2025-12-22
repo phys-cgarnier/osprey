@@ -1,167 +1,177 @@
-# Osprey Framework - Latest Release (v0.9.8)
+# Osprey Framework - Latest Release (v0.9.9)
 
-🎉 **Developer Experience & Infrastructure Improvements** - CI/CD Pipeline, Documentation Versioning, Workflow Guides, and Code Quality Enhancements
+🎉 **Middle Layer Pipeline for Channel Finder** - Complete MML Database Support with React Agent Navigation
 
-## What's New in v0.9.8
+## What's New in v0.9.9
 
 ### 🚀 Major New Features
 
-#### CI/CD Infrastructure
-- **Comprehensive GitHub Actions Pipeline**: Full CI/CD automation with parallel test jobs
-  - Multi-version testing: Python 3.11 & 3.12 on Ubuntu & macOS
-  - Automated linting (Ruff), type checking (mypy), and package validation
-  - Code coverage reporting with Codecov integration
-  - Documentation builds with PR preview artifacts (7-day retention)
-- **Release Automation**: `.github/workflows/release.yml` for automated PyPI publishing
-  - Trusted publishing using OIDC (no manual credentials needed)
-  - Version verification and optional TestPyPI deployment
-- **Pre-commit Hooks**: `.pre-commit-config.yaml` with automated quality checks
-  - Ruff linting and formatting
-  - File quality checks (trailing whitespace, merge conflicts, large files)
-  - Optional mypy type checking
-- **Dependabot**: Automated weekly dependency updates with intelligent grouping
+#### Channel Finder: Middle Layer Pipeline
+- **Complete React Agent-Based Pipeline**: New channel finder pipeline for MATLAB Middle Layer (MML) databases
+  - System→Family→Field hierarchical navigation
+  - LangGraph-based React agent with structured output
+  - 5 specialized database query tools:
+    - `list_systems` - Discover available control systems
+    - `list_families` - Explore device families within systems
+    - `inspect_fields` - View available fields and signals
+    - `list_channel_names` - Get EPICS channel names
+    - `get_common_names` - Retrieve common device names
+  - MiddleLayerDatabase class with O(1) validation and device/sector filtering
+  - Optional `_description` fields at all hierarchy levels for enhanced LLM guidance
+  - MMLConverter utility for Python MML exports to JSON
 
-#### Documentation Version Switcher
-- **Multi-Version Documentation**: PyData Sphinx Theme version switcher for GitHub Pages
-  - Dynamic `versions.json` generation from git tags
-  - Historical versions preserved in separate directories (e.g., `/v0.9.7/`, `/latest/`)
-  - Seamless navigation between documentation versions
-- **Custom Sphinx Extension**: `workflow_autodoc.py` for auto-documenting workflow files
-  - New directives: `.. workflow-summary::` and `.. workflow-list::`
-  - Parses YAML frontmatter from markdown workflow files
-  - Custom CSS styling for workflow documentation
+- **Sample Database & Benchmarks**: Production-ready testing infrastructure
+  - 174-channel sample database covering 4 systems (SR, VAC, BR, BTS)
+  - 15 device families with full metadata
+  - 35-query benchmark dataset (20% coverage ratio - best of all pipelines)
+  - Realistic accelerator physics context
 
-#### Developer Workflows System
-- **10 Comprehensive Workflow Guides**: New `docs/workflows/` directory
-  - Pre-merge cleanup, commit organization, release process
-  - Testing strategy, AI code review, docstrings, comments
-  - Documentation updates and quality standards
-  - YAML frontmatter metadata for machine parsing
-  - AI assistant integration prompts for automated workflows
-- **Professional Contributing Guide**: `CONTRIBUTING.md` with quick start
-  - Branch naming conventions and code standards summary
-  - Links to comprehensive documentation
-  - Learning paths for new contributors
+- **Comprehensive Documentation**: Full Sphinx documentation
+  - Complete tutorial with architecture comparison
+  - Usage examples and CLI integration
+  - End-to-end benchmark validation
 
-#### Testing & Quality
-- **Pre-merge Check Script**: `scripts/premerge_check.sh` automated scanning
-  - Debug code, commented code, hardcoded secrets detection
-  - Missing CHANGELOG entries and incomplete docstrings
-  - Unlinked TODOs and code quality issues
-- **Enhanced Test Coverage**: Comprehensive test suites for new features
-  - Hello World Weather template: Mock API validation, response formatting, error handling
-  - Workflow autodoc extension: Frontmatter parsing, directive rendering, integration tests
-  - All changes verified with 976 unit tests + 16 e2e tests
-- **Status Badges**: README.md badges for CI, docs, coverage, PyPI, Python, license
+#### AI Workflow System
+- **New `osprey workflows` CLI Command**: Export AI workflow files to your projects
+  - `osprey workflows export` - Export workflows to local directory (default: ./osprey-workflows/)
+  - `osprey workflows list` - List all available workflow files
+  - Interactive menu integration for easy access
 
-### 🔧 Improvements & Changes
+- **Package-Bundled Workflows**: Moved from `docs/workflows/` to `src/osprey/workflows/`
+  - Workflows distributed with installed package
+  - Version-locked workflow documentation
+  - AI-assisted development guides for channel finder
+  - Pipeline selection guide and database builder guide with AI prompts
 
-#### Code Quality
-- **Comprehensive Linting Cleanup**: Fixed issues across 47 files
-  - B904 exception chaining (30 instances)
-  - E722 bare except clauses (5 instances)
-  - B007 unused loop variables (4 instances)
-  - Removed B904 from ruff ignore list; added intentional per-file ignores
-- **Code Formatting**: Applied automated Ruff formatting across codebase
-  - Modernized type hints to Python 3.10+ style (`Optional[T]` → `T | None`)
-  - Normalized quotes, cleaned whitespace, removed unused imports
-  - No functional changes
+- **Enhanced Documentation**: Channel Finder workflow guides
+  - AI-assisted workflow dropdowns in tutorial sections
+  - Code reference sections for evidence-based recommendations
+  - Integration with AI-assisted development guide
 
-#### Documentation
-- **Workflow Migration**: Moved workflows from `docs/resources/other/` to `docs/workflows/`
-  - Consistent YAML frontmatter for machine parsing
-  - Updated references throughout documentation
-- **Contributing Guide**: Restructured to 400+ line comprehensive guide
-  - 6 dedicated sections: Getting Started, Git & GitHub, Code Standards
-  - Developer Workflows, AI-Assisted Development, Community Guidelines
-  - Sphinx-design cards and grids for better organization
-- **Citation Update**: Updated paper citation to "Osprey: Production-Ready Agentic AI for Safety-Critical Control Systems"
-- **Framework Name Cleanup**: Replaced all remaining "Alpha Berkeley Framework" references with "Osprey Framework"
+### 🔧 Infrastructure Improvements
 
-#### Hello World Weather Template
-- **LLM-based Location Extraction**: Intelligent parsing of natural language queries
-  - Handles nicknames, abbreviations, and defaults to "local"
-  - Replaces simple string matching with structured output parser
-- **Mock API Simplification**: Accepts any location string with random weather data
-  - Removed hardcoded city list for flexible tutorial demonstrations
-  - Improved error handling and response formatting
-- **Enhanced E2E Testing**: Exercises both weather AND Python capabilities
-  - Multi-step query validation
-  - Configuration defaults and context passing
-  - Code generation and execution workflows
+#### Channel Finder Tools
+- **CLI Tool Enhancements**: Middle layer support across all tools
+  - Database preview tool with tree visualization for functional hierarchy
+  - CLI query interface with middle_layer pipeline support
+  - Benchmark runner with middle_layer dataset support
+
+#### Templates
+- **Enhanced Project Generation**: Middle layer configuration support
+  - Conditional config generation for middle_layer pipeline
+  - Dynamic AVAILABLE_PIPELINES list based on enabled pipelines
+  - Database and benchmark paths auto-configured
+  - Updated CLI project initialization with middle_layer option
+
+#### Registry System
+- **Silent Initialization Mode**: Clean CLI output support
+  - Suppress INFO/DEBUG logging when `silent=True`
+  - Useful for CLI tools requiring clean output
+
+### 🧪 Testing
+
+#### Comprehensive Test Coverage
+- **480+ Lines of New Tests**: Complete middle layer testing
+  - All database query tools tested
+  - Prompt loader with middle_layer support
+  - MML converter utility enhancements
+  - End-to-end benchmark validation
 
 ### 🐛 Bug Fixes
 
-#### Configuration & Templates
-- **Python Code Generation Defaults**: Added missing code generator configuration
-  - Fixed "Unknown provider: None" errors in minimal configurations
-  - Now includes `code_generator: "basic"` in `ConfigBuilder._get_execution_defaults()`
-- **Hello World Weather Template**: Fixed conditional to include execution infrastructure
-  - Ensures Python code generation works out-of-the-box
-  - Excludes only EPICS-specific settings
-
-#### Channel Finder
-- **Multiple Direct Signal Selection**: Fixed leaf node detection
-  - Properly handles selections like "status and heartbeat" at optional levels
-- **Optional Levels LLM Awareness**: Enhanced database descriptions and prompts
-  - Better distinction between direct signals and subdevice-specific signals
-- **Separator Overrides**: Respect `_separator` metadata from tree nodes
-  - New `_collect_separator_overrides()` method
-  - Proper navigation through expanded instance names
-- **Navigation Through Expanded Instances**: Fixed at optional levels
-  - Base containers with `_expansion` no longer appear as selectable options
-  - Correct handling in `_navigate_to_node()` and `_extract_tree_options()`
+#### Channel Finder Improvements
+- **Navigation Fixes**: Multiple improvements to hierarchical navigation
+  - Fixed leaf node detection for multiple direct signals (e.g., "status and heartbeat")
+  - Enhanced LLM awareness for optional levels
+  - Fixed separator overrides in `build_channels_from_selections()`
+  - Fixed navigation through expanded instances at optional levels
 
 #### Testing
-- **Channel Finder Test Path**: Fixed incorrect database path in `test_multiple_direct_signals_fix.py`
-- **CI Workflow Autodoc**: Fixed `ModuleNotFoundError: No module named 'sphinx'`
-  - Added `pytest.importorskip` for graceful skipping when Sphinx unavailable
-  - Sphinx only required for documentation builds, not `[dev]` dependencies
+- **Benchmark Test Fix**: Corrected middle layer benchmark test assertion
+  - Now uses `queries_evaluated` instead of `total_queries`
+  - Properly validates query_selection limiting
 
-### 🗑️ Removed
-- **Documentation Local Server**: Removed `docs/launch_docs.py` script
-  - Use standard Sphinx commands: `make html` and `python -m http.server`
+#### Build & Configuration
+- **Code Quality**: Removed trailing whitespace from configuration and script files
 
-## Migration Guide
+### 🔄 Breaking Changes
 
-### For Users
+#### Channel Finder
+- **Middle Layer Pipeline Migration**: Migrated from Pydantic-AI to LangGraph
+  - Now uses LangGraph's `create_react_agent` for improved behavior
+  - Tools converted from Pydantic-AI format to LangChain StructuredTool
+  - Enhanced structured output with ChannelSearchResult model
+  - Better error handling and agent state management
 
-**No breaking changes.** All updates are backward compatible:
-1. **CI/CD**: New automation is optional (existing workflows continue to work)
-2. **Documentation**: Version switcher enhances navigation but doesn't affect existing docs
-3. **Templates**: Existing projects continue to work unchanged
-4. **Configuration**: New defaults improve out-of-box experience without breaking existing configs
+### 📚 Documentation Updates
 
-### For Developers
+- **Workflow References**: Updated to use `@osprey-workflows/` path
+- **AI Development Guide**: Added workflow export instructions
+- **Tutorial Improvements**: AI-assisted workflow dropdowns for all three pipelines
+- **Removed Obsolete Content**: Migrated markdown tutorials to Sphinx docs
 
-**Workflow Improvements**: Take advantage of new developer tools:
-1. **Pre-commit hooks**: Run `.pre-commit install` to enable automated quality checks
-2. **Pre-merge script**: Use `scripts/premerge_check.sh` before creating PRs
-3. **Workflow guides**: Consult `docs/workflows/` for best practices and AI integration
-4. **CI pipeline**: All PRs automatically tested across Python 3.11 & 3.12, Ubuntu & macOS
-
-## Performance & Quality
-
-- **Test Coverage**: 976 unit tests + 16 e2e tests, all passing
-- **Unit Test Runtime**: ~45 seconds
-- **E2E Test Runtime**: ~7 minutes
-- **Code Quality**: Comprehensive linting cleanup across 47 files
-- **CI/CD**: Parallel testing across 4 environments (2 Python versions × 2 OS)
+---
 
 ## Installation
 
 ```bash
-pip install osprey-framework==0.9.8
+pip install --upgrade osprey-framework
 ```
 
-## What's Next
+Or install with all optional dependencies:
 
-Stay tuned for upcoming features:
-- Additional control system connectors
-- Enhanced plotting capabilities
-- Production deployment guides
-- Multi-agent orchestration patterns
+```bash
+pip install --upgrade "osprey-framework[all]"
+```
+
+## Quick Start with Middle Layer Pipeline
+
+```bash
+# Create a new project with middle layer pipeline
+osprey init my-project --template control_assistant --pipelines middle_layer
+
+# Export AI workflow guides
+osprey workflows export
+
+# Preview the database structure
+osprey channel-finder preview-database --pipeline middle_layer
+
+# Run benchmark tests
+osprey channel-finder benchmark --pipeline middle_layer
+```
+
+## Migration Guide
+
+### For Existing Users
+
+If you're upgrading from v0.9.8:
+
+1. **Middle Layer Pipeline** is now available as a third channel finder option
+   - Ideal for facilities with MATLAB Middle Layer databases
+   - Complements existing in_context and hierarchical pipelines
+
+2. **AI Workflows** are now bundled with the package
+   - Run `osprey workflows export` to get the latest guides
+   - Update your AI assistant references to use `@osprey-workflows/`
+
+3. **No Breaking Changes** for existing projects
+   - in_context and hierarchical pipelines unchanged
+   - All existing functionality preserved
 
 ---
 
-**Full Changelog**: https://github.com/als-apg/osprey/compare/v0.9.7...v0.9.8
+## What's Next?
+
+Check out our [documentation](https://als-apg.github.io/osprey) for:
+- Complete Middle Layer Pipeline tutorial
+- AI-assisted development workflows
+- Channel Finder architecture comparison
+- Best practices for database design
+
+## Contributors
+
+Thank you to everyone who contributed to this release!
+
+---
+
+**Full Changelog**: https://github.com/als-apg/osprey/blob/main/CHANGELOG.md
