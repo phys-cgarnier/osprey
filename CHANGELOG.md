@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **License**: Added explicit "BSD 3-Clause License" header to LICENSE.txt for clarity
 
 ### Documentation
+- Updated Hello World tutorial to reflect current weather capability implementation with natural language location handling
 - Fixed version picker showing non-existent versioned directories causing 404 errors
   - Updated docs workflow to only list actually deployed versions (stable and latest/development)
   - Removed all individual version tag entries from versions.json until versioned directories are implemented

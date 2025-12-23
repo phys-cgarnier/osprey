@@ -124,7 +124,7 @@ The ``mock_weather_api.py`` file provides a deterministic weather data provider 
 
    class SimpleWeatherAPI:
        """
-       Mock weather API, returns basic weather data for 3 cities (San Francisco, New York, Prague).
+       Mock weather API that returns weather data for any location string.
        """
 
        def get_current_weather(self, location: str) -> CurrentWeatherReading:
@@ -139,7 +139,7 @@ The ``mock_weather_api.py`` file provides a deterministic weather data provider 
 
       """
       Very simple mock weather API for quick setup.
-      Returns basic weather data for 3 cities (San Francisco, New York, Prague).
+      Accepts any location string and returns randomized weather data.
 
       The weather API returns only the type safe data model for the current weather reading.
       """
@@ -158,35 +158,26 @@ The ``mock_weather_api.py`` file provides a deterministic weather data provider 
       class SimpleWeatherAPI:
           """
           Very simple mock weather API for quick setup.
-          Returns basic weather data for 3 cities (San Francisco, New York, Prague).
+          Accepts any location string and returns randomized weather data.
 
           The weather API returns only the type safe data model for the current weather reading.
           """
 
-          # Simple city data with basic temperature ranges
-          CITY_DATA = {
-              "San Francisco": {"base_temp": 18, "conditions": ["Sunny", "Foggy", "Partly Cloudy"]},
-              "New York": {"base_temp": 15, "conditions": ["Sunny", "Rainy", "Cloudy", "Snow"]},
-              "Prague": {"base_temp": 12, "conditions": ["Rainy", "Cloudy", "Partly Cloudy"]}
-          }
+          # Weather condition options for random selection
+          ALL_CONDITIONS = [
+              "Sunny", "Partly Cloudy", "Cloudy", "Overcast", "Foggy",
+              "Rainy", "Drizzle", "Thunderstorms", "Snow", "Windy", "Clear"
+          ]
 
           def get_current_weather(self, location: str) -> CurrentWeatherReading:
               """Get simple current weather for a location."""
 
-              # Normalize location name
-              location = location.title()
-              if location not in self.CITY_DATA:
-                  # Default to San Francisco if city not found
-                  location = "San Francisco"
-
-              city_info = self.CITY_DATA[location]
-
-              # Simple random weather generation
-              temperature = city_info["base_temp"] + random.randint(-5, 8)
-              conditions = random.choice(city_info["conditions"])
+              # Generate random weather data
+              temperature = random.randint(0, 35)  # Temperature range: 0-35°C
+              conditions = random.choice(self.ALL_CONDITIONS)
 
               return CurrentWeatherReading(
-                  location=location,
+                  location=location,  # Preserve exact location string
                   temperature=float(temperature),
                   conditions=conditions,
                   timestamp=datetime.now()
@@ -344,12 +335,9 @@ The ``execute()`` method contains your main business logic, which you could call
           logger = self.get_logger()
 
           try:
-              # Extract location from user's query using LLM-based parser
+              # Extract location from user's query
               query = self.get_task_objective()
-
-              logger.debug(f"Parsing weather query: {query}")
-              parsed_query = await parse_weather_query(query)
-              location = parsed_query.location
+              location = await _parse_location_from_query(query)
 
               # Get weather data
               logger.status(f"Getting weather for {location}...")
@@ -450,9 +438,9 @@ The orchestrator guide teaches the LLM how to plan execution steps and use your 
       - Contains: location, temperature, conditions, timestamp
       - Available for immediate display or further analysis
 
-      **Location Support:**
-      - Supports: San Francisco, New York, Prague
-    - Defaults to San Francisco if location not specified""",
+      **Location Handling:**
+      - Extracts locations from natural language queries
+      - Handles variations and common phrasings naturally""",
         examples=[example],
         order=5
     )
@@ -545,12 +533,9 @@ The classifier guide teaches the LLM when to activate your capability based on u
               logger = self.get_logger()
 
               try:
-                  # Extract location from user's query using LLM-based parser
+                  # Extract location from user's query
                   query = self.get_task_objective()
-
-                  logger.debug(f"Parsing weather query: {query}")
-                  parsed_query = await parse_weather_query(query)
-                  location = parsed_query.location
+                  location = await _parse_location_from_query(query)
 
                   # Get weather data
                   logger.status(f"Getting weather for {location}...")
@@ -565,7 +550,7 @@ The classifier guide teaches the LLM when to activate your capability based on u
                   )
 
                   # Store context and return
-                  logger.success(f"Weather retrieved: {location} - {weather.temperature}°C")
+                  logger.status(f"Weather retrieved: {location} - {weather.temperature}°C")
                   return self.store_output_context(context)
 
               except Exception as e:
@@ -622,9 +607,9 @@ The classifier guide teaches the LLM when to activate your capability based on u
           - Contains: location, temperature, conditions, timestamp
           - Available for immediate display or further analysis
 
-          **Location Support:**
-          - Supports: San Francisco, New York, Prague
-          - Defaults to San Francisco if location not specified""",
+          **Location Handling:**
+          - Extracts locations from natural language queries
+          - Handles variations and common phrasings naturally""",
                   examples=[example],
                   order=5
               )
