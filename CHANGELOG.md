@@ -8,17 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Channel Finder**: Added explicit detection functionality to channel finder service
+  - New `explicit_detection.py` prompt module for detecting explicit channel names, PV names, and IOC names
+  - Updated `BasePipeline` with `build_result()` helper method for constructing pipeline results
+  - Enhanced all pipeline implementations (hierarchical, in-context, middle layer) to use explicit detection
+  - Added unit tests for explicit detection prompt and `build_result()` method
+  - Updated e2e tests to verify explicit detection behavior
+  - Configuration updates to include explicit detection in pipeline workflows
+- **Tests**: `test_memory_capability.py`: 32 tests for memory operations, context, exceptions, and helper functions (37.7% → 62.4% coverage)
+- **Tests**: `test_logging.py`: 27 tests for API call logging, caller info extraction, and file creation (29.1% → 55.7% coverage)
 - **Tests**: `test_models.py` (generators): 21 tests for capability generation Pydantic models (0% → 100% coverage)
 - **Tests**: `test_models_utilities.py` (python_executor): 39 tests for execution error handling, notebook tracking, and utility functions
 - **Tests**: `test_models.py` (memory_storage): 13 tests for memory content formatting and validation (0% → 100% coverage)
-
-### Fixed
-- **CLI**: Fixed broken imports in `config_cmd.py`
-  - Changed `update_control_system_type` → `set_control_system_type` (correct function name)
-  - Changed `update_epics_gateway` → `set_epics_gateway_config` (correct function name)
-  - Updated function calls to handle return values correctly (both functions return tuple of new_content, preview)
-
-### Added
 - **Tests**: `test_storage_manager.py`: 22 tests for memory persistence, file operations, and entry management (24.1% → 72.4% coverage)
 - **Tests**: `test_memory_provider.py`: 23 tests for memory data source integration and prompt formatting (32.2% → 94.9% coverage)
 - **Tests**: `test_providers_argo.py`: 27 tests for ARGO provider adapter (18.6% → 54.8% coverage)
@@ -47,7 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed missing `Dict` import in `scripts/analyze_test_coverage.py`
   - Renamed `analyze_coverage.py` → `analyze_test_coverage.py` for clarity
 
+### Fixed
+- **CLI**: Fixed broken imports in `config_cmd.py`
+  - Changed `update_control_system_type` → `set_control_system_type` (correct function name)
+  - Changed `update_epics_gateway` → `set_epics_gateway_config` (correct function name)
+  - Updated function calls to handle return values correctly (both functions return tuple of new_content, preview)
+
 ### Changed
+- **Control Assistant**: Write access now enabled by default in control assistant template (`writes_enabled: true` for mock connector)
+  - Simplifies tutorial experience - users can test write operations immediately with mock connector
+  - Production deployments should carefully review hardware implications before enabling writes
 - **License**: Added explicit "BSD 3-Clause License" header to LICENSE.txt for clarity
 
 ### Documentation

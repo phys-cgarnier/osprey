@@ -1,11 +1,10 @@
-"""Tests for AI model factory.
+"""Tests for AI model factory."""
 
-Note: The get_model() function is deeply integrated with the configuration system
-and is better tested through integration tests. These unit tests focus on the
-testable helper functions like proxy URL validation.
-"""
+from unittest.mock import Mock, patch
 
-from osprey.models.factory import _validate_proxy_url
+import pytest
+
+from osprey.models.factory import _validate_proxy_url, get_model
 
 
 # =============================================================================

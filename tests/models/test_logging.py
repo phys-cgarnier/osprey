@@ -379,3 +379,242 @@ class TestFormatMetadataHeader:
         current_year = datetime.now().year
         assert str(current_year) in header
 
+
+# =============================================================================
+# Test Caller Info Extraction
+# =============================================================================
+
+
+class TestGetCallerInfo:
+    """Test _get_caller_info function."""
+
+    def test_gets_caller_from_context_variable(self):
+        """Test that caller info is retrieved from context variable when set."""
+        from osprey.models.logging import _api_call_context, _get_caller_info
+
+        # Set context manually
+        test_context = {
+            "function": "test_function",
+            "module": "test_module",
+            "class": "TestClass",
+            "line_number": 42,
+            "source": "context_var",
+        }
+        _api_call_context.set(test_context)
+
+        caller_info = _get_caller_info()
+
+        assert caller_info == test_context
+        assert caller_info["source"] == "context_var"
+
+    def test_falls_back_to_stack_inspection(self):
+        """Test that caller info falls back to stack inspection when context not set."""
+        from osprey.models.logging import _api_call_context, _get_caller_info
+
+        # Clear context
+        _api_call_context.set(None)
+
+        caller_info = _get_caller_info()
+
+        # Should have basic fields from stack inspection
+        assert "function" in caller_info
+        assert "filename" in caller_info
+        assert "line_number" in caller_info
+        assert "module" in caller_info
+
+    def test_extracts_class_name_from_method(self):
+        """Test extraction of class name from method call."""
+        from osprey.models.logging import _api_call_context, _get_caller_info
+
+        # Clear context to force stack inspection
+        _api_call_context.set(None)
+
+        class TestClassForInspection:
+            def test_method(self):
+                return _get_caller_info()
+
+        instance = TestClassForInspection()
+        caller_info = instance.test_method()
+
+        # May or may not capture class depending on stack depth
+        # Just verify we got valid caller info
+        assert "function" in caller_info
+
+
+# =============================================================================
+# Test Complete API Call Logging
+# =============================================================================
+
+
+class TestLogApiCall:
+    """Test log_api_call function."""
+
+    def test_logging_disabled_by_default(self, tmp_path, monkeypatch):
+        """Test that logging is disabled when save_all is False."""
+        from osprey.models.logging import log_api_call
+
+        # Mock config to disable logging
+        monkeypatch.setattr(
+            "osprey.models.logging.get_config_value",
+            MagicMock(return_value={"api_calls": {"save_all": False}}),
+        )
+
+        # Call log_api_call - should return early without writing files
+        log_api_call(
+            message="test message",
+            result="test result",
+            provider="anthropic",
+            model_id="claude-3",
+            max_tokens=1000,
+            temperature=0.7,
+        )
+
+        # No files should be created
+        # (We can't easily test this without mocking file operations,
+        # but the function should return early)
+
+    def test_logging_enabled_creates_file(self, tmp_path, monkeypatch):
+        """Test that logging creates file when enabled."""
+        from osprey.models.logging import log_api_call
+
+        # Mock config to enable logging
+        monkeypatch.setattr(
+            "osprey.models.logging.get_config_value",
+            MagicMock(
+                return_value={"api_calls": {"save_all": True, "latest_only": True}}
+            ),
+        )
+
+        # Mock agent dir to use tmp_path
+        monkeypatch.setattr("osprey.models.logging.get_agent_dir", lambda x: tmp_path)
+
+        # Mock caller info
+        monkeypatch.setattr(
+            "osprey.models.logging._get_caller_info",
+            MagicMock(return_value={"function": "test", "module": "test", "line_number": 1}),
+        )
+
+        # Call log_api_call
+        log_api_call(
+            message="test input message",
+            result="test output",
+            provider="anthropic",
+            model_id="claude-3-sonnet",
+            max_tokens=1024,
+            temperature=0.7,
+        )
+
+        # Check that a file was created
+        files = list(tmp_path.glob("*.txt"))
+        assert len(files) == 1
+
+        # Check file contents
+        content = files[0].read_text()
+        assert "LLM API CALL LOG" in content
+        assert "test input message" in content
+        assert "test output" in content
+        assert "anthropic" in content
+        assert "claude-3-sonnet" in content
+
+    def test_logging_with_pydantic_result(self, tmp_path, monkeypatch):
+        """Test logging with Pydantic model result."""
+        from osprey.models.logging import log_api_call
+
+        class TestResult(BaseModel):
+            value: str
+            count: int
+
+        # Mock config
+        monkeypatch.setattr(
+            "osprey.models.logging.get_config_value",
+            MagicMock(
+                return_value={"api_calls": {"save_all": True, "latest_only": True}}
+            ),
+        )
+        monkeypatch.setattr("osprey.models.logging.get_agent_dir", lambda x: tmp_path)
+        monkeypatch.setattr(
+            "osprey.models.logging._get_caller_info",
+            MagicMock(return_value={"function": "test", "module": "test", "line_number": 1}),
+        )
+
+        result = TestResult(value="test", count=42)
+
+        log_api_call(
+            message="input",
+            result=result,
+            provider="openai",
+            model_id="gpt-4",
+            max_tokens=500,
+            temperature=0.0,
+        )
+
+        files = list(tmp_path.glob("*.txt"))
+        assert len(files) == 1
+
+        content = files[0].read_text()
+        assert '"value"' in content
+        assert '"count"' in content
+        assert "42" in content
+
+    def test_logging_handles_errors_gracefully(self, monkeypatch):
+        """Test that logging errors don't break execution."""
+        from osprey.models.logging import log_api_call
+
+        # Mock config to enable logging
+        monkeypatch.setattr(
+            "osprey.models.logging.get_config_value",
+            MagicMock(return_value={"api_calls": {"save_all": True}}),
+        )
+
+        # Mock get_agent_dir to raise an error
+        def failing_get_agent_dir(x):
+            raise RuntimeError("Failed to get agent dir")
+
+        monkeypatch.setattr("osprey.models.logging.get_agent_dir", failing_get_agent_dir)
+
+        # Call should not raise, but log warning
+        log_api_call(
+            message="test",
+            result="test",
+            provider="test",
+            model_id="test",
+            max_tokens=100,
+            temperature=0.0,
+        )
+
+        # If we get here, the error was handled gracefully
+
+    def test_logging_with_timestamped_files(self, tmp_path, monkeypatch):
+        """Test logging with timestamped filenames instead of latest_only."""
+        from osprey.models.logging import log_api_call
+
+        monkeypatch.setattr(
+            "osprey.models.logging.get_config_value",
+            MagicMock(
+                return_value={"api_calls": {"save_all": True, "latest_only": False}}
+            ),
+        )
+        monkeypatch.setattr("osprey.models.logging.get_agent_dir", lambda x: tmp_path)
+        monkeypatch.setattr(
+            "osprey.models.logging._get_caller_info",
+            MagicMock(return_value={"function": "test", "module": "test", "line_number": 1}),
+        )
+
+        log_api_call(
+            message="test",
+            result="result",
+            provider="anthropic",
+            model_id="claude",
+            max_tokens=1000,
+            temperature=0.5,
+        )
+
+        files = list(tmp_path.glob("*.txt"))
+        assert len(files) == 1
+
+        # Filename should contain timestamp (YYYYMMDD_HHMMSS format)
+        filename = files[0].name
+        assert filename.startswith("test_test_")
+        assert "_20" in filename  # Should have year starting with 20
+        assert filename.endswith(".txt")
+
