@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `system.py` auto-combines modules (no manual editing needed)
   - Query splitter prompts now accept `facility_name` parameter
 - **Benchmark Dataset**: Renamed `in_context_main.json` to `in_context_benchmark.json` for consistency
+- **Documentation**: Updated control assistant tutorials for modular prompt structure
+  - Part 1: Updated directory structure with new prompt file layout
+  - Part 2: Added cross-references to prompt customization section
+  - Part 4: Expanded channel finder prompt customization with step-by-step guidance
 
 ### Added
 - **Channel Finder**: Added explicit detection functionality to channel finder service
