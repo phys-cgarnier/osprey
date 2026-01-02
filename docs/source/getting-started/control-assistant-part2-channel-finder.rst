@@ -48,6 +48,11 @@ To switch pipelines, edit ``config.yml`` and change the ``pipeline_mode`` settin
 
 That's it—no code changes required. The template includes complete implementations of all three pipelines with example databases, CLI tools, and benchmark datasets. The tabs below detail each pipeline's workflow, database format, and testing tools.
 
+.. admonition:: Customize prompts for your facility
+   :class: tip
+
+   After building your database, edit ``facility_description.py`` with your facility's systems and terminology to dramatically improve matching accuracy. See :ref:`part4-channel-finder-prompts` in Part 4 for step-by-step guidance.
+
 .. dropdown:: AI-Assisted Pipeline Selection
    :color: info
    :icon: workflow
@@ -661,9 +666,9 @@ That's it—no code changes required. The template includes complete implementat
                        chunk_size: 50
                        max_correction_iterations: 2
 
-                  # Benchmark dataset for this pipeline
-                  benchmark:
-                    dataset_path: src/my_control_assistant/data/benchmarks/datasets/in_context_main.json
+                 # Benchmark dataset for this pipeline
+                 benchmark:
+                   dataset_path: src/my_control_assistant/data/benchmarks/datasets/in_context_benchmark.json
                     # In-context pipeline benchmark using UCSB FEL channels (30 queries)
 
                # Global benchmarking configuration
@@ -718,6 +723,10 @@ That's it—no code changes required. The template includes complete implementat
             6. **Preview Before Testing**: Check LLM presentation to ensure clarity
             7. **Iterate with CLI**: Test queries interactively before running full benchmarks
             8. **Benchmark Systematically**: Run full benchmark suite before production deployment
+
+            .. seealso::
+
+               **Next Step: Customize Prompts** — Edit ``facility_description.py`` with your facility's terminology to improve matching accuracy. See :ref:`part4-channel-finder-prompts`.
 
 
    .. tab-item:: Hierarchical Pipeline
@@ -1713,6 +1722,10 @@ That's it—no code changes required. The template includes complete implementat
             6. **CLI First**: Use interactive CLI for rapid iteration before running full benchmarks
             7. **Document Patterns**: Keep notes on navigation patterns that work well for your facility
 
+            .. seealso::
+
+               **Next Step: Customize Prompts** — Edit ``facility_description.py`` with your facility's terminology to improve matching accuracy. See :ref:`part4-channel-finder-prompts`.
+
    .. tab-item:: Middle Layer Pipeline
 
       **Concept:** Agent explores database using query tools to find channels by function.
@@ -2186,6 +2199,10 @@ That's it—no code changes required. The template includes complete implementat
             5. **Domain Expert Queries**: Gather test queries from multiple operators and experts
             6. **Regular Benchmarking**: Re-run benchmarks after database changes to catch regressions
             7. **CLI First**: Use interactive CLI for rapid iteration before running full benchmarks
+
+            .. seealso::
+
+               **Next Step: Customize Prompts** — Edit ``facility_description.py`` with your facility's terminology to improve matching accuracy. See :ref:`part4-channel-finder-prompts`.
 
 2.1: OSPREY Framework Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

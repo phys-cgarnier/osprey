@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Channel Finder**: Initialize `query_splitting` attribute in HierarchicalPipeline
+  - Fixes `AttributeError: 'HierarchicalPipeline' object has no attribute 'query_splitting'`
+
+### Added
+- **Channel Finder**: Optional `query_splitting` parameter for hierarchical and middle_layer pipelines
+  - Disable query splitting for facility-specific terminology that shouldn't be split
+  - Enabled by default for backward compatibility
+
+### Changed
+- **Channel Finder Prompts**: Modularized prompt structure across all pipelines
+  - Split `system.py` into `facility_description.py` (REQUIRED) and `matching_rules.py` (OPTIONAL)
+  - Users now edit `facility_description.py` for facility-specific content
+  - `system.py` auto-combines modules (no manual editing needed)
+  - Query splitter prompts now accept `facility_name` parameter
+- **Benchmark Dataset**: Renamed `in_context_main.json` to `in_context_benchmark.json` for consistency
+- **Documentation**: Updated control assistant tutorials for modular prompt structure
+  - Part 1: Updated directory structure with new prompt file layout
+  - Part 2: Added cross-references to prompt customization section
+  - Part 4: Expanded channel finder prompt customization with step-by-step guidance
+
 ### Added
 - **Channel Finder**: Added explicit detection functionality to channel finder service
   - New `explicit_detection.py` prompt module for detecting explicit channel names, PV names, and IOC names
