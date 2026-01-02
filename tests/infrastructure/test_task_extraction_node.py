@@ -1,18 +1,17 @@
 """Tests for task extraction node."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from langchain_core.messages import HumanMessage, AIMessage
+from unittest.mock import Mock, patch
 
+from langchain_core.messages import AIMessage, HumanMessage
+
+from osprey.base.errors import ErrorSeverity
 from osprey.infrastructure.task_extraction_node import (
     TaskExtractionNode,
-    _format_task_context,
     _build_task_extraction_prompt,
     _extract_task,
+    _format_task_context,
 )
-from osprey.base.errors import ErrorSeverity
 from osprey.prompts.defaults.task_extraction import ExtractedTask
-from osprey.state import AgentState
 
 
 class TestTaskExtractionNode:
@@ -158,7 +157,7 @@ class TestFormatTaskContext:
 
         with patch("osprey.state.messages.ChatHistoryFormatter") as mock_formatter:
             mock_formatter.format_for_llm.return_value = "Formatted chat history"
-            
+
             result = _format_task_context(messages, None, logger)
 
         assert isinstance(result, ExtractedTask)
@@ -174,7 +173,7 @@ class TestFormatTaskContext:
         # Mock retrieval result
         mock_context = Mock()
         mock_context.format_for_prompt.return_value = "Formatted data content"
-        
+
         mock_result = Mock()
         mock_result.has_data = True
         mock_result.context_data = {"data_source_1": mock_context}
@@ -182,7 +181,7 @@ class TestFormatTaskContext:
 
         with patch("osprey.state.messages.ChatHistoryFormatter") as mock_formatter:
             mock_formatter.format_for_llm.return_value = "Chat"
-            
+
             result = _format_task_context(messages, mock_result, logger)
 
         assert isinstance(result, ExtractedTask)
@@ -197,7 +196,7 @@ class TestFormatTaskContext:
         # Mock context that raises error on format
         mock_context = Mock()
         mock_context.format_for_prompt.side_effect = Exception("Format error")
-        
+
         mock_result = Mock()
         mock_result.has_data = True
         mock_result.context_data = {"bad_source": mock_context}
@@ -205,7 +204,7 @@ class TestFormatTaskContext:
 
         with patch("osprey.state.messages.ChatHistoryFormatter") as mock_formatter:
             mock_formatter.format_for_llm.return_value = "Chat"
-            
+
             result = _format_task_context(messages, mock_result, logger)
 
         # Should still return a result with fallback to summary
@@ -219,7 +218,7 @@ class TestFormatTaskContext:
 
         with patch("osprey.state.messages.ChatHistoryFormatter") as mock_formatter:
             mock_formatter.format_for_llm.return_value = "Chat"
-            
+
             _format_task_context(messages, None, logger)
 
         logger.info.assert_called_with("Bypass mode: skipping LLM, using formatted context as task")
@@ -282,7 +281,7 @@ class TestExtractTask:
         with patch("osprey.infrastructure.task_extraction_node.get_framework_prompts"), \
              patch("osprey.infrastructure.task_extraction_node.get_model_config") as mock_config, \
              patch("osprey.infrastructure.task_extraction_node.get_chat_completion") as mock_llm:
-            
+
             mock_config.return_value = {"model": "gpt-4"}
             mock_llm.return_value = expected_task
 
@@ -308,13 +307,13 @@ class TestExtractTask:
         with patch("osprey.infrastructure.task_extraction_node.get_framework_prompts"), \
              patch("osprey.infrastructure.task_extraction_node.get_model_config"), \
              patch("osprey.infrastructure.task_extraction_node.get_chat_completion") as mock_llm:
-            
+
             mock_llm.return_value = expected_task
 
             result = _extract_task(messages, mock_result, logger)
 
         assert result == expected_task
-        logger.debug.assert_called_with(f"Injecting data sources into task extraction: Data summary")
+        logger.debug.assert_called_with("Injecting data sources into task extraction: Data summary")
 
     def test_extract_task_uses_correct_model_config(self):
         """Test that task extraction uses correct model configuration."""
@@ -324,7 +323,7 @@ class TestExtractTask:
         with patch("osprey.infrastructure.task_extraction_node.get_framework_prompts"), \
              patch("osprey.infrastructure.task_extraction_node.get_model_config") as mock_config, \
              patch("osprey.infrastructure.task_extraction_node.get_chat_completion") as mock_llm:
-            
+
             mock_config.return_value = {"model": "test-model"}
             mock_llm.return_value = ExtractedTask(task="Test", depends_on_chat_history=False, depends_on_user_memory=False)
 
@@ -340,7 +339,7 @@ class TestExtractTask:
         with patch("osprey.infrastructure.task_extraction_node.get_framework_prompts"), \
              patch("osprey.infrastructure.task_extraction_node.get_model_config"), \
              patch("osprey.infrastructure.task_extraction_node.get_chat_completion") as mock_llm:
-            
+
             mock_llm.return_value = ExtractedTask(task="Test", depends_on_chat_history=False, depends_on_user_memory=False)
 
             _extract_task(messages, None, logger)

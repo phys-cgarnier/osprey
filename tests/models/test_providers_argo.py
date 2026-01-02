@@ -1,8 +1,10 @@
 """Tests for ARGO provider adapter."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from pydantic import BaseModel
+
 from osprey.models.providers.argo import ArgoProviderAdapter
 
 
@@ -136,7 +138,7 @@ class TestArgoCreateModel:
             mock_client = Mock()
             mock_openai.return_value = mock_client
 
-            model = provider.create_model(
+            provider.create_model(
                 model_id="test-model",
                 api_key="test-key",
                 base_url="https://test.url",
@@ -160,7 +162,7 @@ class TestArgoCreateModel:
             mock_client = Mock()
             mock_openai.return_value = mock_client
 
-            model = provider.create_model(
+            provider.create_model(
                 model_id="test-model",
                 api_key="test-key",
                 base_url="https://test.url",
@@ -317,7 +319,7 @@ class TestArgoExecuteCompletion:
             mock_client.chat.completions.create.return_value = mock_response
             mock_openai.return_value = mock_client
 
-            result = provider.execute_completion(
+            provider.execute_completion(
                 message="Hello",
                 model_id="test-model",
                 api_key="test-key",

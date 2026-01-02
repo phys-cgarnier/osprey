@@ -1,19 +1,17 @@
 """Tests for respond capability node."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import Mock, patch
 
+from osprey.base.errors import ErrorSeverity
 from osprey.infrastructure.respond_node import (
     RespondCapability,
     ResponseContext,
-    _gather_information,
     _determine_response_mode,
+    _gather_information,
+    _get_base_system_prompt,
     _get_capabilities_overview,
     _get_execution_history,
-    _get_base_system_prompt,
 )
-from osprey.base.errors import ErrorSeverity
 from osprey.state import AgentState
 
 
@@ -316,15 +314,15 @@ class TestGatherInformation:
              patch("osprey.infrastructure.respond_node._determine_response_mode") as mock_mode, \
              patch("osprey.infrastructure.respond_node._get_capabilities_overview") as mock_caps, \
              patch("osprey.utils.config.get_interface_context") as mock_interface:
-            
+
             # Setup mocks
             mock_cm_instance = Mock()
             mock_cm_instance.get_summaries.return_value = []
             mock_cm.return_value = mock_cm_instance
-            
+
             mock_sm.get_current_step.return_value = {}
             mock_sm.get_current_step_index.return_value = 0
-            
+
             mock_mode.return_value = "conversational"
             mock_caps.return_value = "Test capabilities"
             mock_interface.return_value = "cli"
@@ -351,14 +349,14 @@ class TestGatherInformation:
              patch("osprey.infrastructure.respond_node._determine_response_mode") as mock_mode, \
              patch("osprey.infrastructure.respond_node._get_execution_history") as mock_history, \
              patch("osprey.utils.config.get_interface_context") as mock_interface:
-            
+
             mock_cm_instance = Mock()
             mock_cm_instance.get_summaries.return_value = []
             mock_cm.return_value = mock_cm_instance
-            
+
             mock_sm.get_current_step.return_value = {}
             mock_sm.get_current_step_index.return_value = 1
-            
+
             mock_mode.return_value = "specific_context"
             mock_history.return_value = [{"step_index": 0}]
             mock_interface.return_value = "openwebui"
@@ -382,11 +380,11 @@ class TestGatherInformation:
              patch("osprey.infrastructure.respond_node._determine_response_mode") as mock_mode, \
              patch("osprey.infrastructure.respond_node._get_capabilities_overview") as mock_caps, \
              patch("osprey.utils.config.get_interface_context") as mock_interface:
-            
+
             mock_cm_instance = Mock()
             mock_cm_instance.get_summaries.return_value = []
             mock_cm_class.return_value = mock_cm_instance
-            
+
             mock_sm.get_current_step.return_value = {}
             mock_sm.get_current_step_index.return_value = 0
             mock_mode.return_value = "conversational"
@@ -412,11 +410,11 @@ class TestGatherInformation:
              patch("osprey.infrastructure.respond_node._determine_response_mode") as mock_mode, \
              patch("osprey.infrastructure.respond_node._get_capabilities_overview") as mock_caps, \
              patch("osprey.utils.config.get_interface_context") as mock_interface:
-            
+
             mock_cm_instance = Mock()
             mock_cm_instance.get_summaries.return_value = []
             mock_cm_class.return_value = mock_cm_instance
-            
+
             mock_sm.get_current_step.return_value = {}
             mock_sm.get_current_step_index.return_value = 0
             mock_mode.return_value = "conversational"
@@ -440,17 +438,17 @@ class TestGatherInformation:
              patch("osprey.infrastructure.respond_node._get_capabilities_overview") as mock_caps, \
              patch("osprey.utils.config.get_interface_context") as mock_interface, \
              patch("osprey.infrastructure.respond_node.datetime") as mock_dt:
-            
+
             mock_cm_instance = Mock()
             mock_cm_instance.get_summaries.return_value = []
             mock_cm_class.return_value = mock_cm_instance
-            
+
             mock_sm.get_current_step.return_value = {}
             mock_sm.get_current_step_index.return_value = 0
             mock_mode.return_value = "conversational"
             mock_caps.return_value = "Test"
             mock_interface.return_value = "cli"
-            
+
             # Mock datetime.now()
             mock_now = Mock()
             mock_now.strftime.return_value = "2025-12-23"

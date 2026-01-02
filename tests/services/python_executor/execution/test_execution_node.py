@@ -12,19 +12,19 @@ Integration Tests (tests/integration/test_python_executor_service.py):
 - TestBasicWorkflow::test_successful_execution_flow (line 74)
   * Complete workflow: generate → analyze → execute
   * Verifies execution result structure and mock generator calls
-  
+
 - TestBasicWorkflow::test_execution_with_simple_code (line 119)
   * Tests execution with simple Python code
   * Validates results and execution completion
-  
+
 - TestExecutionMethods::test_local_execution_method (line 866)
   * Tests local execution method configuration
   * Validates local vs container execution switching
-  
+
 - TestErrorHandling::test_syntax_error_detected (line 175)
   * Tests execution error handling for syntax errors
   * Validates error propagation and retry logic
-  
+
 - TestErrorHandling::test_retry_with_improved_code (line 203)
   * Tests retry mechanism after execution failures
   * Validates error-aware regeneration workflow
@@ -33,7 +33,7 @@ E2E Tests (tests/e2e/):
 - test_code_generator_workflows.py::test_basic_generator_simple_code_generation (line 118)
   * End-to-end code generation and execution
   * Validates complete workflow with LLM judge evaluation
-  
+
 - test_runtime_limits.py (entire file, 635 lines)
   * End-to-end tests for runtime utilities with channel limits
   * Tests execution wrapper with limits monkeypatch
@@ -43,7 +43,6 @@ This file serves as documentation of why unit tests are not appropriate here,
 per COVERAGE_EXPANSION_PLAN.md guidance on "files genuinely hard to test in isolation".
 """
 
-import pytest
 
 
 class TestExecutionNodeDocumentation:

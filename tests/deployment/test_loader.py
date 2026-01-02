@@ -8,11 +8,9 @@ Target: 0% → 60%+ coverage
 """
 
 import os
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import yaml
 
 from osprey.deployment.loader import (
     InvalidParam,
@@ -357,7 +355,7 @@ class TestParamsClass:
         list_data = [1, 2, 3]
         list_params = Params(list_data, "root")
 
-        items = [item for item in list_params]
+        items = list(list_params)
         assert len(items) == 3
 
     def test_params_call_returns_raw_data(self):

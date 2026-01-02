@@ -59,7 +59,7 @@ class TestExportConfigDeprecationWarning:
         # Simply run the command and check for deprecation warning
         # The command will fail on missing template, but should show warning first
         result = cli_runner.invoke(export_config, [])
-        
+
         # Should show deprecation warning regardless of execution result
         assert "DEPRECATED" in result.output or "deprecated" in result.output.lower()
 
@@ -70,7 +70,7 @@ class TestExportConfigExecution:
     def test_displays_config_to_console_by_default(self, cli_runner):
         """Test that config is displayed to console when no output file specified."""
         result = cli_runner.invoke(export_config, [])
-        
+
         # Command should execute without crashing
         # Exit code 0 if template found, 1 if not - both are acceptable
         assert result.exit_code in [0, 1]
@@ -80,9 +80,9 @@ class TestExportConfigExecution:
     def test_exports_to_file_when_output_specified(self, cli_runner, tmp_path):
         """Test exporting config to a file."""
         output_file = tmp_path / "exported-config.yml"
-        
+
         result = cli_runner.invoke(export_config, ["--output", str(output_file)])
-        
+
         # Command should execute (may fail on template, that's ok for smoke test)
         assert result.exit_code in [0, 1]
         # Should produce output explaining what happened
@@ -187,7 +187,7 @@ class TestExportConfigOutput:
     def test_console_output_uses_syntax_highlighting(self, cli_runner):
         """Test that console output formatting works."""
         result = cli_runner.invoke(export_config, [])
-        
+
         # Should either show output or error, but not crash
         assert result.exit_code in [0, 1]
         # Should produce formatted output
@@ -197,7 +197,7 @@ class TestExportConfigOutput:
         """Test that success message is shown when exporting to file."""
         output_file = tmp_path / "config.yml"
 
-        with patch("osprey.cli.export_config_cmd.Path") as mock_path_class:
+        with patch("osprey.cli.export_config_cmd.Path"):
             mock_template = MagicMock()
             mock_template.exists.return_value = True
 

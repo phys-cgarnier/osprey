@@ -1,8 +1,10 @@
 """Tests for Ollama provider adapter."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from pydantic import BaseModel
+
 from osprey.models.providers.ollama import OllamaProviderAdapter
 
 
@@ -209,7 +211,7 @@ class TestOllamaCreateModel:
             mock_client = Mock()
             mock_openai.return_value = mock_client
 
-            model = provider.create_model(
+            provider.create_model(
                 model_id="mistral:7b",
                 api_key=None,
                 base_url="http://localhost:11434",
@@ -278,7 +280,7 @@ class TestOllamaExecuteCompletion:
             mock_client.chat.return_value = {"message": {"content": "Response"}}
             mock_client_class.return_value = mock_client
 
-            result = provider.execute_completion(
+            provider.execute_completion(
                 message="Hello",
                 model_id="mistral:7b",
                 api_key=None,

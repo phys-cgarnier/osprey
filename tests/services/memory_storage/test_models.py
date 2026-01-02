@@ -1,7 +1,8 @@
 """Tests for memory_storage/models.py - Memory storage data models."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 from osprey.services.memory_storage.models import MemoryContent
 
@@ -13,9 +14,9 @@ class TestMemoryContent:
         """Test creating a valid memory content entry."""
         timestamp = datetime(2025, 1, 15, 14, 30)
         content = "User prefers morning meetings"
-        
+
         memory = MemoryContent(timestamp=timestamp, content=content)
-        
+
         assert memory.timestamp == timestamp
         assert memory.content == content
 
@@ -23,20 +24,20 @@ class TestMemoryContent:
         """Test basic LLM formatting."""
         timestamp = datetime(2025, 1, 15, 14, 30)
         content = "User prefers morning meetings"
-        
+
         memory = MemoryContent(timestamp=timestamp, content=content)
         formatted = memory.format_for_llm()
-        
+
         assert formatted == "[2025-01-15 14:30] User prefers morning meetings"
 
     def test_format_for_llm_complex_content(self):
         """Test LLM formatting with complex content."""
         timestamp = datetime(2025, 12, 23, 9, 15)
         content = "Working on project Alpha with team lead Sarah and focusing on ML models"
-        
+
         memory = MemoryContent(timestamp=timestamp, content=content)
         formatted = memory.format_for_llm()
-        
+
         assert "[2025-12-23 09:15]" in formatted
         assert "Working on project Alpha" in formatted
         assert content in formatted
@@ -45,10 +46,10 @@ class TestMemoryContent:
         """Test that formatting preserves all content."""
         timestamp = datetime(2025, 6, 10, 16, 45)
         content = "Special characters: @#$%, numbers: 123, Unicode: café"
-        
+
         memory = MemoryContent(timestamp=timestamp, content=content)
         formatted = memory.format_for_llm()
-        
+
         assert content in formatted
         assert "@#$%" in formatted
         assert "café" in formatted
@@ -60,7 +61,7 @@ class TestMemoryContent:
             (datetime(2025, 12, 31, 23, 59), "[2025-12-31 23:59]"),
             (datetime(2025, 6, 15, 12, 30), "[2025-06-15 12:30]"),
         ]
-        
+
         for timestamp, expected_prefix in test_cases:
             memory = MemoryContent(timestamp=timestamp, content="test")
             formatted = memory.format_for_llm()
@@ -69,11 +70,11 @@ class TestMemoryContent:
     def test_pydantic_validation(self):
         """Test Pydantic validation of required fields."""
         from pydantic import ValidationError
-        
+
         # Missing content should raise validation error
         with pytest.raises(ValidationError):
             MemoryContent(timestamp=datetime.now())
-        
+
         # Missing timestamp should raise validation error
         with pytest.raises(ValidationError):
             MemoryContent(content="test content")
@@ -82,10 +83,10 @@ class TestMemoryContent:
         """Test model serialization to dict."""
         timestamp = datetime(2025, 1, 15, 14, 30)
         content = "Test content"
-        
+
         memory = MemoryContent(timestamp=timestamp, content=content)
         data = memory.model_dump()
-        
+
         assert "timestamp" in data
         assert "content" in data
         assert data["content"] == content
@@ -97,9 +98,9 @@ class TestMemoryContent:
             "timestamp": datetime(2025, 1, 15, 14, 30),
             "content": "Test content"
         }
-        
+
         memory = MemoryContent(**data)
-        
+
         assert memory.timestamp == data["timestamp"]
         assert memory.content == data["content"]
 
@@ -107,9 +108,9 @@ class TestMemoryContent:
         """Test JSON serialization with custom datetime."""
         timestamp = datetime(2025, 1, 15, 14, 30)
         content = "Test content"
-        
+
         memory = MemoryContent(timestamp=timestamp, content=content)
-        
+
         # Should be able to serialize to JSON
         json_str = memory.model_dump_json()
         assert isinstance(json_str, str)
@@ -131,9 +132,9 @@ class TestMemoryContent:
                 content="Third memory"
             ),
         ]
-        
+
         formatted = [m.format_for_llm() for m in memories]
-        
+
         assert len(formatted) == 3
         assert "[2025-01-01 10:00] First memory" in formatted
         assert "[2025-01-02 11:00] Second memory" in formatted
@@ -143,7 +144,7 @@ class TestMemoryContent:
         """Test memory with empty content string."""
         timestamp = datetime(2025, 1, 15, 14, 30)
         memory = MemoryContent(timestamp=timestamp, content="")
-        
+
         assert memory.content == ""
         formatted = memory.format_for_llm()
         assert formatted == "[2025-01-15 14:30] "
@@ -153,7 +154,7 @@ class TestMemoryContent:
         timestamp = datetime(2025, 1, 15, 14, 30)
         content = "   spaces around   "
         memory = MemoryContent(timestamp=timestamp, content=content)
-        
+
         # Content is preserved as-is
         assert memory.content == content
         formatted = memory.format_for_llm()
@@ -164,7 +165,7 @@ class TestMemoryContent:
         timestamp = datetime(2025, 1, 15, 14, 30)
         content = "Line 1\nLine 2\nLine 3"
         memory = MemoryContent(timestamp=timestamp, content=content)
-        
+
         formatted = memory.format_for_llm()
         assert "Line 1" in formatted
         assert "Line 2" in formatted

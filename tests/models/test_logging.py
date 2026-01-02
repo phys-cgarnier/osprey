@@ -4,7 +4,6 @@ import contextvars
 from datetime import datetime
 from unittest.mock import MagicMock
 
-import pytest
 from pydantic import BaseModel
 
 from osprey.models.logging import (
@@ -13,7 +12,6 @@ from osprey.models.logging import (
     _sanitize_result_for_logging,
     set_api_call_context,
 )
-
 
 # =============================================================================
 # Test API Call Context Setting

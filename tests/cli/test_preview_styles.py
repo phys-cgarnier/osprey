@@ -4,24 +4,23 @@ Tests the interactive theme preview and testing tool, focusing on smoke tests
 and basic functionality to establish a safety net for this utility module.
 """
 
-import pytest
 from unittest import mock
-import sys
-from io import StringIO
+
+import pytest
 
 from osprey.cli.preview_styles import (
     THEMES,
-    show_theme_header,
-    show_color_swatches,
-    show_status_messages,
-    show_inline_styles,
-    show_real_world_example,
-    show_panel_examples,
-    show_table_example,
-    show_banner,
-    preview_theme,
     compare_themes,
     main,
+    preview_theme,
+    show_banner,
+    show_color_swatches,
+    show_inline_styles,
+    show_panel_examples,
+    show_real_world_example,
+    show_status_messages,
+    show_table_example,
+    show_theme_header,
 )
 from osprey.cli.styles import ColorTheme
 
@@ -257,7 +256,7 @@ class TestEdgeCases:
 
     def test_all_predefined_themes_are_valid(self):
         """Verify all predefined themes can be created."""
-        for theme_name, theme in THEMES.items():
+        for _theme_name, theme in THEMES.items():
             # Each theme should be a ColorTheme instance
             assert isinstance(theme, ColorTheme)
 

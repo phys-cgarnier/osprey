@@ -1,7 +1,7 @@
 """Tests for chat completion module."""
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from osprey.models.completion import (
@@ -10,7 +10,6 @@ from osprey.models.completion import (
     _is_typed_dict,
     _validate_proxy_url,
 )
-
 
 # =============================================================================
 # Test TypedDict Detection
@@ -137,10 +136,10 @@ class TestConvertTypedDictToPydantic:
 
         # Check field types in model fields
         fields = pydantic_model.model_fields
-        assert fields["text"].annotation == str
-        assert fields["count"].annotation == int
-        assert fields["active"].annotation == bool
-        assert fields["items"].annotation == list
+        assert fields["text"].annotation is str
+        assert fields["count"].annotation is int
+        assert fields["active"].annotation is bool
+        assert fields["items"].annotation is list
 
 
 # =============================================================================

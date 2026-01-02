@@ -271,7 +271,7 @@ class TestIntegration:
             query="What time is dinner?",
             reason="Not weather related"
         )
-        
+
         analysis = ClassifierAnalysis(
             activation_criteria="Weather-related queries",
             keywords=["weather", "forecast", "temperature"],
@@ -279,7 +279,7 @@ class TestIntegration:
             negative_examples=[negative_ex],
             edge_cases=["Climate vs weather distinction"],
         )
-        
+
         # Verify structure
         assert len(analysis.positive_examples) == 1
         assert analysis.positive_examples[0].query == "Get weather forecast"
@@ -293,19 +293,19 @@ class TestIntegration:
             scenario="User wants to analyze trends",
             tool_name="data_fetcher",
         )
-        
+
         step2 = ExampleStepRaw(
             context_key="data_analysis",
             task_objective="Analyze fetched data",
             scenario="Process the retrieved data",
             tool_name="python_executor",
         )
-        
+
         pattern = ToolPattern(
             tool_name="data_fetcher",
             typical_scenario="Retrieving time-series data"
         )
-        
+
         analysis = OrchestratorAnalysis(
             when_to_use="Multi-step data analysis workflows",
             example_steps=[step1, step2],
@@ -313,7 +313,7 @@ class TestIntegration:
             important_notes=["Validate data between steps"],
             tool_usage_patterns=[pattern],
         )
-        
+
         # Verify complete structure
         assert len(analysis.example_steps) == 2
         assert analysis.example_steps[0].context_key == "data_fetch"
@@ -327,13 +327,13 @@ class TestIntegration:
             description="Test description",
             context_type_suggestion="TEST_CONTEXT",
         )
-        
+
         # Serialize to JSON
         json_data = original.model_dump_json()
-        
+
         # Deserialize back
         restored = CapabilityMetadata.model_validate_json(json_data)
-        
+
         # Verify equality
         assert restored.capability_name_suggestion == original.capability_name_suggestion
         assert restored.description == original.description

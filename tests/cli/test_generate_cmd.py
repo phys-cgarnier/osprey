@@ -1,17 +1,15 @@
 """Tests for generate CLI command."""
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
+
 import pytest
 from click.testing import CliRunner
 
 from osprey.cli.generate_cmd import (
-    generate,
-    capability,
-    mcp_server,
-    claude_config,
-    is_project_initialized,
     _determine_capabilities_path,
+    generate,
+    is_project_initialized,
 )
 
 
@@ -231,7 +229,7 @@ class TestCapabilityMCPMode:
         mock_get_gen.return_value = mock_generator_class
         mock_init_reg.return_value = True
 
-        result = cli_runner.invoke(
+        cli_runner.invoke(
             generate,
             ["capability", "--from-mcp", "http://localhost:3001", "-n", "test_mcp", "--quiet"]
         )
@@ -263,7 +261,7 @@ class TestCapabilityMCPMode:
         mock_get_gen.return_value = mock_generator_class
         mock_init_reg.return_value = True
 
-        result = cli_runner.invoke(
+        cli_runner.invoke(
             generate,
             ["capability", "--from-mcp", "simulated", "-n", "weather_mcp", "--quiet"]
         )
@@ -283,7 +281,7 @@ class TestCapabilityMCPMode:
         mock_get_gen.return_value = mock_generator_class
         mock_init_reg.return_value = True
 
-        result = cli_runner.invoke(
+        cli_runner.invoke(
             generate,
             [
                 "capability",
@@ -309,7 +307,7 @@ class TestCapabilityMCPMode:
         mock_get_gen.return_value = mock_generator_class
         mock_init_reg.return_value = True
 
-        result = cli_runner.invoke(
+        cli_runner.invoke(
             generate,
             [
                 "capability",
@@ -389,7 +387,7 @@ class TestCapabilityPromptMode:
         mock_get_gen.return_value = mock_generator_class
         mock_init_reg.return_value = True
 
-        result = cli_runner.invoke(
+        cli_runner.invoke(
             generate,
             ["capability", "--from-prompt", "Fetch weather data", "--quiet"]
         )
@@ -419,7 +417,7 @@ class TestCapabilityPromptMode:
         mock_get_gen.return_value = mock_generator_class
         mock_init_reg.return_value = True
 
-        result = cli_runner.invoke(
+        cli_runner.invoke(
             generate,
             [
                 "capability",

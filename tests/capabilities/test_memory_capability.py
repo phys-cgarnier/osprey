@@ -1,8 +1,7 @@
 """Tests for MemoryOperationsCapability."""
 
 import inspect
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain_core.messages import HumanMessage
@@ -26,7 +25,6 @@ from osprey.capabilities.memory import (
     _perform_memory_retrieve_operation,
     _perform_memory_save_operation,
 )
-
 
 # =============================================================================
 # Test Memory Context

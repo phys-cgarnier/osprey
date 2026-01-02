@@ -1,16 +1,16 @@
 """Tests for Memory Storage Manager."""
 
 import json
-import pytest
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import pytest
+
+from osprey.services.memory_storage.models import MemoryContent
 from osprey.services.memory_storage.storage_manager import (
     MemoryStorageManager,
     get_memory_storage_manager,
 )
-from osprey.services.memory_storage.models import MemoryContent
 
 
 class TestMemoryStorageManagerInit:
@@ -40,7 +40,7 @@ class TestMemoryStorageManagerInit:
         memory_dir = tmp_path / "level1" / "level2" / "memory"
         assert not memory_dir.exists()
 
-        manager = MemoryStorageManager(str(memory_dir))
+        MemoryStorageManager(str(memory_dir))
 
         assert memory_dir.exists()
 

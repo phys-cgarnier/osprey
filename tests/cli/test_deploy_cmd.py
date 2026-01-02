@@ -4,7 +4,6 @@ This test module verifies the deploy command wrapper functionality.
 The command wraps the existing container_manager interface.
 """
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,7 +24,7 @@ class TestDeployCommandBasics:
     def test_command_help(self, cli_runner):
         """Verify deploy command help is displayed."""
         result = cli_runner.invoke(deploy, ["--help"])
-        
+
         assert result.exit_code == 0
         assert "deploy" in result.output.lower() or "Manage" in result.output
         assert "up" in result.output
@@ -41,7 +40,7 @@ class TestDeployCommandBasics:
     def test_command_has_action_argument(self, cli_runner):
         """Verify command requires an action argument."""
         result = cli_runner.invoke(deploy, ["--help"])
-        
+
         assert "up" in result.output
         assert "down" in result.output
         assert "restart" in result.output
@@ -78,13 +77,13 @@ class TestDeployCommandActions:
         """Test that 'up' action calls deploy_up function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_up") as mock_deploy_up:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["up", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["up", "--config", str(config_file)])
+
                 # deploy_up should have been called
                 assert mock_deploy_up.called
                 call_args = mock_deploy_up.call_args
@@ -94,53 +93,53 @@ class TestDeployCommandActions:
         """Test that 'down' action calls deploy_down function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_down") as mock_deploy_down:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["down", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["down", "--config", str(config_file)])
+
                 assert mock_deploy_down.called
 
     def test_restart_action_calls_deploy_restart(self, cli_runner, tmp_path):
         """Test that 'restart' action calls deploy_restart function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_restart") as mock_deploy_restart:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["restart", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["restart", "--config", str(config_file)])
+
                 assert mock_deploy_restart.called
 
     def test_status_action_calls_show_status(self, cli_runner, tmp_path):
         """Test that 'status' action calls show_status function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.show_status") as mock_show_status:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["status", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["status", "--config", str(config_file)])
+
                 assert mock_show_status.called
 
     def test_build_action_calls_prepare_compose_files(self, cli_runner, tmp_path):
         """Test that 'build' action calls prepare_compose_files function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.prepare_compose_files") as mock_prepare:
             mock_prepare.return_value = (MagicMock(), ["docker-compose.yml"])
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
+
                 result = cli_runner.invoke(deploy, ["build", "--config", str(config_file)])
-                
+
                 assert mock_prepare.called
                 assert result.exit_code == 0
 
@@ -148,28 +147,28 @@ class TestDeployCommandActions:
         """Test that 'clean' action calls clean_deployment function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.clean_deployment") as mock_clean:
             with patch("osprey.cli.deploy_cmd.prepare_compose_files") as mock_prepare:
                 mock_prepare.return_value = (MagicMock(), ["docker-compose.yml"])
                 with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                     mock_resolve.return_value = config_file
-                    
-                    result = cli_runner.invoke(deploy, ["clean", "--config", str(config_file)])
-                    
+
+                    cli_runner.invoke(deploy, ["clean", "--config", str(config_file)])
+
                     assert mock_clean.called
 
     def test_rebuild_action_calls_rebuild_deployment(self, cli_runner, tmp_path):
         """Test that 'rebuild' action calls rebuild_deployment function."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.rebuild_deployment") as mock_rebuild:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["rebuild", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["rebuild", "--config", str(config_file)])
+
                 assert mock_rebuild.called
 
 
@@ -180,13 +179,13 @@ class TestDeployCommandOptions:
         """Test that --detached flag is passed to deploy_up."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_up") as mock_deploy_up:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["up", "--detached", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["up", "--detached", "--config", str(config_file)])
+
                 call_kwargs = mock_deploy_up.call_args[1]
                 assert call_kwargs["detached"] is True
 
@@ -194,13 +193,13 @@ class TestDeployCommandOptions:
         """Test that --dev flag is passed to deploy_up."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_up") as mock_deploy_up:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
-                result = cli_runner.invoke(deploy, ["up", "--dev", "--config", str(config_file)])
-                
+
+                cli_runner.invoke(deploy, ["up", "--dev", "--config", str(config_file)])
+
                 call_kwargs = mock_deploy_up.call_args[1]
                 assert call_kwargs["dev_mode"] is True
 
@@ -212,7 +211,7 @@ class TestDeployCommandErrorHandling:
         """Test that missing config file shows helpful error message."""
         # Don't create the config file
         result = cli_runner.invoke(deploy, ["up", "--config", str(tmp_path / "nonexistent.yml")])
-        
+
         # Should handle missing file gracefully
         assert result.exit_code == 1
         assert "not found" in result.output.lower() or "❌" in result.output
@@ -221,14 +220,14 @@ class TestDeployCommandErrorHandling:
         """Test graceful handling of KeyboardInterrupt (Ctrl+C)."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_up") as mock_deploy_up:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
                 mock_deploy_up.side_effect = KeyboardInterrupt()
-                
+
                 result = cli_runner.invoke(deploy, ["up", "--config", str(config_file)])
-                
+
                 # Should handle interrupt gracefully
                 assert result.exit_code == 1
                 assert "cancel" in result.output.lower() or "⚠" in result.output
@@ -237,14 +236,14 @@ class TestDeployCommandErrorHandling:
         """Test handling of general exceptions."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_up") as mock_deploy_up:
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
                 mock_deploy_up.side_effect = Exception("Test deployment error")
-                
+
                 result = cli_runner.invoke(deploy, ["up", "--config", str(config_file)])
-                
+
                 # Should handle exception gracefully
                 assert result.exit_code == 1
                 assert "failed" in result.output.lower() or "❌" in result.output
@@ -252,7 +251,7 @@ class TestDeployCommandErrorHandling:
     def test_invalid_action_rejected(self, cli_runner):
         """Test that invalid action is rejected."""
         result = cli_runner.invoke(deploy, ["invalid-action"])
-        
+
         # Click should reject invalid choice
         assert result.exit_code == 2  # Click parameter validation error
         assert "invalid" in result.output.lower() or "choice" in result.output.lower()
@@ -265,13 +264,13 @@ class TestDeployCommandOutput:
         """Test that action message is displayed for 'up' command."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.deploy_up"):
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
+
                 result = cli_runner.invoke(deploy, ["up", "--config", str(config_file)])
-                
+
                 # Should show action message
                 assert "Service management" in result.output or "up" in result.output
 
@@ -279,13 +278,13 @@ class TestDeployCommandOutput:
         """Test that status command doesn't show redundant action message."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.show_status"):
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
+
                 result = cli_runner.invoke(deploy, ["status", "--config", str(config_file)])
-                
+
                 # Status is quick, shouldn't show extra message
                 # This test documents current behavior
                 assert result.exit_code == 0
@@ -294,14 +293,14 @@ class TestDeployCommandOutput:
         """Test that build action shows success message."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("# test")
-        
+
         with patch("osprey.cli.deploy_cmd.prepare_compose_files") as mock_prepare:
             mock_prepare.return_value = (MagicMock(), ["docker-compose.yml"])
             with patch("osprey.cli.deploy_cmd.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
-                
+
                 result = cli_runner.invoke(deploy, ["build", "--config", str(config_file)])
-                
+
                 # Should show build progress and success
                 assert "Building" in result.output or "built" in result.output or "✅" in result.output
 

@@ -4,9 +4,7 @@ This test module verifies the chat command wrapper functionality.
 The command wraps the existing direct_conversation interface.
 """
 
-from pathlib import Path
-from unittest import mock
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -80,7 +78,7 @@ class TestChatCommandWithValidSetup:
             with patch("osprey.cli.project_utils.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
 
-                result = cli_runner.invoke(chat, [
+                cli_runner.invoke(chat, [
                     "--project", str(project_dir),
                     "--config", str(config_file)
                 ])
@@ -100,7 +98,7 @@ class TestChatCommandWithValidSetup:
             with patch("osprey.cli.project_utils.resolve_config_path") as mock_resolve:
                 mock_resolve.return_value = config_file
 
-                result = cli_runner.invoke(chat, ["--config", str(config_file)])
+                cli_runner.invoke(chat, ["--config", str(config_file)])
 
                 # run_cli should be called with config_path
                 assert mock_run_cli.called

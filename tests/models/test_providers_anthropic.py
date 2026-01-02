@@ -1,14 +1,11 @@
 """Tests for Anthropic model provider adapter."""
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import httpx
-import pytest
-from pydantic import BaseModel
 from pydantic_ai.models.anthropic import AnthropicModel
 
 from osprey.models.providers.anthropic import AnthropicProviderAdapter
-
 
 # =============================================================================
 # Test Provider Metadata

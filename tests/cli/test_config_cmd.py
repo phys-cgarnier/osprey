@@ -3,13 +3,19 @@
 This test module verifies the config command group functionality.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
-from osprey.cli.config_cmd import config, export, set_control_system, set_epics_gateway, set_models, show
+from osprey.cli.config_cmd import (
+    config,
+    export,
+    set_control_system,
+    set_epics_gateway,
+    set_models,
+    show,
+)
 
 
 @pytest.fixture
@@ -199,14 +205,14 @@ class TestConfigSetEpicsGatewayCommand:
         """Test setting EPICS gateway with facility preset."""
         config_file = tmp_path / "config.yml"
         config_file.write_text("control_system:\n  epics: {}\n")
-        
+
         with patch("osprey.cli.project_utils.resolve_config_path") as mock_resolve:
             with patch("osprey.generators.config_updater.set_epics_gateway_config") as mock_update:
                 mock_resolve.return_value = str(config_file)
                 mock_update.return_value = ("new content", "preview")
-                
+
                 result = cli_runner.invoke(set_epics_gateway, ["--facility", "als"])
-                
+
                 # Should call update function
                 assert mock_update.called
                 assert result.exit_code == 0

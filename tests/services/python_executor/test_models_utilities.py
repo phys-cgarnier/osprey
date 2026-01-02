@@ -1,8 +1,6 @@
 """Tests for utility functions and helper classes in python_executor/models.py."""
 
-import pytest
 from pathlib import Path
-from datetime import datetime
 
 from osprey.services.python_executor.models import (
     ExecutionError,
@@ -252,7 +250,7 @@ class TestExecutionError:
             analysis_issues=["Risky operation detected"]
         )
         text = error.to_prompt_text()
-        
+
         # Verify all components present
         assert "Attempt 3" in text
         assert "EXECUTION FAILED" in text
@@ -315,7 +313,7 @@ class TestNotebookAttempt:
             created_at="2025-12-23T10:00:00"
         )
         data = attempt.to_dict()
-        
+
         assert data["notebook_type"] == "code_generation_attempt"
         assert data["attempt_number"] == 2
         assert data["stage"] == "generation"
@@ -377,7 +375,7 @@ class TestPythonExecutionContext:
     def test_add_multiple_attempts(self):
         """Test adding multiple notebook attempts."""
         context = PythonExecutionContext()
-        
+
         for i in range(3):
             attempt = NotebookAttempt(
                 notebook_type=NotebookType.CODE_GENERATION_ATTEMPT,
@@ -387,7 +385,7 @@ class TestPythonExecutionContext:
                 notebook_link=f"http://link/{i}"
             )
             context.add_notebook_attempt(attempt)
-        
+
         assert len(context.notebook_attempts) == 3
         assert context.notebook_attempts[0].attempt_number == 1
         assert context.notebook_attempts[2].attempt_number == 3
@@ -400,10 +398,10 @@ class TestPythonExecutionContext:
     def test_get_next_attempt_number_increments(self):
         """Test get_next_attempt_number increments correctly."""
         context = PythonExecutionContext()
-        
+
         # First attempt
         assert context.get_next_attempt_number() == 1
-        
+
         # Add first attempt
         attempt1 = NotebookAttempt(
             notebook_type=NotebookType.CODE_GENERATION_ATTEMPT,
@@ -413,10 +411,10 @@ class TestPythonExecutionContext:
             notebook_link="http://link1"
         )
         context.add_notebook_attempt(attempt1)
-        
+
         # Should now be 2
         assert context.get_next_attempt_number() == 2
-        
+
         # Add second attempt
         attempt2 = NotebookAttempt(
             notebook_type=NotebookType.EXECUTION_ATTEMPT,
@@ -426,7 +424,7 @@ class TestPythonExecutionContext:
             notebook_link="http://link2"
         )
         context.add_notebook_attempt(attempt2)
-        
+
         # Should now be 3
         assert context.get_next_attempt_number() == 3
 
@@ -439,9 +437,9 @@ class TestPythonExecutionContext:
             attempts_folder=Path("/tmp/execution_123/attempts"),
             context_file_path=Path("/tmp/execution_123/context.json")
         )
-        
+
         assert context.is_initialized
-        
+
         # Add generation attempt
         gen_attempt = NotebookAttempt(
             notebook_type=NotebookType.CODE_GENERATION_ATTEMPT,
@@ -451,7 +449,7 @@ class TestPythonExecutionContext:
             notebook_link=f"{context.folder_url}/gen_1.ipynb"
         )
         context.add_notebook_attempt(gen_attempt)
-        
+
         # Add execution attempt
         exec_attempt = NotebookAttempt(
             notebook_type=NotebookType.EXECUTION_ATTEMPT,
@@ -461,7 +459,7 @@ class TestPythonExecutionContext:
             notebook_link=f"{context.folder_url}/exec_1.ipynb"
         )
         context.add_notebook_attempt(exec_attempt)
-        
+
         # Add final success
         final_attempt = NotebookAttempt(
             notebook_type=NotebookType.FINAL_SUCCESS,
@@ -471,7 +469,7 @@ class TestPythonExecutionContext:
             notebook_link=f"{context.folder_url}/final.ipynb"
         )
         context.add_notebook_attempt(final_attempt)
-        
+
         # Verify complete workflow
         assert len(context.notebook_attempts) == 3
         assert context.notebook_attempts[0].notebook_type == NotebookType.CODE_GENERATION_ATTEMPT

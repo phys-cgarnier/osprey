@@ -1,8 +1,9 @@
 """Tests for User Memory Provider."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from osprey.data_management.providers import DataSourceContext
 from osprey.data_management.request import DataSourceRequest, DataSourceRequester
@@ -244,7 +245,7 @@ class TestHealthCheck:
         # The implementation checks if _memory_manager is not None
         # This is a simple availability check
         result = await memory_provider.health_check()
-        
+
         # Should return True when manager exists
         assert result is True
 

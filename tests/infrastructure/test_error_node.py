@@ -1,22 +1,20 @@
 """Tests for error response generation infrastructure."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
 
-from langchain_core.messages import AIMessage
-
-from osprey.infrastructure.error_node import (
-    ErrorNode,
-    ErrorContext,
-    _create_error_context_from_state,
-    _populate_error_context,
-    _generate_error_response,
-    _build_structured_error_report,
-    _generate_llm_explanation,
-    _create_fallback_response,
-)
 from osprey.base.errors import ErrorClassification, ErrorSeverity
+from osprey.infrastructure.error_node import (
+    ErrorContext,
+    ErrorNode,
+    _build_structured_error_report,
+    _create_error_context_from_state,
+    _create_fallback_response,
+    _generate_error_response,
+    _generate_llm_explanation,
+    _populate_error_context,
+)
 from osprey.state import AgentState, StateManager
 
 
@@ -30,14 +28,14 @@ class TestErrorContext:
             user_message="Test error",
             metadata={"test": "data"},
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Test task",
             failed_operation="test_op",
             total_operations=3,
         )
-        
+
         assert context.error_classification == classification
         assert context.current_task == "Test task"
         assert context.failed_operation == "test_op"
@@ -51,7 +49,7 @@ class TestErrorContext:
             severity=ErrorSeverity.RETRIABLE,
             user_message="Test",
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Task",
@@ -59,7 +57,7 @@ class TestErrorContext:
             successful_steps=None,
             failed_steps=None,
         )
-        
+
         assert context.successful_steps == []
         assert context.failed_steps == []
 
@@ -69,7 +67,7 @@ class TestErrorContext:
             severity=ErrorSeverity.REPLANNING,
             user_message="Planning failed",
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Task",
@@ -77,7 +75,7 @@ class TestErrorContext:
             successful_steps=["Step 1", "Step 2"],
             failed_steps=["Step 3 - Failed"],
         )
-        
+
         assert len(context.successful_steps) == 2
         assert len(context.failed_steps) == 1
 
@@ -87,13 +85,13 @@ class TestErrorContext:
             severity=ErrorSeverity.FATAL,
             user_message="Fatal error",
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Task",
             failed_operation="op",
         )
-        
+
         assert context.error_severity == ErrorSeverity.FATAL
 
     def test_error_message_property(self):
@@ -102,13 +100,13 @@ class TestErrorContext:
             severity=ErrorSeverity.CRITICAL,
             user_message="Custom error message",
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Task",
             failed_operation="op",
         )
-        
+
         assert context.error_message == "Custom error message"
 
     def test_error_message_fallback(self):
@@ -117,13 +115,13 @@ class TestErrorContext:
             severity=ErrorSeverity.CRITICAL,
             user_message=None,
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Task",
             failed_operation="op",
         )
-        
+
         assert context.error_message == "Unknown error occurred"
 
     def test_capability_name_property(self):
@@ -132,16 +130,16 @@ class TestErrorContext:
             severity=ErrorSeverity.CRITICAL,
             user_message="Test",
         )
-        
+
         context = ErrorContext(
             error_classification=classification,
             current_task="Task",
             failed_operation="op",
         )
-        
+
         # Initially None
         assert context.capability_name is None
-        
+
         # Set dynamically
         context._capability_name = "test_capability"
         assert context.capability_name == "test_capability"
@@ -159,9 +157,9 @@ class TestErrorNode:
         """Test ErrorNode.classify_error creates FATAL classification."""
         exc = RuntimeError("Test error")
         context = {"node_name": "error", "execution_time": 1.5}
-        
+
         classification = ErrorNode.classify_error(exc, context)
-        
+
         assert classification.severity == ErrorSeverity.FATAL
         assert "Error node failed" in classification.user_message
         assert "Test error" in classification.metadata["technical_details"]
@@ -195,10 +193,10 @@ class TestCreateErrorContextFromState:
         }
         state["task_current_task"] = "Fetch data"
         state["control_retry_count"] = 2
-        
+
         with patch.object(StateManager, "get_current_step_index", return_value=3):
             context = _create_error_context_from_state(state)
-        
+
         assert context.error_severity == ErrorSeverity.RETRIABLE
         assert context.current_task == "Fetch data"
         assert context.failed_operation == "api_call"
@@ -213,10 +211,10 @@ class TestCreateErrorContextFromState:
         state["control_error_info"] = {
             "original_error": "Unknown system error",
         }
-        
+
         with patch.object(StateManager, "get_current_step_index", return_value=0):
             context = _create_error_context_from_state(state)
-        
+
         # Should create fallback classification
         assert context.error_severity == ErrorSeverity.CRITICAL
         assert "Unknown system error" in context.error_message
@@ -233,10 +231,10 @@ class TestCreateErrorContextFromState:
             "node_name": "test_node",
         }
         state["task_current_task"] = "Test task"
-        
+
         with patch.object(StateManager, "get_current_step_index", return_value=0):
             context = _create_error_context_from_state(state)
-        
+
         assert context.failed_operation == "test_node"
         assert context.capability_name == "test_node"
 
@@ -255,7 +253,7 @@ class TestPopulateErrorContext:
             current_task="Task",
             failed_operation="op",
         )
-        
+
         state = AgentState()
         state["execution_step_results"] = {
             "step_0": {
@@ -277,9 +275,9 @@ class TestPopulateErrorContext:
                 "success": False,
             },
         }
-        
+
         _populate_error_context(context, state)
-        
+
         assert len(context.successful_steps) == 2
         assert len(context.failed_steps) == 1
         assert "Step 1: Validate input" in context.successful_steps
@@ -297,12 +295,12 @@ class TestPopulateErrorContext:
             current_task="Task",
             failed_operation="op",
         )
-        
+
         state = AgentState()
         # No execution_step_results
-        
+
         _populate_error_context(context, state)
-        
+
         assert context.successful_steps == []
         assert context.failed_steps == []
 
@@ -317,7 +315,7 @@ class TestPopulateErrorContext:
             current_task="Task",
             failed_operation="op",
         )
-        
+
         state = AgentState()
         # Add steps out of order
         state["execution_step_results"] = {
@@ -340,9 +338,9 @@ class TestPopulateErrorContext:
                 "success": True,
             },
         }
-        
+
         _populate_error_context(context, state)
-        
+
         # Verify chronological order
         assert context.successful_steps[0] == "Step 1: First"
         assert context.successful_steps[1] == "Step 2: Second"
@@ -364,9 +362,9 @@ class TestBuildStructuredErrorReport:
             current_task="Update user profile",
             failed_operation="database_connection",
         )
-        
+
         report = _build_structured_error_report(context)
-        
+
         assert "ERROR REPORT" in report
         assert "CRITICAL" in report
         assert "Update user profile" in report
@@ -384,9 +382,9 @@ class TestBuildStructuredErrorReport:
             failed_operation="op",
         )
         context._capability_name = "test_capability"
-        
+
         report = _build_structured_error_report(context)
-        
+
         assert "test_capability" in report
 
     def test_report_with_execution_statistics(self):
@@ -403,9 +401,9 @@ class TestBuildStructuredErrorReport:
             execution_time=12.3,
             retry_count=2,
         )
-        
+
         report = _build_structured_error_report(context)
-        
+
         assert "Execution Stats" in report
         assert "Total operations: 5" in report
         assert "12.3s" in report
@@ -424,9 +422,9 @@ class TestBuildStructuredErrorReport:
             successful_steps=["Step 1: Init", "Step 2: Process"],
             failed_steps=["Step 3: Save - Failed"],
         )
-        
+
         report = _build_structured_error_report(context)
-        
+
         assert "Execution Summary" in report
         assert "Completed successfully" in report
         assert "Step 1: Init" in report
@@ -445,14 +443,14 @@ class TestBuildStructuredErrorReport:
             current_task="Task",
             failed_operation="op",
         )
-        
+
         with patch.object(
             classification,
             "format_for_llm",
             return_value="FORMATTED ERROR DETAILS",
         ) as mock_format:
             report = _build_structured_error_report(context)
-            
+
             mock_format.assert_called_once()
             assert "FORMATTED ERROR DETAILS" in report
 
@@ -471,24 +469,24 @@ class TestGenerateLLMExplanation:
             current_task="Fetch data",
             failed_operation="api_call",
         )
-        
+
         with patch("osprey.infrastructure.error_node.get_registry") as mock_registry, \
              patch("osprey.infrastructure.error_node.get_framework_prompts") as mock_prompts, \
              patch("osprey.infrastructure.error_node.get_chat_completion") as mock_llm, \
              patch("osprey.infrastructure.error_node.get_model_config") as mock_config:
-            
+
             # Mock dependencies
             mock_registry.return_value.get_capabilities_overview.return_value = "Capabilities overview"
-            
+
             mock_builder = Mock()
             mock_builder.get_system_instructions.return_value = "Analysis prompt"
             mock_prompts.return_value.get_error_analysis_prompt_builder.return_value = mock_builder
-            
+
             mock_llm.return_value = "The error occurred because of rate limiting. Try again later."
             mock_config.return_value = {"model": "gpt-4"}
-            
+
             explanation = _generate_llm_explanation(context)
-            
+
             assert "Analysis:" in explanation
             assert "rate limiting" in explanation
 
@@ -503,16 +501,16 @@ class TestGenerateLLMExplanation:
             current_task="Task",
             failed_operation="op",
         )
-        
+
         with patch("osprey.infrastructure.error_node.get_registry"), \
              patch("osprey.infrastructure.error_node.get_framework_prompts"), \
              patch("osprey.infrastructure.error_node.get_chat_completion") as mock_llm, \
              patch("osprey.infrastructure.error_node.get_model_config"):
-            
+
             mock_llm.return_value = ""  # Empty response
-            
+
             explanation = _generate_llm_explanation(context)
-            
+
             assert "Analysis:" in explanation
             assert "review the recovery options" in explanation
 
@@ -527,12 +525,12 @@ class TestGenerateLLMExplanation:
             current_task="Task",
             failed_operation="op",
         )
-        
+
         with patch("osprey.infrastructure.error_node.get_registry") as mock_registry:
             mock_registry.side_effect = Exception("Registry unavailable")
-            
+
             explanation = _generate_llm_explanation(context)
-            
+
             # Should return fallback message
             assert "Analysis:" in explanation
             assert "structured report" in explanation
@@ -554,15 +552,15 @@ class TestGenerateErrorResponse:
             failed_operation="db_write",
             execution_time=3.5,
         )
-        
+
         with patch("osprey.infrastructure.error_node._build_structured_error_report") as mock_report, \
              patch("osprey.infrastructure.error_node._generate_llm_explanation") as mock_explain:
-            
+
             mock_report.return_value = "STRUCTURED REPORT"
             mock_explain.return_value = "LLM ANALYSIS"
-            
+
             response = await _generate_error_response(context)
-            
+
             assert "STRUCTURED REPORT" in response
             assert "LLM ANALYSIS" in response
             mock_report.assert_called_once_with(context)
@@ -580,9 +578,9 @@ class TestCreateFallbackResponse:
             "capability_name": "database_query",
         }
         generation_error = Exception("LLM API unavailable")
-        
+
         response = _create_fallback_response(state, generation_error)
-        
+
         assert "System Error During Error Handling" in response
         assert "Original Issue" in response
         assert "database_query" in response
@@ -595,9 +593,9 @@ class TestCreateFallbackResponse:
         state = AgentState()
         # Empty error info
         generation_error = Exception("Generation failed")
-        
+
         response = _create_fallback_response(state, generation_error)
-        
+
         assert "Original Issue" in response
         assert "unknown operation" in response
         assert "Unknown error occurred" in response
@@ -611,9 +609,9 @@ class TestCreateFallbackResponse:
             "capability_name": "test_cap",
         }
         generation_error = Exception("Test")
-        
+
         response = _create_fallback_response(state, generation_error)
-        
+
         # Should have clear sections
         assert response.count("**") >= 4  # Multiple bold sections
         assert "⚠️" in response  # Warning emoji

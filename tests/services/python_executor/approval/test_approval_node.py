@@ -16,7 +16,6 @@ This file serves as documentation of why unit tests are not appropriate here,
 per COVERAGE_EXPANSION_PLAN.md guidance on "files genuinely hard to test in isolation".
 """
 
-import pytest
 
 
 class TestApprovalNodeDocumentation:

@@ -6,14 +6,12 @@ Iteration 1: Smoke tests and basic functionality
 Target: 0% → 30%+ coverage
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
-import sys
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
 
-from osprey.cli.health_cmd import health, HealthChecker, HealthCheckResult
+from osprey.cli.health_cmd import HealthChecker, HealthCheckResult, health
 
 
 @pytest.fixture
@@ -518,7 +516,7 @@ class TestHealthExitCodes:
     def test_exit_code_all_passing(self, cli_runner, sample_config_yml):
         """Test exit code 0 when all checks pass."""
         with patch("osprey.cli.project_utils.resolve_project_path") as mock_resolve:
-            with patch("osprey.cli.health_cmd.HealthChecker.check_all") as mock_check:
+            with patch("osprey.cli.health_cmd.HealthChecker.check_all"):
                 with patch("osprey.cli.health_cmd.console"):
                     mock_resolve.return_value = sample_config_yml.parent
 

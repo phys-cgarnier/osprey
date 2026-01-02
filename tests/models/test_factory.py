@@ -1,11 +1,8 @@
 """Tests for AI model factory."""
 
-from unittest.mock import Mock, patch
 
-import pytest
 
-from osprey.models.factory import _validate_proxy_url, get_model
-
+from osprey.models.factory import _validate_proxy_url
 
 # =============================================================================
 # Test Proxy URL Validation

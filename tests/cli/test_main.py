@@ -3,11 +3,12 @@
 Tests the main CLI group and lazy command loading mechanism.
 """
 
-import pytest
 from unittest import mock
+
+import pytest
 from click.testing import CliRunner
 
-from osprey.cli.main import cli, main, LazyGroup
+from osprey.cli.main import LazyGroup, cli, main
 
 
 @pytest.fixture
@@ -36,7 +37,7 @@ class TestLazyGroup:
             mock_module.init = mock.Mock()
             mock_import.return_value = mock_module
 
-            cmd = group.get_command(ctx, "init")
+            group.get_command(ctx, "init")
 
             # Should attempt to import the module
             mock_import.assert_called_once()
@@ -73,7 +74,7 @@ class TestLazyGroup:
             mock_module.config = mock.Mock()
             mock_import.return_value = mock_module
 
-            cmd = group.get_command(ctx, "config")
+            group.get_command(ctx, "config")
 
             # Should get config attribute from module
             assert mock_import.called
@@ -88,7 +89,7 @@ class TestLazyGroup:
             mock_module.export_config = mock.Mock()
             mock_import.return_value = mock_module
 
-            cmd = group.get_command(ctx, "export-config")
+            group.get_command(ctx, "export-config")
 
             # Should still be accessible for backward compatibility
             assert mock_import.called
@@ -116,7 +117,7 @@ class TestCliGroup:
     @mock.patch('osprey.cli.interactive_menu.launch_tui')
     def test_cli_without_command_launches_tui(self, mock_launch_tui, runner):
         """Test CLI without command launches interactive menu."""
-        result = runner.invoke(cli, [])
+        runner.invoke(cli, [])
 
         # Should attempt to launch TUI
         assert mock_launch_tui.called
@@ -125,7 +126,7 @@ class TestCliGroup:
     def test_cli_initializes_theme(self, mock_init_theme, runner):
         """Test CLI attempts to initialize theme from config."""
         with mock.patch('osprey.cli.interactive_menu.launch_tui'):
-            result = runner.invoke(cli, [])
+            runner.invoke(cli, [])
 
         # Should attempt theme initialization (silent failure is OK)
         assert mock_init_theme.called
@@ -224,7 +225,7 @@ class TestLazyLoading:
                 mock_import.return_value = mock_module
 
                 try:
-                    result = group.get_command(ctx, cmd_name)
+                    group.get_command(ctx, cmd_name)
                     # Should not raise KeyError from missing mapping
                 except ImportError:
                     # Import errors are OK - we're testing mapping exists
@@ -279,13 +280,13 @@ class TestEdgeCases:
         group = LazyGroup(name="test")
 
         # Should handle gracefully
-        result = group.get_command(None, "init")
+        group.get_command(None, "init")
         # May return None or command - documenting behavior
 
     @mock.patch('osprey.cli.interactive_menu.launch_tui')
     def test_cli_invoked_subcommand_skips_tui(self, mock_launch_tui, runner):
         """Test that providing a subcommand skips the TUI."""
-        result = runner.invoke(cli, ['health', '--help'])
+        runner.invoke(cli, ['health', '--help'])
 
         # TUI should NOT be launched when subcommand is provided
         assert not mock_launch_tui.called
