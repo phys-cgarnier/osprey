@@ -64,6 +64,7 @@ class LazyGroup(click.Group):
             "generate": "osprey.cli.generate_cmd",
             "remove": "osprey.cli.remove_cmd",
             "workflows": "osprey.cli.workflows_cmd",
+            "assist": "osprey.cli.assist_cmd",
         }
 
         if cmd_name not in commands:
@@ -88,7 +89,8 @@ class LazyGroup(click.Group):
 
     def list_commands(self, ctx):
         """Return list of available commands (for --help)."""
-        return ["init", "config", "deploy", "chat", "generate", "remove", "health", "workflows"]
+        # Note: 'workflows' is deprecated but kept in commands dict for backward compat
+        return ["init", "config", "deploy", "chat", "generate", "remove", "health", "assist"]
 
 
 @click.group(cls=LazyGroup, invoke_without_command=True)

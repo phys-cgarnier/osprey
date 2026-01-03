@@ -69,10 +69,10 @@ That's it—no code changes required. The template includes complete implementat
 
    .. code-block:: text
 
-      @src/osprey/workflows/channel-finder-pipeline-selection.md Help me select the right Channel Finder pipeline.
+      @src/osprey/assist/tasks/channel-finder-pipeline-selection/instructions.md Help me select the right Channel Finder pipeline.
 
    .. note::
-      First export workflows to your project: ``osprey workflows export``
+      List available tasks with: ``osprey assist list``
 
    For more information about AI-assisted development workflows, see :doc:`../contributing/03_ai-assisted-development`.
 
@@ -289,14 +289,14 @@ That's it—no code changes required. The template includes complete implementat
 
                .. code-block:: text
 
-                  @src/osprey/workflows/channel-finder-database-builder.md Help me build my Channel Finder database.
+                  @src/osprey/assist/tasks/channel-finder-database-builder/instructions.md Help me build my Channel Finder database.
 
                   I'm using the in-context pipeline with ~250 channels from a CSV export.
                   I have EPICS .db files with DESC fields and access to wiki page about out control system.
                   Guide me on writing descriptions that help the LLM distinguish between channels.
 
                .. note::
-                  First export workflows to your project: ``osprey workflows export``
+                  List available tasks with: ``osprey assist list``
 
                For more information about AI-assisted development workflows, see :doc:`../contributing/03_ai-assisted-development`.
 
@@ -960,14 +960,14 @@ That's it—no code changes required. The template includes complete implementat
 
                .. code-block:: text
 
-                  @src/osprey/workflows/channel-finder-database-builder.md Help me build my Channel Finder database.
+                  @src/osprey/assist/tasks/channel-finder-database-builder/instructions.md Help me build my Channel Finder database.
 
                   I'm using the hierarchical pipeline for an accelerator with ~1,050 channels.
                   My naming follows SYSTEM:FAMILY[DEVICE]:FIELD:SUBFIELD pattern.
                   Guide me on writing descriptions that help the LLM navigate the hierarchy correctly.
 
                .. note::
-                  First export workflows to your project: ``osprey workflows export``
+                  List available tasks with: ``osprey assist list``
 
                For more information about AI-assisted development workflows, see :doc:`../contributing/03_ai-assisted-development`.
 
@@ -1916,14 +1916,14 @@ That's it—no code changes required. The template includes complete implementat
 
                .. code-block:: text
 
-                  @src/osprey/workflows/channel-finder-database-builder.md Help me build my Channel Finder database.
+                  @src/osprey/assist/tasks/channel-finder-database-builder/instructions.md Help me build my Channel Finder database.
 
                   I'm using the middle layer pipeline for an accelerator with functional organization.
                   I have MATLAB Middle Layer exports and want to ensure rich descriptions at all levels.
                   Guide me on writing descriptions that help the agent explore the database effectively.
 
                .. note::
-                  First export workflows to your project: ``osprey workflows export``
+                  List available tasks with: ``osprey assist list``
 
                For more information about AI-assisted development workflows, see :doc:`../contributing/03_ai-assisted-development`.
 

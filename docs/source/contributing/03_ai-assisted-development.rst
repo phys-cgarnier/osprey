@@ -99,18 +99,30 @@ Osprey workflows work with AI coding assistants. Choose the tool that fits your 
 Accessing Workflow Files
 ------------------------
 
-Osprey's AI workflow files are bundled with the installed package and can be exported to your project for easy access by AI coding assistants.
+Osprey's AI workflow files are bundled with the installed package. You can access them in two ways:
 
-**First Time Setup**
+1. **Direct reference** - Point your AI assistant to the installed package files
+2. **Install to project** - Copy task files to your project for Claude Code skills
 
-Export workflows to your project directory:
+**Option 1: Direct Reference (Recommended)**
+
+Reference workflow files directly from the installed package:
+
+.. code-block:: text
+
+   @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md Scan my changes
+
+**Option 2: Install for Claude Code Skills**
+
+For Claude Code users, install tasks as skills:
 
 .. code-block:: bash
 
-   # From your project directory or anywhere
-   osprey workflows export
+   # List available tasks
+   osprey assist list
 
-This creates an ``osprey-workflows/`` directory containing all workflow files.
+   # Install a task (copies to .claude/skills/)
+   osprey assist install migrate
 
 .. dropdown:: Command Reference and Advanced Usage
    :color: info
@@ -120,65 +132,62 @@ This creates an ``osprey-workflows/`` directory containing all workflow files.
 
    .. code-block:: bash
 
-      # Export workflows to current directory (default: ./osprey-workflows/)
-      osprey workflows export
+      # List all available tasks
+      osprey assist list
 
-      # Export to custom location
-      osprey workflows export --output ~/my-workflows
+      # Show details about a specific task
+      osprey assist show migrate
 
-      # List all available workflows
-      osprey workflows list
+      # Install task for Claude Code
+      osprey assist install migrate
 
-      # Overwrite existing files without prompting
-      osprey workflows export --force
+      # Install with force overwrite
+      osprey assist install migrate --force
 
-   **Viewing Exported Workflows**
+   **Viewing Available Tasks**
 
-   After exporting, you can see all available workflow files:
+   List all tasks bundled with Osprey:
 
    .. code-block:: bash
 
-      # List exported workflows
-      ls osprey-workflows/
+      osprey assist list
 
-   This will show files like:
+   This will show tasks like:
 
    .. code-block:: text
 
-      README.md
-      ai-code-review.md
-      channel-finder-database-builder.md
-      channel-finder-pipeline-selection.md
-      comments.md
-      commit-organization.md
-      docstrings.md
-      pre-merge-cleanup.md
-      release-workflow.md
-      testing-workflow.md
-      update-documentation.md
+      migrate                          Upgrade downstream projects to newer OSPREY versions
+      testing-workflow                 Comprehensive testing guide
+      commit-organization              Organize changes into atomic commits
+      pre-merge-cleanup                Detect loose ends before merging
+      ai-code-review                   Review AI-generated code
+      docstrings                       Write Sphinx-compatible docstrings
+      comments                         Write purposeful inline comments
+      release-workflow                 Create releases with proper versioning
+      update-documentation             Keep docs in sync with code changes
 
    **Interactive Menu**
 
-   You can also export workflows from the interactive menu:
+   You can also access assist from the interactive menu:
 
    .. code-block:: bash
 
       # Launch interactive menu
       osprey
 
-      # Select: [>] workflows - Export AI workflow files
+      # Select: [>] assist - Coding assistant integrations
 
    **Version Updates**
 
-   Workflow files are version-locked with your installed Osprey version. After upgrading Osprey, re-export to get updated workflows:
+   Task files are version-locked with your installed Osprey version. After upgrading Osprey, reinstall tasks to get updates:
 
    .. code-block:: bash
 
       # After upgrading Osprey
       pip install --upgrade osprey-framework
 
-      # Re-export workflows
-      osprey workflows export --force
+      # Reinstall tasks
+      osprey assist install migrate --force
 
 ----
 
@@ -281,7 +290,7 @@ Detailed Workflow Guides
 🔍 Pre-Merge Cleanup
 ^^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/pre-merge-cleanup.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/pre-merge-cleanup/instructions.md>`_
 
 **Command Line:**
 
@@ -293,7 +302,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/workflows/pre-merge-cleanup.md Scan my uncommitted changes
+   @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md Scan my uncommitted changes
 
 **What it checks:**
 
@@ -310,13 +319,13 @@ Detailed Workflow Guides
 📦 Commit Organization
 ^^^^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/commit-organization.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/commit-organization/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/commit-organization.md Help me organize my commits
+   @src/osprey/assist/tasks/commit-organization/instructions.md Help me organize my commits
 
 **Best for:**
 
@@ -335,13 +344,13 @@ Detailed Workflow Guides
 🧪 Testing Strategy
 ^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/testing-workflow.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/testing-workflow/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/testing-workflow.md What type of test should I write?
+   @src/osprey/assist/tasks/testing-workflow/instructions.md What type of test should I write?
 
 **Decision Framework:**
 
@@ -369,13 +378,13 @@ Detailed Workflow Guides
 📚 Documentation Updates
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/update-documentation.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/update-documentation/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/update-documentation.md What docs need updating?
+   @src/osprey/assist/tasks/update-documentation/instructions.md What docs need updating?
 
 ----
 
@@ -384,13 +393,13 @@ Detailed Workflow Guides
 📝 Docstrings
 ^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/docstrings.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/docstrings/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/docstrings.md Write a docstring for this function
+   @src/osprey/assist/tasks/docstrings/instructions.md Write a docstring for this function
 
 ----
 
@@ -399,13 +408,13 @@ Detailed Workflow Guides
 💬 Comments
 ^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/comments.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/comments/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/comments.md Add comments to explain this logic
+   @src/osprey/assist/tasks/comments/instructions.md Add comments to explain this logic
 
 ----
 
@@ -414,13 +423,13 @@ Detailed Workflow Guides
 🤖 AI Code Review
 ^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/ai-code-review.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/ai-code-review/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/ai-code-review.md Review this AI-generated code
+   @src/osprey/assist/tasks/ai-code-review/instructions.md Review this AI-generated code
 
 ----
 
@@ -429,13 +438,13 @@ Detailed Workflow Guides
 🔍 Channel Finder Pipeline Selection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/channel-finder-pipeline-selection.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/channel-finder-pipeline-selection/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/channel-finder-pipeline-selection.md Help me select the right Channel Finder pipeline.
+   @src/osprey/assist/tasks/channel-finder-pipeline-selection/instructions.md Help me select the right Channel Finder pipeline.
 
 ----
 
@@ -444,13 +453,13 @@ Detailed Workflow Guides
 🗄️ Channel Finder Database Builder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/channel-finder-database-builder.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/channel-finder-database-builder/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/channel-finder-database-builder.md Help me build my Channel Finder database.
+   @src/osprey/assist/tasks/channel-finder-database-builder/instructions.md Help me build my Channel Finder database.
 
 
 ----
@@ -460,13 +469,13 @@ Detailed Workflow Guides
 🚢 Release Workflow
 ^^^^^^^^^^^^^^^^^^^
 
-`View workflow file <https://github.com/als-apg/osprey/blob/main/src/osprey/workflows/release-workflow.md>`_
+`View task file <https://github.com/als-apg/osprey/blob/main/src/osprey/assist/tasks/release-workflow/instructions.md>`_
 
 **Example:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/release-workflow.md Guide me through releasing v0.9.8
+   @src/osprey/assist/tasks/release-workflow/instructions.md Guide me through releasing v0.9.8
 
 ----
 
@@ -499,42 +508,42 @@ Example: Adding a Capability with AI
 
 .. code-block:: text
 
-   @src/osprey/workflows/ + @docs/source/developer-guides/
+   @src/osprey/assist/tasks/ + @docs/source/developer-guides/
    I want to add a capability for archiver data. Help me plan the implementation.
 
 **2. Write the code and docstrings:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/docstrings.md
+   @src/osprey/assist/tasks/docstrings/instructions.md
    Write a docstring for my new capability class
 
 **3. Add appropriate tests:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/testing-workflow.md
+   @src/osprey/assist/tasks/testing-workflow/instructions.md
    My capability calls an external API. Should I write unit or integration tests?
 
 **4. Update documentation:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/update-documentation.md
+   @src/osprey/assist/tasks/update-documentation/instructions.md
    I added a new archiver capability. What documentation needs updating?
 
 **5. Pre-commit cleanup:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/pre-merge-cleanup.md
+   @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md
    Scan my uncommitted changes for issues
 
 **6. Organize commits:**
 
 .. code-block:: text
 
-   @src/osprey/workflows/commit-organization.md
+   @src/osprey/assist/tasks/commit-organization/instructions.md
    Help me organize these changes into atomic commits with CHANGELOG entries
 
 ----
@@ -543,11 +552,11 @@ Example: Adding a Capability with AI
 
    **Explore More:**
 
-   - List available workflows: ``osprey workflows list``
+   - List available tasks: ``osprey assist list``
    - :doc:`02_code-standards` for coding conventions
    - :doc:`index` for environment setup
    - :doc:`../developer-guides/index` for technical guides
 
    **Get Started:**
 
-   Export workflows (``osprey workflows export``) and pick one to try with your next change!
+   Run ``osprey assist list`` to see available tasks, then reference one with your next change!

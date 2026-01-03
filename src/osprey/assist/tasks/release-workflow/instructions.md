@@ -92,7 +92,13 @@ If any step fails, help me troubleshoot before continuing.
    - All breaking changes noted?
    - Migration steps included if needed?
 
-4. **Plan Release Notes**
+4. **Check for Breaking Changes → Migration Document**
+   - Does CHANGELOG "Changed" or "Removed" section affect public API?
+   - If YES: Follow the migration workflow to create migration document
+   - Migration document must be committed before tagging release
+   - See: `src/osprey/assist/tasks/migrate/authoring/README.md`
+
+5. **Plan Release Notes**
    - Identify the top 3-5 features to highlight
    - Note any important upgrade instructions
    - Prepare user-facing descriptions

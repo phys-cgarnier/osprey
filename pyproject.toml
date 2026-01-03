@@ -199,7 +199,10 @@ include = ["osprey*"]
     "templates/**/*.css",
     "templates/**/*.js",
     "templates/**/*.json",
-    "workflows/*.md",  # AI workflow documentation files
+    "workflows/*.md",  # Legacy workflow files (deprecated, use assist/)
+    "assist/**/*.md",  # Coding assistant task instructions
+    "assist/**/*.yml",  # Migration documents and schemas
+    "assist/**/*.yaml",
 ]
 
 # Development tool configurations

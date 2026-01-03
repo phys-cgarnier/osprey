@@ -618,7 +618,7 @@ def get_project_menu_choices(exit_action: str = "exit") -> list[Choice]:
         Choice("[>] generate    - Generate components", value="generate"),
         Choice("[>] config      - Configuration settings", value="config"),
         Choice("[>] registry    - Show registry contents", value="registry"),
-        Choice("[>] workflows   - Export AI workflow files", value="workflows"),
+        Choice("[>] assist      - Coding assistant tasks", value="assist"),
         Choice("─" * 60, value=None, disabled=True),
         Choice("[+] init        - Create new project", value="init_interactive"),
         Choice("[?] help        - Show all commands", value="help"),
@@ -1647,8 +1647,8 @@ def handle_project_selection(project_path: Path):
             from osprey.cli.registry_cmd import handle_registry_action
 
             handle_registry_action(project_path=project_path)
-        elif action == "workflows":
-            handle_workflows_action()
+        elif action == "assist":
+            handle_assist_action()
         elif action == "init_interactive":
             # Save current directory before init flow
             original_dir = Path.cwd()
@@ -2177,6 +2177,86 @@ def handle_workflows_action():
         console.print(f"\n{Messages.error(f'Export failed: {e}')}")
 
     input("\nPress ENTER to continue...")
+
+
+def handle_assist_action():
+    """Handle assist (coding assistant integrations) action from interactive menu.
+
+    Shows available tasks and allows installing integrations for coding assistants.
+    """
+    from questionary import Choice
+
+    from osprey.cli.assist_cmd import (
+        get_assist_root,
+        get_available_integrations,
+        get_available_tasks,
+        install_task,
+    )
+
+    while True:
+        console.print(f"\n{Messages.header('Coding Assistant Integrations')}")
+        console.print(
+            f"[{Styles.DIM}]Install task-specific integrations for AI coding assistants[/{Styles.DIM}]\n"
+        )
+
+        tasks = get_available_tasks()
+
+        if not tasks:
+            console.print(Messages.warning("No tasks available"))
+            input("\nPress ENTER to continue...")
+            return
+
+        # Build choices from available tasks
+        choices = []
+        for task in tasks:
+            task_dir = get_assist_root() / "tasks" / task
+            instructions_file = task_dir / "instructions.md"
+
+            # Get first non-header line as description
+            description = ""
+            if instructions_file.exists():
+                with open(instructions_file) as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            description = line[:50] + "..." if len(line) > 50 else line
+                            break
+
+            # Check which integrations exist
+            integrations = get_available_integrations()
+            available_for = []
+            for integration in integrations:
+                integration_path = get_assist_root() / "integrations" / integration / task
+                if integration_path.exists():
+                    available_for.append(integration.replace("_", " ").title())
+
+            label = f"[>] {task:12} - {description}"
+            if available_for:
+                label += f" [{', '.join(available_for)}]"
+            choices.append(Choice(label, value=task))
+
+        choices.append(Choice("─" * 60, value=None, disabled=True))
+        choices.append(Choice("[<] back        - Return to main menu", value="back"))
+
+        action = questionary.select(
+            "Select a task to install:",
+            choices=choices,
+            style=custom_style,
+        ).ask()
+
+        if action is None or action == "back":
+            return
+
+        # Install the selected task
+        console.print(f"\n{Messages.header(f'Installing: {action}')}\n")
+
+        # Use click's context to invoke the install command
+        import click
+
+        ctx = click.Context(install_task)
+        ctx.invoke(install_task, task=action, tool=None, force=False)
+
+        input("\nPress ENTER to continue...")
 
 
 def handle_export_action(project_path: Path | None = None):
@@ -3260,8 +3340,8 @@ def navigation_loop():
             from osprey.cli.registry_cmd import handle_registry_action
 
             handle_registry_action()
-        elif action == "workflows":
-            handle_workflows_action()
+        elif action == "assist":
+            handle_assist_action()
         elif action == "help":
             # Show contextual help based on whether we're in a project or not
             if is_project_initialized():

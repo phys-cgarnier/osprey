@@ -7,8 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **Documentation**: Fixed workflow file references to use correct `@src/osprey/workflows/` path for copy-paste into Claude Code and Cursor
+### Added
+- **CLI**: New `osprey assist` command for coding assistant integrations
+  - `osprey assist list` - List available tasks
+  - `osprey assist show <task>` - Show task details and available integrations
+  - `osprey assist install <task>` - Install task for detected coding assistant
+  - Auto-detects Claude Code, Cursor, and other AI coding tools
+- **Assist System**: General-purpose architecture for AI coding assistant integrations
+  - Tool-agnostic task instructions in `src/osprey/assist/tasks/`
+  - Thin tool-specific wrappers in `src/osprey/assist/integrations/`
+  - Pre-commit task for validating code before commits
+  - Migration task for upgrading downstream OSPREY projects
+- **Tests**: 30 new tests for `assist_cmd.py` covering list/show/install commands
+
+### Changed
+- **CLI**: Deprecated `osprey workflows` command (use `osprey assist` instead)
+  - Command still works for backward compatibility but shows deprecation warning
+  - Now reads from `assist/tasks/` directory instead of separate `workflows/` directory
+- **Documentation**: Updated workflow references to use new `assist/tasks/` paths
+  - Updated `contributing/03_ai-assisted-development.rst`
+  - Updated `getting-started/control-assistant-part2-channel-finder.rst`
+  - Updated `CLAUDE.md` with new assist task references
+
+### Removed
+- **Workflows**: Removed duplicate workflow files from `src/osprey/workflows/`
+  - Content consolidated into `src/osprey/assist/tasks/{name}/instructions.md`
+  - Only `README.md` deprecation notice remains in workflows directory
 
 ## [0.9.10] - 2025-01-03
 
