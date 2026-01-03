@@ -102,7 +102,7 @@ Accessing Workflow Files
 Osprey's AI workflow files are bundled with the installed package. You can access them in two ways:
 
 1. **Direct reference** - Point your AI assistant to the installed package files
-2. **Install to project** - Copy task files to your project for Claude Code skills
+2. **Install to project** - Install tasks as Claude Code skills
 
 **Option 1: Direct Reference (Recommended)**
 
@@ -112,37 +112,44 @@ Reference workflow files directly from the installed package:
 
    @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md Scan my changes
 
-**Option 2: Install for Claude Code Skills**
+**Option 2: Install as Claude Code Skills**
 
 For Claude Code users, install tasks as skills:
 
 .. code-block:: bash
 
    # List available tasks
-   osprey assist list
+   osprey tasks list
 
-   # Install a task (copies to .claude/skills/)
-   osprey assist install migrate
+   # Install a task as a Claude Code skill
+   osprey claude install migrate
 
 .. dropdown:: Command Reference and Advanced Usage
    :color: info
    :icon: terminal
 
-   **Available Commands**
+   **Task Commands** (browse available tasks)
 
    .. code-block:: bash
 
       # List all available tasks
-      osprey assist list
+      osprey tasks list
 
       # Show details about a specific task
-      osprey assist show migrate
+      osprey tasks show migrate
 
-      # Install task for Claude Code
-      osprey assist install migrate
+   **Claude Commands** (manage Claude Code skills)
+
+   .. code-block:: bash
+
+      # Install task as Claude Code skill
+      osprey claude install migrate
 
       # Install with force overwrite
-      osprey assist install migrate --force
+      osprey claude install migrate --force
+
+      # List installed and available skills
+      osprey claude list
 
    **Viewing Available Tasks**
 
@@ -150,13 +157,14 @@ For Claude Code users, install tasks as skills:
 
    .. code-block:: bash
 
-      osprey assist list
+      osprey tasks list
 
    This will show tasks like:
 
    .. code-block:: text
 
       migrate                          Upgrade downstream projects to newer OSPREY versions
+      pre-commit                       Validate code before commits
       testing-workflow                 Comprehensive testing guide
       commit-organization              Organize changes into atomic commits
       pre-merge-cleanup                Detect loose ends before merging
@@ -168,14 +176,15 @@ For Claude Code users, install tasks as skills:
 
    **Interactive Menu**
 
-   You can also access assist from the interactive menu:
+   You can also access tasks from the interactive menu:
 
    .. code-block:: bash
 
       # Launch interactive menu
       osprey
 
-      # Select: [>] assist - Coding assistant integrations
+      # Select: [>] tasks - Browse AI assistant tasks
+      # Or: [>] claude - Manage Claude Code skills
 
    **Version Updates**
 
@@ -187,7 +196,7 @@ For Claude Code users, install tasks as skills:
       pip install --upgrade osprey-framework
 
       # Reinstall tasks
-      osprey assist install migrate --force
+      osprey claude install migrate --force
 
 ----
 

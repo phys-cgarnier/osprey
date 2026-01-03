@@ -618,7 +618,8 @@ def get_project_menu_choices(exit_action: str = "exit") -> list[Choice]:
         Choice("[>] generate    - Generate components", value="generate"),
         Choice("[>] config      - Configuration settings", value="config"),
         Choice("[>] registry    - Show registry contents", value="registry"),
-        Choice("[>] assist      - Coding assistant tasks", value="assist"),
+        Choice("[>] tasks       - Browse AI assistant tasks", value="tasks"),
+        Choice("[>] claude      - Manage Claude Code skills", value="claude"),
         Choice("─" * 60, value=None, disabled=True),
         Choice("[+] init        - Create new project", value="init_interactive"),
         Choice("[?] help        - Show all commands", value="help"),
@@ -1647,8 +1648,10 @@ def handle_project_selection(project_path: Path):
             from osprey.cli.registry_cmd import handle_registry_action
 
             handle_registry_action(project_path=project_path)
-        elif action == "assist":
-            handle_assist_action()
+        elif action == "tasks":
+            handle_tasks_action()
+        elif action == "claude":
+            handle_claude_action()
         elif action == "init_interactive":
             # Save current directory before init flow
             original_dir = Path.cwd()
@@ -2179,67 +2182,102 @@ def handle_workflows_action():
     input("\nPress ENTER to continue...")
 
 
-def handle_assist_action():
-    """Handle assist (coding assistant integrations) action from interactive menu.
+def handle_tasks_action():
+    """Handle tasks browsing action from interactive menu.
 
-    Shows available tasks and allows installing integrations for coding assistants.
+    Shows available tasks that can be installed for coding assistants.
+    """
+    from osprey.cli.tasks_cmd import get_available_tasks, get_tasks_root
+
+    console.print(f"\n{Messages.header('AI Assistant Tasks')}")
+    console.print(f"[{Styles.DIM}]Browse available tasks for AI coding assistants[/{Styles.DIM}]\n")
+
+    tasks = get_available_tasks()
+
+    if not tasks:
+        console.print(Messages.warning("No tasks available"))
+        input("\nPress ENTER to continue...")
+        return
+
+    # Show tasks with descriptions
+    for task in tasks:
+        task_dir = get_tasks_root() / task
+        instructions_file = task_dir / "instructions.md"
+
+        # Get first non-header, non-frontmatter line as description
+        description = ""
+        if instructions_file.exists():
+            with open(instructions_file) as f:
+                in_frontmatter = False
+                for line in f:
+                    line = line.strip()
+                    if line == "---":
+                        in_frontmatter = not in_frontmatter
+                        continue
+                    if in_frontmatter:
+                        continue
+                    if line and not line.startswith("#"):
+                        description = line[:55] + "..." if len(line) > 55 else line
+                        break
+
+        console.print(f"  [{Styles.SUCCESS}]{task}[/{Styles.SUCCESS}]")
+        if description:
+            console.print(f"    {description}")
+
+    console.print(f"\n{Messages.info('View details:')} osprey tasks show <task>")
+    console.print(f"{Messages.info('Install for Claude Code:')} osprey claude install <task>")
+
+    input("\nPress ENTER to continue...")
+
+
+def handle_claude_action():
+    """Handle Claude Code skill management action from interactive menu.
+
+    Shows installed skills and allows installing new ones.
     """
     from questionary import Choice
 
-    from osprey.cli.assist_cmd import (
-        get_assist_root,
-        get_available_integrations,
+    from osprey.cli.claude_cmd import (
         get_available_tasks,
-        install_task,
+        get_installed_skills,
+        get_integrations_root,
+        install_skill,
     )
 
     while True:
-        console.print(f"\n{Messages.header('Coding Assistant Integrations')}")
-        console.print(
-            f"[{Styles.DIM}]Install task-specific integrations for AI coding assistants[/{Styles.DIM}]\n"
-        )
+        console.print(f"\n{Messages.header('Claude Code Skills')}")
+        console.print(f"[{Styles.DIM}]Install and manage Claude Code skills[/{Styles.DIM}]\n")
 
-        tasks = get_available_tasks()
+        installed = get_installed_skills()
+        available = get_available_tasks()
 
-        if not tasks:
-            console.print(Messages.warning("No tasks available"))
-            input("\nPress ENTER to continue...")
-            return
+        # Show installed skills
+        if installed:
+            console.print("[dim]Installed:[/dim]")
+            for skill in installed:
+                console.print(f"  [{Styles.SUCCESS}]✓[/{Styles.SUCCESS}] {skill}")
+            console.print()
 
-        # Build choices from available tasks
+        # Build choices for installable skills
         choices = []
-        for task in tasks:
-            task_dir = get_assist_root() / "tasks" / task
-            instructions_file = task_dir / "instructions.md"
+        for task in available:
+            if task not in installed:
+                # Check if Claude integration exists
+                integration_dir = get_integrations_root() / "claude_code" / task
+                if integration_dir.exists():
+                    choices.append(Choice(f"[+] Install: {task}", value=task))
 
-            # Get first non-header line as description
-            description = ""
-            if instructions_file.exists():
-                with open(instructions_file) as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#"):
-                            description = line[:50] + "..." if len(line) > 50 else line
-                            break
-
-            # Check which integrations exist
-            integrations = get_available_integrations()
-            available_for = []
-            for integration in integrations:
-                integration_path = get_assist_root() / "integrations" / integration / task
-                if integration_path.exists():
-                    available_for.append(integration.replace("_", " ").title())
-
-            label = f"[>] {task:12} - {description}"
-            if available_for:
-                label += f" [{', '.join(available_for)}]"
-            choices.append(Choice(label, value=task))
+        if not choices:
+            if installed:
+                console.print("[dim]All available skills are installed.[/dim]")
+            else:
+                console.print("[dim]No skills available to install.[/dim]")
 
         choices.append(Choice("─" * 60, value=None, disabled=True))
         choices.append(Choice("[<] back        - Return to main menu", value="back"))
 
         action = questionary.select(
-            "Select a task to install:",
+            "Select a skill to install:",
             choices=choices,
             style=custom_style,
         ).ask()
@@ -2247,14 +2285,13 @@ def handle_assist_action():
         if action is None or action == "back":
             return
 
-        # Install the selected task
-        console.print(f"\n{Messages.header(f'Installing: {action}')}\n")
+        # Install the selected skill
+        console.print(f"\n{Messages.header(f'Installing Claude Code skill: {action}')}\n")
 
-        # Use click's context to invoke the install command
         import click
 
-        ctx = click.Context(install_task)
-        ctx.invoke(install_task, task=action, tool=None, force=False)
+        ctx = click.Context(install_skill)
+        ctx.invoke(install_skill, task=action, force=False)
 
         input("\nPress ENTER to continue...")
 
@@ -3340,8 +3377,10 @@ def navigation_loop():
             from osprey.cli.registry_cmd import handle_registry_action
 
             handle_registry_action()
-        elif action == "assist":
-            handle_assist_action()
+        elif action == "tasks":
+            handle_tasks_action()
+        elif action == "claude":
+            handle_claude_action()
         elif action == "help":
             # Show contextual help based on whether we're in a project or not
             if is_project_initialized():

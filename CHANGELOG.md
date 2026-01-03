@@ -8,26 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **CLI**: New `osprey assist` command for coding assistant integrations
-  - `osprey assist list` - List available tasks
-  - `osprey assist show <task>` - Show task details and available integrations
-  - `osprey assist install <task>` - Install task for detected coding assistant
-  - Auto-detects Claude Code, Cursor, and other AI coding tools
+- **CLI**: New `osprey tasks` command for browsing AI assistant tasks
+  - `osprey tasks list` - List all available tasks
+  - `osprey tasks show <task>` - Show task details and available integrations
+- **CLI**: New `osprey claude` command for Claude Code skill management
+  - `osprey claude install <task>` - Install a task as a Claude Code skill
+  - `osprey claude list` - List installed and available skills
 - **Assist System**: General-purpose architecture for AI coding assistant integrations
   - Tool-agnostic task instructions in `src/osprey/assist/tasks/`
-  - Thin tool-specific wrappers in `src/osprey/assist/integrations/`
+  - Tool-specific wrappers in `src/osprey/assist/integrations/`
   - Pre-commit task for validating code before commits
   - Migration task for upgrading downstream OSPREY projects
-- **Tests**: 30 new tests for `assist_cmd.py` covering list/show/install commands
+- **Tests**: Comprehensive tests for `tasks_cmd.py` and `claude_cmd.py`
 
 ### Changed
-- **CLI**: Deprecated `osprey workflows` command (use `osprey assist` instead)
-  - Command still works for backward compatibility but shows deprecation warning
-  - Now reads from `assist/tasks/` directory instead of separate `workflows/` directory
-- **Documentation**: Updated workflow references to use new `assist/tasks/` paths
-  - Updated `contributing/03_ai-assisted-development.rst`
-  - Updated `getting-started/control-assistant-part2-channel-finder.rst`
-  - Updated `CLAUDE.md` with new assist task references
+- **CLI**: Deprecated `osprey workflows` command (use `osprey tasks` instead)
+- **CLI**: Deprecated `osprey assist` command (use `osprey tasks` and `osprey claude` instead)
+  - Both commands still work for backward compatibility but show deprecation warnings
+- **Documentation**: Updated workflow references to use new command structure
+  - `osprey tasks list` for browsing tasks
+  - `osprey claude install <task>` for installing Claude Code skills
 
 ### Removed
 - **Workflows**: Removed duplicate workflow files from `src/osprey/workflows/`
