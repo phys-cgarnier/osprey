@@ -19,35 +19,34 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
 
 # Coverage targets from COVERAGE_EXPANSION_PLAN.md
 COVERAGE_TARGETS = {
-    'overall': 75,
-    'cli': 60,
-    'infrastructure': 70,
-    'models': 60,
-    'deployment': 60,
-    'services': 70,
-    'connectors': 70,
-    'prompts': 70,
+    "overall": 75,
+    "cli": 60,
+    "infrastructure": 70,
+    "models": 60,
+    "deployment": 60,
+    "services": 70,
+    "connectors": 70,
+    "prompts": 70,
 }
 
 # Module mappings
 MODULE_PATHS = {
-    'cli': 'src/osprey/cli/',
-    'infrastructure': 'src/osprey/infrastructure/',
-    'models': 'src/osprey/models/',
-    'deployment': 'src/osprey/deployment/',
-    'services': 'src/osprey/services/',
-    'connectors': 'src/osprey/connectors/',
-    'prompts': 'src/osprey/prompts/',
+    "cli": "src/osprey/cli/",
+    "infrastructure": "src/osprey/infrastructure/",
+    "models": "src/osprey/models/",
+    "deployment": "src/osprey/deployment/",
+    "services": "src/osprey/services/",
+    "connectors": "src/osprey/connectors/",
+    "prompts": "src/osprey/prompts/",
 }
 
 
-def parse_coverage_json() -> Dict:
+def parse_coverage_json() -> dict:
     """Parse the coverage JSON file."""
-    coverage_file = Path('coverage.json')
+    coverage_file = Path("coverage.json")
 
     if not coverage_file.exists():
         print("❌ coverage.json not found. Run with coverage first.")
@@ -57,56 +56,58 @@ def parse_coverage_json() -> Dict:
         return json.load(f)
 
 
-def calculate_module_coverage(coverage_data: Dict, module_path: str) -> Dict:
+def calculate_module_coverage(coverage_data: dict, module_path: str) -> dict:
     """Calculate coverage for a specific module."""
-    files = coverage_data.get('files', {})
+    files = coverage_data.get("files", {})
 
     total_lines = 0
     covered_lines = 0
     module_files = []
 
     for filepath, file_data in files.items():
-        if module_path in filepath and not filepath.endswith('__init__.py'):
-            summary = file_data.get('summary', {})
-            total = summary.get('num_statements', 0)
-            covered = summary.get('covered_lines', 0)
+        if module_path in filepath and not filepath.endswith("__init__.py"):
+            summary = file_data.get("summary", {})
+            total = summary.get("num_statements", 0)
+            covered = summary.get("covered_lines", 0)
 
             total_lines += total
             covered_lines += covered
 
             file_coverage = (covered / total * 100) if total > 0 else 100
-            module_files.append({
-                'file': Path(filepath).name,
-                'coverage': file_coverage,
-                'total_lines': total,
-                'covered_lines': covered,
-                'missing_lines': total - covered,
-            })
+            module_files.append(
+                {
+                    "file": Path(filepath).name,
+                    "coverage": file_coverage,
+                    "total_lines": total,
+                    "covered_lines": covered,
+                    "missing_lines": total - covered,
+                }
+            )
 
     coverage_pct = (covered_lines / total_lines * 100) if total_lines > 0 else 0
 
     return {
-        'coverage': coverage_pct,
-        'total_lines': total_lines,
-        'covered_lines': covered_lines,
-        'missing_lines': total_lines - covered_lines,
-        'files': sorted(module_files, key=lambda x: x['coverage']),
+        "coverage": coverage_pct,
+        "total_lines": total_lines,
+        "covered_lines": covered_lines,
+        "missing_lines": total_lines - covered_lines,
+        "files": sorted(module_files, key=lambda x: x["coverage"]),
     }
 
 
-def print_overall_summary(coverage_data: Dict):
+def print_overall_summary(coverage_data: dict):
     """Print overall coverage summary."""
-    overall = coverage_data.get('totals', {})
-    total_statements = overall.get('num_statements', 0)
-    covered = overall.get('covered_lines', 0)
+    overall = coverage_data.get("totals", {})
+    total_statements = overall.get("num_statements", 0)
+    covered = overall.get("covered_lines", 0)
     coverage_pct = (covered / total_statements * 100) if total_statements > 0 else 0
 
-    target = COVERAGE_TARGETS['overall']
+    target = COVERAGE_TARGETS["overall"]
     progress = (coverage_pct / target * 100) if target > 0 else 0
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("📊 OVERALL TEST COVERAGE SUMMARY")
-    print("="*70)
+    print("=" * 70)
     print(f"Current Coverage: {coverage_pct:.1f}%")
     print(f"Target Coverage:  {target}%")
     print(f"Progress:         {progress:.1f}% of target")
@@ -118,7 +119,7 @@ def print_overall_summary(coverage_data: Dict):
     # Progress bar
     bar_width = 50
     filled = int(bar_width * coverage_pct / 100)
-    bar = '█' * filled + '░' * (bar_width - filled)
+    bar = "█" * filled + "░" * (bar_width - filled)
     print(f"\n[{bar}] {coverage_pct:.1f}%")
 
     # Status
@@ -132,17 +133,17 @@ def print_overall_summary(coverage_data: Dict):
         print("\n🔴 More work needed to reach target coverage.")
 
 
-def print_module_summary(coverage_data: Dict):
+def print_module_summary(coverage_data: dict):
     """Print coverage summary by module."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("📦 MODULE COVERAGE BREAKDOWN")
-    print("="*70)
+    print("=" * 70)
     print(f"{'Module':<20} {'Current':<12} {'Target':<12} {'Gap':<12} {'Status':<10}")
     print("-" * 70)
 
     for module_name, module_path in MODULE_PATHS.items():
         module_stats = calculate_module_coverage(coverage_data, module_path)
-        coverage = module_stats['coverage']
+        coverage = module_stats["coverage"]
         target = COVERAGE_TARGETS.get(module_name, 70)
         gap = max(0, target - coverage)
 
@@ -156,17 +157,19 @@ def print_module_summary(coverage_data: Dict):
         else:
             status = "🔴 Needs work"
 
-        print(f"{module_name:<20} {coverage:>5.1f}% "
-              f"{' ':>5} {target:>5}% "
-              f"{' ':>5} {gap:>5.1f}% "
-              f"{' ':>5} {status}")
+        print(
+            f"{module_name:<20} {coverage:>5.1f}% "
+            f"{' ':>5} {target:>5}% "
+            f"{' ':>5} {gap:>5.1f}% "
+            f"{' ':>5} {status}"
+        )
 
 
-def print_worst_files(coverage_data: Dict, limit: int = 10):
+def print_worst_files(coverage_data: dict, limit: int = 10):
     """Print files with worst coverage as testing candidates."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"🔍 TOP {limit} FILES - TESTING CANDIDATES")
-    print("="*70)
+    print("=" * 70)
     print("NOTE: These are candidates for testing, not a mandate.")
     print("      Some files may be better suited for integration tests,")
     print("      or may be genuinely hard to test in isolation. Use judgment.")
@@ -174,46 +177,48 @@ def print_worst_files(coverage_data: Dict, limit: int = 10):
     print(f"{'File':<45} {'Coverage':<12} {'Missing Lines'}")
     print("-" * 70)
 
-    files = coverage_data.get('files', {})
+    files = coverage_data.get("files", {})
     file_list = []
 
     for filepath, file_data in files.items():
         # Skip test files and __init__.py
-        if 'tests/' in filepath or '__init__.py' in filepath:
+        if "tests/" in filepath or "__init__.py" in filepath:
             continue
 
-        summary = file_data.get('summary', {})
-        total = summary.get('num_statements', 0)
-        covered = summary.get('covered_lines', 0)
+        summary = file_data.get("summary", {})
+        total = summary.get("num_statements", 0)
+        covered = summary.get("covered_lines", 0)
 
         if total == 0:
             continue
 
-        coverage_pct = (covered / total * 100)
+        coverage_pct = covered / total * 100
         missing = total - covered
 
-        file_list.append({
-            'path': filepath,
-            'name': Path(filepath).name,
-            'coverage': coverage_pct,
-            'missing': missing,
-        })
+        file_list.append(
+            {
+                "path": filepath,
+                "name": Path(filepath).name,
+                "coverage": coverage_pct,
+                "missing": missing,
+            }
+        )
 
     # Sort by coverage (lowest first)
-    file_list.sort(key=lambda x: x['coverage'])
+    file_list.sort(key=lambda x: x["coverage"])
 
     for item in file_list[:limit]:
-        name = item['name']
+        name = item["name"]
         if len(name) > 40:
-            name = '...' + name[-37:]
+            name = "..." + name[-37:]
 
-        coverage = item['coverage']
-        missing = item['missing']
+        coverage = item["coverage"]
+        missing = item["missing"]
 
         print(f"{name:<45} {coverage:>5.1f}% {' ':>5} {missing:>6} lines")
 
 
-def print_module_detail(coverage_data: Dict, module_name: str):
+def print_module_detail(coverage_data: dict, module_name: str):
     """Print detailed coverage for a specific module."""
     if module_name not in MODULE_PATHS:
         print(f"❌ Unknown module: {module_name}")
@@ -223,26 +228,26 @@ def print_module_detail(coverage_data: Dict, module_name: str):
     module_path = MODULE_PATHS[module_name]
     module_stats = calculate_module_coverage(coverage_data, module_path)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"📦 {module_name.upper()} MODULE COVERAGE DETAIL")
-    print("="*70)
+    print("=" * 70)
     print(f"Coverage:      {module_stats['coverage']:.1f}%")
     print(f"Target:        {COVERAGE_TARGETS.get(module_name, 70)}%")
     print(f"Total Lines:   {module_stats['total_lines']:,}")
     print(f"Covered Lines: {module_stats['covered_lines']:,}")
     print(f"Missing Lines: {module_stats['missing_lines']:,}")
 
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print(f"{'File':<40} {'Coverage':<12} {'Missing Lines'}")
     print("-" * 70)
 
-    for file_info in module_stats['files']:
-        name = file_info['file']
+    for file_info in module_stats["files"]:
+        name = file_info["file"]
         if len(name) > 35:
-            name = '...' + name[-32:]
+            name = "..." + name[-32:]
 
-        coverage = file_info['coverage']
-        missing = file_info['missing_lines']
+        coverage = file_info["coverage"]
+        missing = file_info["missing_lines"]
 
         # Color code by coverage
         if coverage >= COVERAGE_TARGETS.get(module_name, 70):
@@ -255,19 +260,19 @@ def print_module_detail(coverage_data: Dict, module_name: str):
         print(f"{marker} {name:<38} {coverage:>5.1f}% {' ':>5} {missing:>6} lines")
 
 
-def save_baseline(coverage_data: Dict):
+def save_baseline(coverage_data: dict):
     """Save current coverage as baseline."""
-    baseline_file = Path('_ISSUES/coverage_baseline.json')
+    baseline_file = Path("_ISSUES/coverage_baseline.json")
     baseline_file.parent.mkdir(parents=True, exist_ok=True)
 
     baseline = {
-        'timestamp': datetime.now().isoformat(),
-        'overall_coverage': coverage_data['totals']['percent_covered'],
-        'total_statements': coverage_data['totals']['num_statements'],
-        'covered_lines': coverage_data['totals']['covered_lines'],
+        "timestamp": datetime.now().isoformat(),
+        "overall_coverage": coverage_data["totals"]["percent_covered"],
+        "total_statements": coverage_data["totals"]["num_statements"],
+        "covered_lines": coverage_data["totals"]["covered_lines"],
     }
 
-    with open(baseline_file, 'w') as f:
+    with open(baseline_file, "w") as f:
         json.dump(baseline, f, indent=2)
 
     print(f"\n✅ Baseline saved to {baseline_file}")
@@ -275,9 +280,9 @@ def save_baseline(coverage_data: Dict):
     print(f"   Timestamp: {baseline['timestamp']}")
 
 
-def compare_to_baseline(coverage_data: Dict):
+def compare_to_baseline(coverage_data: dict):
     """Compare current coverage to baseline."""
-    baseline_file = Path('_ISSUES/coverage_baseline.json')
+    baseline_file = Path("_ISSUES/coverage_baseline.json")
 
     if not baseline_file.exists():
         print("❌ No baseline found. Run with --baseline to create one.")
@@ -286,14 +291,14 @@ def compare_to_baseline(coverage_data: Dict):
     with open(baseline_file) as f:
         baseline = json.load(f)
 
-    current_coverage = coverage_data['totals']['percent_covered']
-    baseline_coverage = baseline['overall_coverage']
+    current_coverage = coverage_data["totals"]["percent_covered"]
+    baseline_coverage = baseline["overall_coverage"]
 
     diff = current_coverage - baseline_coverage
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("📈 COVERAGE PROGRESS SINCE BASELINE")
-    print("="*70)
+    print("=" * 70)
     print(f"Baseline Date:     {baseline['timestamp']}")
     print(f"Baseline Coverage: {baseline_coverage:.1f}%")
     print(f"Current Coverage:  {current_coverage:.1f}%")
@@ -309,20 +314,17 @@ def compare_to_baseline(coverage_data: Dict):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Analyze existing coverage data (no test execution)'
+        description="Analyze existing coverage data (no test execution)"
     )
-    parser.add_argument('--module', '-m', help='Show detail for specific module')
-    parser.add_argument('--baseline', '-b', action='store_true',
-                       help='Save current as baseline')
-    parser.add_argument('--compare', '-c', action='store_true',
-                       help='Compare to baseline')
-    parser.add_argument('--worst', '-w', type=int, default=10,
-                       help='Number of worst files to show')
+    parser.add_argument("--module", "-m", help="Show detail for specific module")
+    parser.add_argument("--baseline", "-b", action="store_true", help="Save current as baseline")
+    parser.add_argument("--compare", "-c", action="store_true", help="Compare to baseline")
+    parser.add_argument("--worst", "-w", type=int, default=10, help="Number of worst files to show")
 
     args = parser.parse_args()
 
     # Check if coverage data exists
-    if not Path('coverage.json').exists():
+    if not Path("coverage.json").exists():
         print("❌ No coverage.json found.\n")
         print("Generate it first by running:")
         print("  pytest --cov=src/osprey --cov-report=json --ignore=tests/e2e/\n")
@@ -354,7 +356,7 @@ def main():
     print_module_summary(coverage_data)
     print_worst_files(coverage_data, limit=args.worst)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("💡 TIPS:")
     print("   • Use --module <name> for detailed module analysis")
     print("     Example: python scripts/analyze_coverage.py --module cli")
@@ -362,9 +364,8 @@ def main():
     print("   • Some files are hard to test in isolation - that's okay!")
     print("   • Consider integration tests for complex subsystems")
     print("   • Focus on high-value, testable code first")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

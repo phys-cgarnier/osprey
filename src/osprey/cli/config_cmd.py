@@ -274,7 +274,8 @@ def export(output: str, format: str):
         # Output to file or console
         if output:
             output_path = Path(output)
-            output_path.write_text(output_str)
+            # Use UTF-8 encoding explicitly to support Unicode characters on Windows
+            output_path.write_text(output_str, encoding="utf-8")
             console.print(f"✅ Configuration exported to: [bold]{output_path}[/bold]")
         else:
             # Print to console with syntax highlighting
@@ -359,7 +360,8 @@ def set_control_system(system_type: str, project: str):
 
         # Update configuration
         new_content, preview = set_control_system_type(config_path, system_type.lower())
-        config_path.write_text(new_content)
+        # Use UTF-8 encoding explicitly to support Unicode characters on Windows
+        config_path.write_text(new_content, encoding="utf-8")
 
         console.print(f"✅ Control system type updated to: [bold]{system_type}[/bold]")
         console.print(f"   Configuration: {config_path}", style=Styles.DIM)
@@ -442,7 +444,8 @@ def set_epics_gateway(facility: str, address: str, port: int, project: str):
                 "read_only": {"address": address, "port": port, "use_name_server": False}
             }
         new_content, preview = set_epics_gateway_config(config_path, facility, custom_config)
-        config_path.write_text(new_content)
+        # Use UTF-8 encoding explicitly to support Unicode characters on Windows
+        config_path.write_text(new_content, encoding="utf-8")
 
         console.print("✅ EPICS gateway updated")
         console.print(f"   Configuration: {config_path}", style=Styles.DIM)
@@ -566,7 +569,8 @@ def set_models(provider: str, model: str, project: str):
         console.print(f"\n{preview}\n")
 
         # Write configuration
-        config_path.write_text(new_content)
+        # Use UTF-8 encoding explicitly to support Unicode characters on Windows
+        config_path.write_text(new_content, encoding="utf-8")
         console.print(f"✅ All models updated to: [bold]{provider}/{model}[/bold]")
         console.print(f"   Configuration: {config_path}", style=Styles.DIM)
 
