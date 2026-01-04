@@ -2185,49 +2185,11 @@ def handle_workflows_action():
 def handle_tasks_action():
     """Handle tasks browsing action from interactive menu.
 
-    Shows available tasks that can be installed for coding assistants.
+    Launches the interactive task browser for selecting and managing tasks.
     """
-    from osprey.cli.tasks_cmd import get_available_tasks, get_tasks_root
+    from osprey.cli.tasks_cmd import interactive_task_browser
 
-    console.print(f"\n{Messages.header('AI Assistant Tasks')}")
-    console.print(f"[{Styles.DIM}]Browse available tasks for AI coding assistants[/{Styles.DIM}]\n")
-
-    tasks = get_available_tasks()
-
-    if not tasks:
-        console.print(Messages.warning("No tasks available"))
-        input("\nPress ENTER to continue...")
-        return
-
-    # Show tasks with descriptions
-    for task in tasks:
-        task_dir = get_tasks_root() / task
-        instructions_file = task_dir / "instructions.md"
-
-        # Get first non-header, non-frontmatter line as description
-        description = ""
-        if instructions_file.exists():
-            with open(instructions_file) as f:
-                in_frontmatter = False
-                for line in f:
-                    line = line.strip()
-                    if line == "---":
-                        in_frontmatter = not in_frontmatter
-                        continue
-                    if in_frontmatter:
-                        continue
-                    if line and not line.startswith("#"):
-                        description = line[:55] + "..." if len(line) > 55 else line
-                        break
-
-        console.print(f"  [{Styles.SUCCESS}]{task}[/{Styles.SUCCESS}]")
-        if description:
-            console.print(f"    {description}")
-
-    console.print(f"\n{Messages.info('View details:')} osprey tasks show <task>")
-    console.print(f"{Messages.info('Install for Claude Code:')} osprey claude install <task>")
-
-    input("\nPress ENTER to continue...")
+    interactive_task_browser()
 
 
 def handle_claude_action():

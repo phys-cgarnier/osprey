@@ -9,7 +9,7 @@ related: [pre-merge-cleanup, commit-organization]
 
 # Release Workflow - Documentation Version Sync Fix
 
-This document provides the **definitive workflow** for creating releases that ensure documentation always shows the correct version.
+Definitive workflow for creating releases that ensure documentation and version numbers stay in sync.
 
 ## 🤖 AI Quick Start
 

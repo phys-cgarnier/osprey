@@ -9,7 +9,7 @@ related: [commit-organization, update-documentation]
 
 # Pre-Merge Cleanup Guide
 
-**Purpose**: Systematic detection of loose ends before merging feature branches.
+Systematic detection of loose ends before merging feature branches.
 
 **Principle**: If a diff needs extensive explanation, it's incomplete.
 

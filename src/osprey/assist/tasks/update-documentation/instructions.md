@@ -9,7 +9,7 @@ related: [docstrings, comments, pre-merge-cleanup]
 
 # Documentation Update Workflow - Keeping Docs in Sync with Code
 
-> **📦 TL;DR**: Changed public API? → Update docstring + CHANGELOG + affected examples. Internal refactoring? → Maybe just CHANGELOG. Breaking change? → Everything + migration guide. **Use the decision tree below to determine scope.**
+Keep documentation synchronized with code changes - docstrings, CHANGELOG, and examples.
 
 This document provides a comprehensive workflow for identifying and updating documentation when code changes occur. It ensures documentation remains professional, accurate, and synchronized with the codebase.
 

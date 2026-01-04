@@ -9,7 +9,7 @@ related: [channel-finder-database-builder]
 
 # Channel Finder: Pipeline Selection Guide
 
-**Purpose**: Help users select the most appropriate Channel Finder pipeline for their control system based on observable characteristics of their channel naming and organization.
+Select the most appropriate Channel Finder pipeline for your control system based on channel naming patterns.
 
 **Target Audience**: Users setting up Channel Finder for the first time who need to choose between In-Context, Hierarchical, or Middle Layer pipelines.
 

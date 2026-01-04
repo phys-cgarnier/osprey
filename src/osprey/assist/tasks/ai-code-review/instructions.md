@@ -9,7 +9,7 @@ related: [pre-merge-cleanup, commit-organization, testing-workflow]
 
 # AI Code Review and Refactoring Workflow
 
-**Purpose**: Critical review and cleanup of AI-generated code to identify redundancy, unused functions, and API inconsistencies.
+Critical review and cleanup of AI-generated code to identify redundancy, unused functions, and API inconsistencies.
 
 **Reality Check**: AI assistants are excellent at generating new code, but often create redundant functions, inconsistent APIs, and unnecessary complexity. This workflow helps you systematically identify and clean up these issues before committing.
 

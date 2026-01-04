@@ -9,7 +9,7 @@ related: [channel-finder-pipeline-selection]
 
 # Channel Finder: Database Builder Guide
 
-**Purpose**: Help users build high-quality channel databases with descriptions that enable effective LLM-based channel finding.
+Build high-quality channel databases with descriptions that enable effective LLM-based channel finding.
 
 **Key Principle**: Descriptions should help the LLM distinguish between channels and understand the user's intent, not just document what exists.
 

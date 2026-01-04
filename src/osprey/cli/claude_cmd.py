@@ -98,18 +98,18 @@ def install_skill(task: str, force: bool):
     if task not in available_tasks:
         console.print(f"Task '{task}' not found.", style=Styles.ERROR)
         console.print(f"\nAvailable tasks: {', '.join(available_tasks)}")
-        console.print("\nRun [cyan]osprey tasks list[/cyan] to see all tasks.")
+        console.print("\nRun [command]osprey tasks list[/command] to see all tasks.")
         return
 
     # Check if Claude Code integration exists for this task
     integration_dir = get_integrations_root() / "claude_code" / task
     if not integration_dir.exists():
         console.print(
-            f"[yellow]⚠[/yellow]  No Claude Code skill available for '{task}'",
+            f"[warning]⚠[/warning]  No Claude Code skill available for '{task}'",
         )
         console.print("\nThe task instructions can still be used directly:")
         instructions_path = get_tasks_root() / task / "instructions.md"
-        console.print(f"  [cyan]@{instructions_path}[/cyan]")
+        console.print(f"  [path]@{instructions_path}[/path]")
         return
 
     # Destination directory
@@ -118,9 +118,9 @@ def install_skill(task: str, force: bool):
     # Check if already installed
     if dest_dir.exists() and not force:
         console.print(
-            f"[yellow]⚠[/yellow]  Skill already installed at: {dest_dir.relative_to(Path.cwd())}"
+            f"[warning]⚠[/warning]  Skill already installed at: {dest_dir.relative_to(Path.cwd())}"
         )
-        console.print("    Use [cyan]--force[/cyan] to overwrite")
+        console.print("    Use [command]--force[/command] to overwrite")
         return
 
     # Create destination directory
@@ -133,7 +133,7 @@ def install_skill(task: str, force: bool):
     for source_file in integration_dir.glob("*.md"):
         dest_file = dest_dir / source_file.name
         shutil.copy2(source_file, dest_file)
-        console.print(f"  [green]✓[/green] {dest_file.relative_to(Path.cwd())}")
+        console.print(f"  [success]✓[/success] {dest_file.relative_to(Path.cwd())}")
         files_copied += 1
 
     # Also copy the instructions.md for reference
@@ -141,10 +141,10 @@ def install_skill(task: str, force: bool):
     if instructions_source.exists():
         instructions_dest = dest_dir / "instructions.md"
         shutil.copy2(instructions_source, instructions_dest)
-        console.print(f"  [green]✓[/green] {instructions_dest.relative_to(Path.cwd())}")
+        console.print(f"  [success]✓[/success] {instructions_dest.relative_to(Path.cwd())}")
         files_copied += 1
 
-    console.print(f"\n[green]✓ Installed {files_copied} files[/green]\n")
+    console.print(f"\n[success]✓ Installed {files_copied} files[/success]\n")
 
     # Show usage
     console.print("[bold]Usage:[/bold]")
@@ -173,7 +173,7 @@ def list_skills():
     if installed:
         console.print("[dim]Installed in this project:[/dim]")
         for skill in installed:
-            console.print(f"  [green]✓[/green] {skill}")
+            console.print(f"  [success]✓[/success] {skill}")
         console.print()
 
     # Show available but not installed
@@ -192,9 +192,9 @@ def list_skills():
         if with_integration:
             console.print("[dim]Available to install:[/dim]")
             for task in with_integration:
-                console.print(f"  [cyan]○[/cyan] {task}")
+                console.print(f"  [info]○[/info] {task}")
             console.print()
-            console.print("Install with: [cyan]osprey claude install <skill>[/cyan]\n")
+            console.print("Install with: [command]osprey claude install <skill>[/command]\n")
 
         if without_integration:
             console.print("[dim]Tasks without Claude integration (use @-mention):[/dim]")
@@ -203,5 +203,5 @@ def list_skills():
             console.print()
     elif not installed:
         console.print("No skills installed yet.\n")
-        console.print("Browse available tasks: [cyan]osprey tasks list[/cyan]")
-        console.print("Install a skill: [cyan]osprey claude install <task>[/cyan]\n")
+        console.print("Browse available tasks: [command]osprey tasks list[/command]")
+        console.print("Install a skill: [command]osprey claude install <task>[/command]\n")
