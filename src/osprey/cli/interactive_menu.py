@@ -619,7 +619,6 @@ def get_project_menu_choices(exit_action: str = "exit") -> list[Choice]:
         Choice("[>] config      - Configuration settings", value="config"),
         Choice("[>] registry    - Show registry contents", value="registry"),
         Choice("[>] tasks       - Browse AI assistant tasks", value="tasks"),
-        Choice("[>] claude      - Manage Claude Code skills", value="claude"),
         Choice("─" * 60, value=None, disabled=True),
         Choice("[+] init        - Create new project", value="init_interactive"),
         Choice("[?] help        - Show all commands", value="help"),
@@ -678,6 +677,7 @@ def show_main_menu() -> str | None:
         choices.extend(
             [
                 Choice("[+] Create new project (interactive)", value="init_interactive"),
+                Choice("[>] Browse AI assistant tasks", value="tasks"),
                 Choice("[?] Help", value="help"),
                 Choice("[x] Exit", value="exit"),
             ]
@@ -1650,8 +1650,6 @@ def handle_project_selection(project_path: Path):
             handle_registry_action(project_path=project_path)
         elif action == "tasks":
             handle_tasks_action()
-        elif action == "claude":
-            handle_claude_action()
         elif action == "init_interactive":
             # Save current directory before init flow
             original_dir = Path.cwd()
@@ -2190,72 +2188,6 @@ def handle_tasks_action():
     from osprey.cli.tasks_cmd import interactive_task_browser
 
     interactive_task_browser()
-
-
-def handle_claude_action():
-    """Handle Claude Code skill management action from interactive menu.
-
-    Shows installed skills and allows installing new ones.
-    """
-    from questionary import Choice
-
-    from osprey.cli.claude_cmd import (
-        get_available_tasks,
-        get_installed_skills,
-        get_integrations_root,
-        install_skill,
-    )
-
-    while True:
-        console.print(f"\n{Messages.header('Claude Code Skills')}")
-        console.print(f"[{Styles.DIM}]Install and manage Claude Code skills[/{Styles.DIM}]\n")
-
-        installed = get_installed_skills()
-        available = get_available_tasks()
-
-        # Show installed skills
-        if installed:
-            console.print("[dim]Installed:[/dim]")
-            for skill in installed:
-                console.print(f"  [{Styles.SUCCESS}]✓[/{Styles.SUCCESS}] {skill}")
-            console.print()
-
-        # Build choices for installable skills
-        choices = []
-        for task in available:
-            if task not in installed:
-                # Check if Claude integration exists
-                integration_dir = get_integrations_root() / "claude_code" / task
-                if integration_dir.exists():
-                    choices.append(Choice(f"[+] Install: {task}", value=task))
-
-        if not choices:
-            if installed:
-                console.print("[dim]All available skills are installed.[/dim]")
-            else:
-                console.print("[dim]No skills available to install.[/dim]")
-
-        choices.append(Choice("─" * 60, value=None, disabled=True))
-        choices.append(Choice("[<] back        - Return to main menu", value="back"))
-
-        action = questionary.select(
-            "Select a skill to install:",
-            choices=choices,
-            style=custom_style,
-        ).ask()
-
-        if action is None or action == "back":
-            return
-
-        # Install the selected skill
-        console.print(f"\n{Messages.header(f'Installing Claude Code skill: {action}')}\n")
-
-        import click
-
-        ctx = click.Context(install_skill)
-        ctx.invoke(install_skill, task=action, force=False)
-
-        input("\nPress ENTER to continue...")
 
 
 def handle_export_action(project_path: Path | None = None):
@@ -3341,8 +3273,6 @@ def navigation_loop():
             handle_registry_action()
         elif action == "tasks":
             handle_tasks_action()
-        elif action == "claude":
-            handle_claude_action()
         elif action == "help":
             # Show contextual help based on whether we're in a project or not
             if is_project_initialized():

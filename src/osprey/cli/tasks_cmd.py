@@ -106,6 +106,47 @@ def get_atmention_path(task: str) -> str:
         return f"@{instructions}"
 
 
+def get_project_tasks_dir() -> Path:
+    """Get the .ai-tasks directory in the current project."""
+    return Path.cwd() / ".ai-tasks"
+
+
+def is_task_in_project(task: str) -> bool:
+    """Check if a task has been copied to the project's .ai-tasks directory."""
+    return (get_project_tasks_dir() / task / "instructions.md").exists()
+
+
+def copy_task_to_project(task: str, force: bool = False) -> tuple[bool, str]:
+    """Copy a task's instructions to the project's .ai-tasks directory.
+
+    Args:
+        task: Name of the task to copy
+        force: If True, overwrite existing files
+
+    Returns:
+        Tuple of (success, message)
+    """
+    source = get_instructions_path(task)
+    if not source.exists():
+        return False, f"Task '{task}' not found"
+
+    dest_dir = get_project_tasks_dir() / task
+    dest_file = dest_dir / "instructions.md"
+
+    if dest_file.exists() and not force:
+        return False, f"Already exists: {dest_file}\nUse --force to overwrite"
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, dest_file)
+
+    return True, str(dest_file)
+
+
+def get_project_atmention_path(task: str) -> str:
+    """Get the @-mention path for a task copied to the project."""
+    return f"@.ai-tasks/{task}/instructions.md"
+
+
 # ============================================================================
 # EDITOR UTILITIES
 # ============================================================================
@@ -231,8 +272,9 @@ def interactive_task_browser():
             display = f"{task:28} {desc}"
             choices.append(Choice(display, value=task))
 
-        # Add separator and exit
+        # Add separator and options
         choices.append(Choice("─" * 60, value=None, disabled=True))
+        choices.append(Choice("[?] View installed skills", value="installed"))
         choices.append(Choice("[×] Exit", value="exit"))
 
         # Select task
@@ -244,6 +286,10 @@ def interactive_task_browser():
 
         if selected is None or selected == "exit":
             return
+
+        if selected == "installed":
+            _show_installed_skills()
+            continue
 
         # Show action menu for selected task
         action = _show_task_actions(selected, custom_style)
@@ -282,24 +328,24 @@ def _show_task_actions(task: str, custom_style) -> str:
 
         # Open in editor
         if editor:
-            _, editor_name = editor
-            choices.append(
-                Choice(f"[>] Open in {editor_name}", value="open")
-            )
+            choices.append(Choice("[>] Open in editor", value="open"))
         else:
             choices.append(
-                Choice("[>] Open in editor (no editor found)", value=None, disabled=True)
+                Choice("[>] Open in editor (not found)", value=None, disabled=True)
             )
 
-        # Copy path for @-mention
-        choices.append(Choice("[#] Copy path for @-mention", value="copy"))
+        # Copy to project (.ai-tasks/) - works with any AI tool
+        if is_task_in_project(task):
+            choices.append(Choice("[*] Copy to project (already exists)", value="copy_project"))
+        else:
+            choices.append(Choice("[*] Copy to project (.ai-tasks/)", value="copy_project"))
 
         # Install as Claude skill (if available)
         if has_skill:
             choices.append(Choice("[+] Install as Claude Code skill", value="install"))
 
-        # Show full path
-        choices.append(Choice("[?] Show full path", value="show_path"))
+        # Copy path for @-mention (advanced)
+        choices.append(Choice("[#] Copy source path to clipboard", value="copy"))
 
         # Navigation
         choices.append(Choice("─" * 40, value=None, disabled=True))
@@ -312,12 +358,10 @@ def _show_task_actions(task: str, custom_style) -> str:
             style=custom_style,
         ).ask()
 
-        if action is None:
-            continue
+        if action is None or action == "exit":
+            return "exit"
         elif action == "back":
             return "back"
-        elif action == "exit":
-            return "exit"
         elif action == "open":
             if open_in_editor(instructions_path):
                 console.print(f"\n[success]✓ Opened in {editor[1]}[/success]")
@@ -329,13 +373,20 @@ def _show_task_actions(task: str, custom_style) -> str:
             else:
                 console.print("\n[warning]Could not copy to clipboard.[/warning]")
                 console.print(f"[dim]Path:[/dim] {atmention}")
+        elif action == "copy_project":
+            already_exists = is_task_in_project(task)
+            success, result = copy_task_to_project(task, force=already_exists)
+            if success:
+                project_path = get_project_atmention_path(task)
+                console.print(f"\n[success]✓ Copied to:[/success] {result}")
+                console.print("\n[bold]Use in your AI assistant:[/bold]")
+                console.print(f"  {project_path} <your question>")
+                if copy_to_clipboard(project_path):
+                    console.print("\n[dim]Path copied to clipboard[/dim]")
+            else:
+                console.print(f"\n[warning]{result}[/warning]")
         elif action == "install":
             _install_claude_skill(task)
-        elif action == "show_path":
-            console.print("\n[dim]Full path:[/dim]")
-            console.print(f"  {instructions_path}")
-            console.print("\n[dim]@-mention:[/dim]")
-            console.print(f"  {atmention}")
 
 
 def _install_claude_skill(task: str):
@@ -347,8 +398,8 @@ def _install_claude_skill(task: str):
     integration_dir = get_integrations_root() / "claude_code" / task
     dest_dir = get_claude_skills_dir() / task
 
-    # Check if already installed
-    if dest_dir.exists():
+    # Check if already installed (has actual files, not just empty directory)
+    if dest_dir.exists() and any(dest_dir.glob("*.md")):
         console.print(f"\n[warning]⚠ Skill already installed at:[/warning] {dest_dir}")
         return
 
@@ -374,6 +425,34 @@ def _install_claude_skill(task: str):
         files_copied += 1
 
     console.print(f"\n[success]✓ Installed {files_copied} files[/success]")
+
+
+def _show_installed_skills():
+    """Show currently installed Claude Code skills."""
+    from osprey.cli.claude_cmd import get_claude_skills_dir
+
+    skills_dir = get_claude_skills_dir()
+
+    console.print("\n[bold]Installed Claude Code Skills[/bold]\n")
+
+    if not skills_dir.exists():
+        console.print("[dim]No skills installed yet.[/dim]")
+        console.print(f"[dim]Skills directory: {skills_dir}[/dim]")
+        return
+
+    installed = sorted([d.name for d in skills_dir.iterdir() if d.is_dir()])
+
+    if not installed:
+        console.print("[dim]No skills installed yet.[/dim]")
+        console.print(f"[dim]Skills directory: {skills_dir}[/dim]")
+        return
+
+    for skill in installed:
+        skill_path = skills_dir / skill
+        console.print(f"  [success]✓[/success] {skill}")
+        console.print(f"    [path]{skill_path}[/path]")
+
+    console.print(f"\n[dim]Skills directory: {skills_dir}[/dim]")
 
 
 # ============================================================================
@@ -450,3 +529,96 @@ def list_tasks():
     Shows all tasks with their paths for @-mentioning in AI assistants.
     """
     _print_task_list()
+
+
+@tasks.command(name="copy")
+@click.argument("task_name")
+@click.option("--force", "-f", is_flag=True, help="Overwrite existing files")
+def copy_task(task_name: str, force: bool):
+    """Copy a task to your project's .ai-tasks/ directory.
+
+    This makes the task available for @-mentioning in any AI assistant
+    (Cursor, VS Code, etc.) without needing access to the installed package.
+
+    Examples:
+
+    \b
+      # Copy a task to your project
+      osprey tasks copy pre-commit
+
+      # Then use in your AI assistant:
+      @.ai-tasks/pre-commit/instructions.md Scan my changes
+
+      # Overwrite existing
+      osprey tasks copy pre-commit --force
+    """
+    available = get_available_tasks()
+    if task_name not in available:
+        console.print(f"[error]Task '{task_name}' not found.[/error]")
+        console.print(f"\nAvailable tasks: {', '.join(available)}")
+        raise SystemExit(1)
+
+    success, result = copy_task_to_project(task_name, force=force)
+
+    if success:
+        project_path = get_project_atmention_path(task_name)
+        console.print(f"[success]✓ Copied to:[/success] {result}")
+        console.print("\n[bold]Use in your AI assistant:[/bold]")
+        console.print(f"  {project_path} <your question>")
+    else:
+        console.print(f"[error]{result}[/error]")
+        raise SystemExit(1)
+
+
+@tasks.command(name="show")
+@click.argument("task_name")
+def show_task(task_name: str):
+    """Print a task's instructions to stdout.
+
+    Useful for piping to other tools or quick viewing.
+
+    Examples:
+
+    \b
+      # View instructions
+      osprey tasks show pre-commit
+
+      # Pipe to clipboard (macOS)
+      osprey tasks show pre-commit | pbcopy
+
+      # Save to file
+      osprey tasks show pre-commit > my-task.md
+    """
+    available = get_available_tasks()
+    if task_name not in available:
+        console.print(f"[error]Task '{task_name}' not found.[/error]", err=True)
+        console.print(f"\nAvailable tasks: {', '.join(available)}", err=True)
+        raise SystemExit(1)
+
+    instructions_path = get_instructions_path(task_name)
+    print(instructions_path.read_text())
+
+
+@tasks.command(name="path")
+@click.argument("task_name")
+def task_path(task_name: str):
+    """Print the path to a task's instructions file.
+
+    Useful for scripting or when you need the exact path.
+
+    Examples:
+
+    \b
+      # Get path
+      osprey tasks path pre-commit
+
+      # Use in a script
+      cat $(osprey tasks path pre-commit)
+    """
+    available = get_available_tasks()
+    if task_name not in available:
+        console.print(f"[error]Task '{task_name}' not found.[/error]", err=True)
+        console.print(f"\nAvailable tasks: {', '.join(available)}", err=True)
+        raise SystemExit(1)
+
+    print(get_instructions_path(task_name))

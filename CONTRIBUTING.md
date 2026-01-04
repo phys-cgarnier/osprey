@@ -98,10 +98,16 @@ For Claude Code, install tasks as skills:
 osprey claude install pre-commit
 ```
 
-Reference task instructions in other AI assistants (Cursor, Copilot) with `@` mentions:
+For other AI assistants (Cursor, Copilot), copy tasks to your project:
+
+```bash
+osprey tasks copy pre-merge-cleanup
+```
+
+Then reference with `@` mentions:
 
 ```
-@src/osprey/assist/tasks/pre-merge-cleanup/instructions.md Scan my uncommitted changes
+@.ai-tasks/pre-merge-cleanup/instructions.md Scan my uncommitted changes
 ```
 
 Each task includes an "AI Quick Start" section with detailed prompt guidance.

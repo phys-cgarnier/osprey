@@ -65,14 +65,21 @@ That's it—no code changes required. The template includes complete implementat
    - You have channel examples but aren't sure which pipeline fits best
    - You want to have a discussion with a coding assistant to help you choose the right pipeline
 
-   **Copy this prompt to your AI assistant:**
+   **Setup (one-time):**
+
+   .. code-block:: bash
+
+      # Copy the task to your project
+      osprey tasks copy channel-finder-pipeline-selection
+
+   **Then use in your AI assistant:**
 
    .. code-block:: text
 
-      @src/osprey/assist/tasks/channel-finder-pipeline-selection/instructions.md Help me select the right Channel Finder pipeline.
+      @.ai-tasks/channel-finder-pipeline-selection/instructions.md Help me select the right Channel Finder pipeline.
 
    .. note::
-      List available tasks with: ``osprey tasks list``
+      Browse all tasks interactively: ``osprey tasks``
 
    For more information about AI-assisted development workflows, see :doc:`../contributing/03_ai-assisted-development`.
 

@@ -99,44 +99,59 @@ Osprey workflows work with AI coding assistants. Choose the tool that fits your 
 Accessing Workflow Files
 ------------------------
 
-Osprey's AI workflow files are bundled with the installed package. You can access them in two ways:
+Osprey's AI workflow files are bundled with the installed package. Choose the method that fits your AI tool:
 
-1. **Direct reference** - Point your AI assistant to the installed package files
-2. **Install to project** - Install tasks as Claude Code skills
+**Option 1: Copy to Project (Any AI Tool)**
 
-**Option 1: Direct Reference (Recommended)**
-
-Reference workflow files directly from the installed package:
-
-.. code-block:: text
-
-   @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md Scan my changes
-
-**Option 2: Install as Claude Code Skills**
-
-For Claude Code users, install tasks as skills:
+Copy tasks to your project's ``.ai-tasks/`` directory for use with any AI assistant:
 
 .. code-block:: bash
 
-   # List available tasks
-   osprey tasks list
+   # Browse tasks interactively (recommended)
+   osprey tasks
+
+   # Or copy directly by name
+   osprey tasks copy pre-merge-cleanup
+
+Then reference in your AI assistant:
+
+.. code-block:: text
+
+   @.ai-tasks/pre-merge-cleanup/instructions.md Scan my changes
+
+**Option 2: Install as Claude Code Skills**
+
+For Claude Code users, install tasks as skills for automatic discovery:
+
+.. code-block:: bash
 
    # Install a task as a Claude Code skill
    osprey claude install migrate
+
+Then simply ask Claude to use the skill - it discovers installed skills automatically.
 
 .. dropdown:: Command Reference and Advanced Usage
    :color: info
    :icon: terminal
 
-   **Task Commands** (browse available tasks)
+   **Task Commands** (browse and copy tasks)
 
    .. code-block:: bash
+
+      # Interactive browser (recommended)
+      osprey tasks
 
       # List all available tasks
       osprey tasks list
 
-      # Show details about a specific task
-      osprey tasks show migrate
+      # Copy task to project (.ai-tasks/)
+      osprey tasks copy pre-commit
+
+      # View task instructions
+      osprey tasks show pre-commit
+
+      # Get path to task file
+      osprey tasks path pre-commit
 
    **Claude Commands** (manage Claude Code skills)
 
@@ -294,6 +309,15 @@ Workflow Catalog
 Detailed Workflow Guides
 ------------------------
 
+.. tip::
+   **First-time setup:** Before using any workflow, copy it to your project:
+
+   .. code-block:: bash
+
+      osprey tasks copy pre-merge-cleanup
+
+   Then use ``@.ai-tasks/<task>/instructions.md`` in your AI assistant.
+
 .. _pre-merge-cleanup:
 
 🔍 Pre-Merge Cleanup
@@ -311,7 +335,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md Scan my uncommitted changes
+   @.ai-tasks/pre-merge-cleanup/instructions.md Scan my uncommitted changes
 
 **What it checks:**
 
@@ -334,7 +358,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/commit-organization/instructions.md Help me organize my commits
+   @.ai-tasks/commit-organization/instructions.md Help me organize my commits
 
 **Best for:**
 
@@ -359,7 +383,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/testing-workflow/instructions.md What type of test should I write?
+   @.ai-tasks/testing-workflow/instructions.md What type of test should I write?
 
 **Decision Framework:**
 
@@ -393,7 +417,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/update-documentation/instructions.md What docs need updating?
+   @.ai-tasks/update-documentation/instructions.md What docs need updating?
 
 ----
 
@@ -408,7 +432,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/docstrings/instructions.md Write a docstring for this function
+   @.ai-tasks/docstrings/instructions.md Write a docstring for this function
 
 ----
 
@@ -423,7 +447,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/comments/instructions.md Add comments to explain this logic
+   @.ai-tasks/comments/instructions.md Add comments to explain this logic
 
 ----
 
@@ -438,7 +462,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/ai-code-review/instructions.md Review this AI-generated code
+   @.ai-tasks/ai-code-review/instructions.md Review this AI-generated code
 
 ----
 
@@ -453,7 +477,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/channel-finder-pipeline-selection/instructions.md Help me select the right Channel Finder pipeline.
+   @.ai-tasks/channel-finder-pipeline-selection/instructions.md Help me select the right Channel Finder pipeline.
 
 ----
 
@@ -468,7 +492,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/channel-finder-database-builder/instructions.md Help me build my Channel Finder database.
+   @.ai-tasks/channel-finder-database-builder/instructions.md Help me build my Channel Finder database.
 
 
 ----
@@ -484,7 +508,7 @@ Detailed Workflow Guides
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/release-workflow/instructions.md Guide me through releasing v0.9.8
+   @.ai-tasks/release-workflow/instructions.md Guide me through releasing v0.9.8
 
 ----
 
@@ -517,42 +541,42 @@ Example: Adding a Capability with AI
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/ + @docs/source/developer-guides/
+   @.ai-tasks/ + @docs/source/developer-guides/
    I want to add a capability for archiver data. Help me plan the implementation.
 
 **2. Write the code and docstrings:**
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/docstrings/instructions.md
+   @.ai-tasks/docstrings/instructions.md
    Write a docstring for my new capability class
 
 **3. Add appropriate tests:**
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/testing-workflow/instructions.md
+   @.ai-tasks/testing-workflow/instructions.md
    My capability calls an external API. Should I write unit or integration tests?
 
 **4. Update documentation:**
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/update-documentation/instructions.md
+   @.ai-tasks/update-documentation/instructions.md
    I added a new archiver capability. What documentation needs updating?
 
 **5. Pre-commit cleanup:**
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md
+   @.ai-tasks/pre-merge-cleanup/instructions.md
    Scan my uncommitted changes for issues
 
 **6. Organize commits:**
 
 .. code-block:: text
 
-   @src/osprey/assist/tasks/commit-organization/instructions.md
+   @.ai-tasks/commit-organization/instructions.md
    Help me organize these changes into atomic commits with CHANGELOG entries
 
 ----
