@@ -1238,17 +1238,30 @@ class ExecutionStep(ProcessingStep):
         self.capability = capability
 
     def set_complete(self, status: str = "success", output_msg: str = "") -> None:
-        """Override to use green indicator like TodoUpdateStep."""
+        """Override with conditional indicator coloring.
+
+        Smart steps (respond/clarify): plain indicator, CSS handles muted color like T/C/O.
+        Dumb steps (capabilities): green indicator, stays bright.
+        """
         self._status = status
         self._stop_breathing()
 
         indicator = self.INDICATOR_SUCCESS if status == "success" else self.INDICATOR_ERROR
 
-        # Use green-colored indicator for success (like TodoUpdateStep)
-        if status == "success":
-            title_markup = f"[$success]{indicator}[/$success] [bold]{self.title}[/bold]"
+        # Smart steps: plain indicator (CSS handles muted color like T/C/O)
+        # Dumb steps: green indicator (stays bright)
+        if self.has_class("smart-step"):
+            # Match T/C/O style - plain indicator, CSS applies muted color
+            if status == "success":
+                title_markup = f"{indicator} [bold]{self.title}[/bold]"
+            else:
+                title_markup = f"[$error]{indicator}[/$error] [bold]{self.title}[/bold]"
         else:
-            title_markup = f"[$error]{indicator}[/$error] [bold]{self.title}[/bold]"
+            # Dumb capability steps - green indicator
+            if status == "success":
+                title_markup = f"[$success]{indicator}[/$success] [bold]{self.title}[/bold]"
+            else:
+                title_markup = f"[$error]{indicator}[/$error] [bold]{self.title}[/bold]"
 
         title_line = self.query_one("#step-title", Static)
         title_line.update(title_markup)
