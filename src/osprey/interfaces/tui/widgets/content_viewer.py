@@ -121,9 +121,11 @@ class ContentViewer(ModalScreen[None]):
                         )
 
             with ScrollableContainer(id="content-viewer-content"):
-                yield Static(
-                    self._get_current_content() or "[dim]No content available[/dim]"
-                )
+                content = self._get_current_content()
+                if content:
+                    yield Static(content, markup=False)
+                else:
+                    yield Static("[dim]No content available[/dim]")
 
             yield self._compose_footer()
 
@@ -149,11 +151,11 @@ class ContentViewer(ModalScreen[None]):
                     # Tab switch in markdown mode - use captured height
                     container.styles.height = self._markdown_base_height
         else:
-            container.mount(
-                Static(
-                    self._get_current_content() or "[dim]No content available[/dim]"
-                )
-            )
+            content = self._get_current_content()
+            if content:
+                container.mount(Static(content, markup=False))
+            else:
+                container.mount(Static("[dim]No content available[/dim]"))
             if self._is_tabbed:
                 if self._base_height > 0:
                     # Use captured height from first tab switch
