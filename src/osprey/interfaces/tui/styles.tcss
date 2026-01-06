@@ -589,15 +589,16 @@ TodoItem .todo-text {
 /* State-based styling */
 TodoItem.todo-done {
     text-style: strike;
-    # text-opacity: 20%;
     color: $text-disabled;
 }
 
-TodoItem.todo-current {
-    color: $accent;
+TodoItem.todo-pending {
+    color: $text-muted;
 }
 
-/* Pending items use default text color - no special styling needed */
+TodoItem.todo-current {
+    color: $text;
+}
 
 /* =============================================================================
    Log Viewer Modal
