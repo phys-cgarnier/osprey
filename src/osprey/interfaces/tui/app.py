@@ -1122,6 +1122,13 @@ class OspreyTUI(App):
         if block and message:
             block.add_log(message, status=event_type)
 
+        # Extract LLM prompt/response if available (for smart capabilities like respond/clarify)
+        if block:
+            if "llm_prompt" in chunk:
+                block.set_llm_prompt(chunk["llm_prompt"])
+            if "llm_response" in chunk:
+                block.set_llm_response(chunk["llm_response"])
+
         # Always capture message for potential output (last message wins)
         if message:
             setattr(self, f"_step_{step_index}_last_msg", message)

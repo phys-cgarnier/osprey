@@ -651,7 +651,9 @@ class ProcessingStep(Static):
         self.app.push_screen(viewer)
 
     def _show_response(self) -> None:
-        """Open the response viewer modal with JSON syntax highlighting."""
+        """Open the response viewer modal with smart language detection."""
+        import json as json_module
+
         from osprey.interfaces.tui.widgets.content_viewer import ContentViewer
 
         # Single response with empty key -> pass as string; else pass dict for tabs
@@ -660,7 +662,16 @@ class ProcessingStep(Static):
         else:
             content = self._llm_responses
 
-        viewer = ContentViewer(f"{self.title} - Response", content, language="json")
+        # Smart language detection: JSON for structured data, markdown for text
+        language = "json"  # default for T/C/O structured responses
+        if isinstance(content, str):
+            try:
+                json_module.loads(content)
+            except (json_module.JSONDecodeError, ValueError):
+                # Not valid JSON, probably markdown (e.g., respond capability)
+                language = "markdown"
+
+        viewer = ContentViewer(f"{self.title} - Response", content, language=language)
         self.app.push_screen(viewer)
 
     def set_llm_prompt(self, prompt: str | dict[str, str]) -> None:
@@ -1249,6 +1260,11 @@ class ExecutionStep(ProcessingStep):
 
         self.remove_class("step-active")
         self.add_class(f"step-{status}")
+
+    def set_llm_prompt(self, prompt: str | dict[str, str]) -> None:
+        """Override to mark as smart/infrastructure step."""
+        super().set_llm_prompt(prompt)
+        self.add_class("smart-step")  # Smart steps get grayed out styling
 
 
 class TaskExtractionBlock(ProcessingBlock):

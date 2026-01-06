@@ -566,6 +566,15 @@ ExecutionStep.step-success #step-output {
     color: $text;
 }
 
+/* Smart ExecutionStep (respond/clarify) - grayed out like T/C/O infrastructure steps */
+ExecutionStep.smart-step.step-success #step-title {
+    color: $text-muted;
+}
+
+ExecutionStep.smart-step.step-success #step-output {
+    color: $text-muted;
+}
+
 /* =============================================================================
    TodoList / TodoItem - CSS-styled todo list widgets
    ============================================================================= */
