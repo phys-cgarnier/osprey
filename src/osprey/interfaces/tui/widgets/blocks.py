@@ -1226,6 +1226,30 @@ class ExecutionStep(ProcessingStep):
         super().__init__(capability, **kwargs)
         self.capability = capability
 
+    def set_complete(self, status: str = "success", output_msg: str = "") -> None:
+        """Override to use green indicator like TodoUpdateStep."""
+        self._status = status
+        self._stop_breathing()
+
+        indicator = self.INDICATOR_SUCCESS if status == "success" else self.INDICATOR_ERROR
+
+        # Use green-colored indicator for success (like TodoUpdateStep)
+        if status == "success":
+            title_markup = f"[$success]{indicator}[/$success] [bold]{self.title}[/bold]"
+        else:
+            title_markup = f"[$error]{indicator}[/$error] [bold]{self.title}[/bold]"
+
+        title_line = self.query_one("#step-title", Static)
+        title_line.update(title_markup)
+
+        if output_msg:
+            output = self.query_one("#step-output", WrappedStatic)
+            output.set_content(output_msg)
+            output.display = True
+
+        self.remove_class("step-active")
+        self.add_class(f"step-{status}")
+
 
 class TaskExtractionBlock(ProcessingBlock):
     """Block for task extraction phase (deprecated, use TaskExtractionStep)."""

@@ -13,6 +13,7 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
+from textual.widgets import TextArea
 
 from osprey.graph import create_graph
 from osprey.infrastructure.gateway import Gateway
@@ -67,6 +68,11 @@ class OspreyTUI(App):
         ("ctrl+t", "switch_theme", "Switch theme"),
         # Help - toggle keys panel
         ("ctrl+h", "toggle_help_panel", "Toggle help"),
+        # Chat body scrolling (when focus not on input)
+        Binding("space", "scroll_down", "Scroll down", show=False),
+        Binding("b", "scroll_up", "Scroll up", show=False),
+        Binding("g", "scroll_home", "Go to top", show=False),
+        Binding("G", "scroll_end_chat", "Go to bottom", show=False),
     ]
 
     def __init__(self, config_path: str = "config.yml"):
@@ -227,6 +233,30 @@ class OspreyTUI(App):
     def action_exit_app(self) -> None:
         """Exit the application."""
         self.exit()
+
+    def action_scroll_down(self) -> None:
+        """Scroll chat down by one page (when not in input)."""
+        if not isinstance(self.focused, TextArea):
+            chat = self.query_one("#chat-display", ChatDisplay)
+            chat.scroll_page_down(animate=False)
+
+    def action_scroll_up(self) -> None:
+        """Scroll chat up by one page (when not in input)."""
+        if not isinstance(self.focused, TextArea):
+            chat = self.query_one("#chat-display", ChatDisplay)
+            chat.scroll_page_up(animate=False)
+
+    def action_scroll_home(self) -> None:
+        """Scroll to top of chat (when not in input)."""
+        if not isinstance(self.focused, TextArea):
+            chat = self.query_one("#chat-display", ChatDisplay)
+            chat.scroll_home(animate=False)
+
+    def action_scroll_end_chat(self) -> None:
+        """Scroll to bottom of chat (when not in input)."""
+        if not isinstance(self.focused, TextArea):
+            chat = self.query_one("#chat-display", ChatDisplay)
+            chat.scroll_end(animate=False)
 
     def _get_version(self) -> str:
         """Get the framework version."""

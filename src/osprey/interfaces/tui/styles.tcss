@@ -557,6 +557,15 @@ TodoUpdateStep.step-success #step-output {
     color: $text;
 }
 
+/* ExecutionStep should stay bright even when "success" - capability results are important */
+ExecutionStep.step-success #step-title {
+    color: $text;
+}
+
+ExecutionStep.step-success #step-output {
+    color: $text;
+}
+
 /* =============================================================================
    TodoList / TodoItem - CSS-styled todo list widgets
    ============================================================================= */
