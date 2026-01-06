@@ -69,6 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Uses LiteLLM's OpenAI-compatible interface
   - Auto-detects served models via `/models` endpoint
   - Supports structured outputs with json_schema
+- **Models**: Direct Ollama API for thinking models (bypasses LiteLLM bug #15463)
+  - gpt-oss and other thinking models now work correctly
+  - Automatic minimum token allocation (100) for thinking phase
 - **Tests**: Consolidated E2E test suite for LLM providers (`tests/e2e/test_llm_providers.py`)
   - Provider × model × task matrix approach (anthropic, openai, google, cborg, ollama, vllm)
   - Tests basic completion, structured output (Pydantic), and ReAct agent workflows

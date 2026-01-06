@@ -147,6 +147,15 @@ def execute_litellm_completion(
             is_typed_dict_output=is_typed_dict_output,
         )
 
+    # Ollama: Use direct API to bypass LiteLLM bug #15463 with thinking models
+    if provider == "ollama":
+        return _execute_ollama_completion(
+            model_id=model_id,
+            message=message,
+            base_url=completion_kwargs.get("api_base", "http://localhost:11434"),
+            max_tokens=max_tokens,
+        )
+
     # Regular text completion
     response = litellm.completion(**completion_kwargs)
 
@@ -188,6 +197,19 @@ def _handle_structured_output(
     :param is_typed_dict_output: Whether to convert result to dict
     :return: Validated Pydantic model instance or dict
     """
+    # Ollama: Use direct API to bypass LiteLLM bug #15463 with thinking models
+    if provider == "ollama":
+        base_url = completion_kwargs.get("api_base", "http://localhost:11434")
+        max_tokens = completion_kwargs.get("max_tokens", 1024)
+        return _execute_ollama_structured_output(
+            model_id=model_id,
+            message=message,
+            output_format=output_format,
+            base_url=base_url,
+            max_tokens=max_tokens,
+            is_typed_dict_output=is_typed_dict_output,
+        )
+
     schema = output_format.model_json_schema()
 
     # Check if model supports native structured outputs
@@ -281,6 +303,113 @@ def _clean_json_response(text: str) -> str:
         text = text[:-3]
 
     return text.strip()
+
+
+def _execute_ollama_completion(
+    model_id: str,
+    message: str,
+    base_url: str,
+    max_tokens: int,
+) -> str:
+    """Direct Ollama API call for text completion.
+
+    Bypasses LiteLLM's response handling which has a bug with thinking models
+    (LiteLLM issue #15463). The Ollama API correctly returns content even when
+    the model includes a 'thinking' field, but LiteLLM fails to extract it.
+
+    :param model_id: Ollama model identifier
+    :param message: User message
+    :param base_url: Ollama server URL
+    :param max_tokens: Maximum tokens to generate
+    :return: Response text
+    """
+    import httpx
+
+    url = f"{base_url.rstrip('/')}/api/chat"
+
+    # Thinking models (like gpt-oss) need extra tokens for the thinking phase
+    # Ensure minimum of 100 tokens to avoid truncation during thinking
+    effective_max_tokens = max(max_tokens, 100)
+
+    response = httpx.post(
+        url,
+        json={
+            "model": model_id,
+            "messages": [{"role": "user", "content": message}],
+            "stream": False,
+            "options": {"num_predict": effective_max_tokens},
+        },
+        timeout=120.0,
+    )
+    response.raise_for_status()
+
+    # Extract content - works correctly even with thinking field present
+    data = response.json()
+    return data["message"]["content"]
+
+
+def _execute_ollama_structured_output(
+    model_id: str,
+    message: str,
+    output_format: type[BaseModel],
+    base_url: str,
+    max_tokens: int,
+    is_typed_dict_output: bool = False,
+) -> BaseModel | dict:
+    """Direct Ollama API call for structured output.
+
+    Bypasses LiteLLM's response handling which has a bug with thinking models
+    (LiteLLM issue #15463). The Ollama API correctly returns content even when
+    the model includes a 'thinking' field, but LiteLLM fails to extract it.
+
+    :param model_id: Ollama model identifier
+    :param message: User message
+    :param output_format: Pydantic model for output validation
+    :param base_url: Ollama server URL
+    :param max_tokens: Maximum tokens to generate
+    :param is_typed_dict_output: Whether to convert result to dict
+    :return: Validated Pydantic model instance or dict
+    """
+    import httpx
+
+    schema = output_format.model_json_schema()
+
+    # Build prompt with schema instruction
+    structured_message = f"""{message}
+
+You must respond with valid JSON that matches this schema:
+{json.dumps(schema, indent=2)}
+
+Respond ONLY with the JSON object, no additional text."""
+
+    # Direct Ollama API call - bypasses LiteLLM's broken response handling
+    response = httpx.post(
+        f"{base_url.rstrip('/')}/api/chat",
+        json={
+            "model": model_id,
+            "messages": [{"role": "user", "content": structured_message}],
+            "stream": False,
+            "format": "json",
+            "options": {"num_predict": max_tokens},
+        },
+        timeout=120.0,
+    )
+    response.raise_for_status()
+
+    # Extract content - works correctly even with thinking field present
+    data = response.json()
+    content = data["message"]["content"]
+
+    # Parse and validate
+    try:
+        result = output_format.model_validate_json(content)
+        if is_typed_dict_output and hasattr(result, "model_dump"):
+            return result.model_dump()
+        return result
+    except Exception as e:
+        raise ValueError(
+            f"Failed to parse structured output from Ollama: {e}\n" f"Response: {content[:200]}"
+        ) from e
 
 
 def check_litellm_health(

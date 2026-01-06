@@ -41,7 +41,7 @@ MODEL_MATRIX: dict[str, list[tuple[str, str]]] = {
     "ollama": [
         ("ministral-3:8b", "ministral"),
         ("mistral:7b", "mistral7b"),
-        # gpt-oss models excluded due to LiteLLM bug #15463 (thinking field not parsed)
+        ("gpt-oss:20b", "gptoss20b"),  # Uses direct Ollama API to bypass LiteLLM bug #15463
     ],
     "vllm": [
         # Models depend on what's served by the vLLM instance
@@ -49,8 +49,9 @@ MODEL_MATRIX: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
-# Providers that support structured output (Ollama has limited support)
-STRUCTURED_OUTPUT_PROVIDERS = ["anthropic", "openai", "google", "cborg", "vllm"]
+# Providers that support structured output
+# Ollama uses direct API call to bypass LiteLLM bug #15463
+STRUCTURED_OUTPUT_PROVIDERS = ["anthropic", "openai", "google", "cborg", "vllm", "ollama"]
 
 # =============================================================================
 # PYDANTIC MODELS FOR STRUCTURED OUTPUT
