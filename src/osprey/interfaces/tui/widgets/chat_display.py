@@ -36,8 +36,6 @@ class ChatDisplay(ScrollableContainer):
         # Plan progress tracking for flow-style updates
         self._plan_steps: list[dict] = []
         self._plan_step_states: list[str] = []
-        # Counter for generating unique widget IDs
-        self._plan_progress_counter: int = 0
 
     def start_new_query(self, user_query: str) -> None:
         """Reset blocks for a new query and add user message.
@@ -52,7 +50,6 @@ class ChatDisplay(ScrollableContainer):
         self._pending_messages = {}
         self._plan_steps = []
         self._plan_step_states = []
-        self._plan_progress_counter = 0
         if self._debug_block:
             self._debug_block.clear()
         self.add_message(user_query, "user")

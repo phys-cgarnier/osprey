@@ -1092,10 +1092,7 @@ class OspreyTUI(App):
                 if step_index < len(display._plan_step_states):
                     display._plan_step_states[step_index] = "current"
                 # Mount TodoUpdateStep (flow-style updates)
-                display._plan_progress_counter += 1
-                update_step = TodoUpdateStep(
-                    id=f"todo-update-{display._plan_progress_counter}"
-                )
+                update_step = TodoUpdateStep()
                 display.mount(update_step)
                 update_step.set_todos(display._plan_steps, display._plan_step_states)
 
@@ -1198,10 +1195,7 @@ class OspreyTUI(App):
         if display._plan_steps and steps:
             for i in range(len(display._plan_step_states)):
                 display._plan_step_states[i] = "done"
-            display._plan_progress_counter += 1
-            update_step = TodoUpdateStep(
-                id=f"todo-update-{display._plan_progress_counter}"
-            )
+            update_step = TodoUpdateStep()
             display.mount(update_step)
             update_step.set_todos(display._plan_steps, display._plan_step_states)
             display.scroll_end(animate=False)

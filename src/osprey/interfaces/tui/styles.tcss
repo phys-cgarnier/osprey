@@ -589,10 +589,11 @@ TodoItem .todo-text {
 /* State-based styling */
 TodoItem.todo-done {
     text-style: strike;
-    text-opacity: 20%;
+    # text-opacity: 20%;
+    color: $text-disabled;
 }
 
-TodoItem.todo-current .todo-bullet {
+TodoItem.todo-current {
     color: $accent;
 }
 
