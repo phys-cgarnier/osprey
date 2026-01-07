@@ -32,9 +32,9 @@ The state fields are organized with logical prefixes for clarity:
 
 **Persistence Strategy:**
 
-- **Persistent Field**: Only `capability_context_data` accumulates across conversations
+- **Persistent Fields**: `capability_context_data` and `session_state` accumulate across conversations
 - **Execution-Scoped**: All other fields reset automatically each invocation
-- **No Custom Reducers**: Leverages LangGraph's native message handling
+- **Custom Reducers**: For persistent fields that need merge behavior
 
 **Context Data Structure:**
 
@@ -83,6 +83,49 @@ from osprey.base.results import ExecutionResult
 from .execution import ApprovalRequest
 
 # ===== CUSTOM REDUCER FOR PURE DICTIONARY CONTEXT DATA =====
+
+
+def merge_session_state(existing: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]:
+    """Merge session state dictionaries for persistence across conversation turns.
+
+    This custom reducer enables session state (like direct chat mode) to persist
+    across conversation turns while allowing updates. Similar to capability context
+    data, this ensures session preferences survive state refreshes.
+
+    :param existing: Existing session state from previous state
+    :type existing: Optional[Dict[str, Any]]
+    :param new: New session state to merge into existing structure
+    :type new: Dict[str, Any]
+    :return: Merged dictionary maintaining existing data with new updates applied
+    :rtype: Dict[str, Any]
+
+    .. note::
+       The function performs shallow merging where new values override existing
+       values for the same key. This is appropriate for session state which
+       typically contains scalar values and flags.
+
+    Examples:
+        Basic session state merging::
+
+            >>> existing = {"direct_chat_capability": "weather_mcp"}
+            >>> new = {"last_direct_chat_result": {"content": "..."}}
+            >>> result = merge_session_state(existing, new)
+            >>> result["direct_chat_capability"]
+            'weather_mcp'
+
+    .. seealso::
+       :class:`AgentState` : Main state class using this reducer
+       :func:`merge_capability_context_data` : Similar reducer for context data
+    """
+    if existing is None:
+        return new if new else {}
+
+    if not new:
+        return existing
+
+    # Merge new session state into existing
+    result = {**existing, **new}
+    return result
 
 
 def merge_capability_context_data(
@@ -243,13 +286,22 @@ class AgentState(MessagesState):
        :class:`osprey.base.planning.ExecutionPlan` : Execution planning structures
     """
 
-    # ===== PERSISTENT FIELD (Accumulates across conversation) =====
+    # ===== PERSISTENT FIELDS (Accumulate across conversation) =====
 
     # Core persistent context - LangGraph-native dictionary storage
     # Data structure: {context_type: {context_key: {field: value}}}
     capability_context_data: Annotated[
         dict[str, dict[str, dict[str, Any]]], merge_capability_context_data
     ]
+
+    # Session state - persists user preferences and mode across turns
+    # Structure: {
+    #     "direct_chat_capability": Optional[str],     # Active capability name for direct chat
+    #     "last_direct_chat_result": Optional[dict],   # {content, full_response, timestamp, capability, context_type}
+    #     "session_id": Optional[str],                 # Session identifier
+    #     "session_start_time": Optional[float],       # Session start timestamp
+    # }
+    session_state: Annotated[dict[str, Any], merge_session_state]
 
     # ===== EXECUTION-SCOPED FIELDS (Reset each invocation) =====
 
