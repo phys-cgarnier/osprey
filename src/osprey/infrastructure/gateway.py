@@ -189,7 +189,8 @@ class Gateway:
     async def _handle_new_message_flow(
         self, user_input: str, compiled_graph: Any = None, config: dict[str, Any] | None = None
     ) -> GatewayResult:
-        """Handle new message flow with fresh state creation."""
+        """Handle new message flow with fresh state creation or direct chat mode."""
+        from osprey.state import MessageUtils
 
         # Parse and execute slash commands using centralized system
         slash_commands, cleaned_message = await self._process_slash_commands(user_input, config)
@@ -207,11 +208,80 @@ class Gateway:
             except Exception as e:
                 self.logger.warning(f"Could not get current state: {e}")
 
-        # Create completely fresh state (not partial updates)
+        # Check for session state changes from slash commands (e.g., /chat:capability_name)
+        session_state_changes = slash_commands.pop("session_state", None)
+
+        # Check if we're in direct chat mode
+        session_state = current_state.get("session_state", {}) if current_state else {}
+        # Apply session state changes from this turn's commands
+        if session_state_changes:
+            session_state = {**session_state, **session_state_changes}
+
+        in_direct_chat = session_state.get("direct_chat_capability") is not None
+        entering_direct_chat = session_state_changes and "direct_chat_capability" in session_state_changes
+
+        # Mode switch only: entering direct chat with no actual message
+        if entering_direct_chat and not cleaned_message.strip():
+            self.logger.info("Direct chat mode switch only - no message to process")
+            return GatewayResult(
+                agent_state={"session_state": session_state},
+                slash_commands_processed=[f"/chat:{session_state.get('direct_chat_capability')}"],
+            )
+
+        if in_direct_chat:
+            # Direct chat mode: preserve message history for multi-turn conversation
+            self.logger.info("Direct chat mode: preserving message history")
+
+            # Create new user message
+            message_content = cleaned_message.strip() if cleaned_message.strip() else user_input
+            new_message = MessageUtils.create_user_message(message_content)
+
+            # Return state update (not fresh state!)
+            # LangGraph's MessagesState will automatically append new message to existing
+            state_update = {
+                "messages": [new_message],  # LangGraph appends to existing messages
+                "session_state": session_state,  # Preserve/update session state
+                "execution_start_time": time.time(),
+                "execution_last_result": None,  # Clear to signal new turn to router
+            }
+
+            # Apply agent control changes if any
+            if slash_commands:
+                from osprey.state import apply_slash_commands_to_agent_control_state
+
+                # Get current agent control or defaults
+                current_agent_control = (
+                    current_state.get("agent_control", {}) if current_state else {}
+                )
+                state_update["agent_control"] = apply_slash_commands_to_agent_control_state(
+                    current_agent_control, slash_commands
+                )
+                self.logger.info("Applied agent control changes from slash commands")
+
+            # Create readable command list for user feedback
+            processed_commands = []
+            if slash_commands:
+                change_descriptions = [f"{key}={value}" for key, value in slash_commands.items()]
+                processed_commands = [
+                    f"Applied agent control changes: {', '.join(change_descriptions)}"
+                ]
+
+            return GatewayResult(
+                agent_state=state_update, slash_commands_processed=processed_commands
+            )
+
+        # Normal mode: create completely fresh state (not partial updates)
         message_content = cleaned_message.strip() if cleaned_message.strip() else user_input
         fresh_state = StateManager.create_fresh_state(
             user_input=message_content, current_state=current_state
         )
+
+        # Apply session state changes from slash commands
+        if session_state_changes:
+            fresh_state["session_state"] = {
+                **fresh_state.get("session_state", {}),
+                **session_state_changes,
+            }
 
         # Show fresh state execution history
         fresh_exec_history = fresh_state.get("execution_history", [])

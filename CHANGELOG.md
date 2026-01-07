@@ -68,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **State**: Session state persistence for user preferences and mode tracking
   - New `session_state` field in AgentState with custom merge reducer
   - Enables direct chat mode and other session-level settings to persist across conversation turns
+- **Infrastructure**: Direct chat mode routing and message handling
+  - Router detects direct chat mode and routes directly to capability
+  - Gateway preserves message history in direct chat mode
+  - Validates capability supports direct_chat_enabled before routing
 - **Models**: LangChain model factory for full LangGraph ReAct agent support
   - `get_langchain_model()` creates BaseChatModel instances from osprey config
   - Supports all 8 providers: anthropic, openai, google, ollama, cborg, vllm, stanford, argo

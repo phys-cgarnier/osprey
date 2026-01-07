@@ -68,13 +68,10 @@ def router_conditional_edge(state: AgentState) -> str:
     Follows LangGraph native patterns where conditional edge functions take only
     the state parameter and handle logging internally.
 
-
-
-    Manual retry handling:
-    - Checks for errors and retry count first
-    - Routes retriable errors back to same capability if retries available
-    - Routes to error node when retries exhausted
-    - Routes critical/replanning errors immediately
+    Routing priority:
+    1. Direct chat mode - routes directly to capability, bypassing pipeline
+    2. Manual retry handling - checks errors and retry count
+    3. Normal routing - task extraction → classification → orchestration → execution
 
     :param state: Current agent state containing all execution context
     :type state: AgentState
@@ -86,6 +83,45 @@ def router_conditional_edge(state: AgentState) -> str:
 
     # Get registry for node lookup
     registry = get_registry()
+
+    # ==== HIGHEST PRIORITY: DIRECT CHAT MODE ====
+    session_state = state.get("session_state", {})
+    direct_chat_capability = session_state.get("direct_chat_capability")
+
+    if direct_chat_capability:
+        # Check if capability already executed this turn (prevents infinite loop)
+        # Use `or {}` because gateway explicitly sets to None for new turns
+        last_result = state.get("execution_last_result") or {}
+        if last_result.get("capability") == direct_chat_capability:
+            # Direct chat turn complete - end execution
+            logger.key_info(f"🎯 Direct chat turn complete for {direct_chat_capability}")
+            return "END"
+
+        # Validate capability exists and supports direct chat
+        cap_instance = registry.get_capability(direct_chat_capability)
+        if cap_instance is None:
+            logger.error(f"Direct chat capability '{direct_chat_capability}' not found in registry")
+            # Clear invalid state and fall through to normal routing
+            state["session_state"] = {
+                **session_state,
+                "direct_chat_capability": None,
+                "last_direct_chat_result": None,
+            }
+        else:
+            if not getattr(cap_instance, "direct_chat_enabled", False):
+                logger.error(
+                    f"Capability '{direct_chat_capability}' doesn't support direct chat mode"
+                )
+                # Clear invalid state and fall through to normal routing
+                state["session_state"] = {
+                    **session_state,
+                    "direct_chat_capability": None,
+                    "last_direct_chat_result": None,
+                }
+            else:
+                # Valid direct chat mode - route directly to capability
+                logger.key_info(f"🎯 Direct chat mode: routing to {direct_chat_capability}")
+                return direct_chat_capability
 
     # ==== MANUAL RETRY HANDLING - Check first before normal routing ====
     if state.get("control_has_error", False):
