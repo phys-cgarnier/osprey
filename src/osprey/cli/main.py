@@ -63,7 +63,9 @@ class LazyGroup(click.Group):
             "health": "osprey.cli.health_cmd",
             "generate": "osprey.cli.generate_cmd",
             "remove": "osprey.cli.remove_cmd",
-            "workflows": "osprey.cli.workflows_cmd",
+            "workflows": "osprey.cli.workflows_cmd",  # DEPRECATED: use 'tasks' instead
+            "tasks": "osprey.cli.tasks_cmd",
+            "claude": "osprey.cli.claude_cmd",
         }
 
         if cmd_name not in commands:
@@ -88,7 +90,18 @@ class LazyGroup(click.Group):
 
     def list_commands(self, ctx):
         """Return list of available commands (for --help)."""
-        return ["init", "config", "deploy", "chat", "generate", "remove", "health", "workflows"]
+        # Note: 'workflows' and 'assist' are deprecated but kept in commands dict for backward compat
+        return [
+            "init",
+            "config",
+            "deploy",
+            "chat",
+            "generate",
+            "remove",
+            "health",
+            "tasks",
+            "claude",
+        ]
 
 
 @click.group(cls=LazyGroup, invoke_without_command=True)
@@ -114,7 +127,8 @@ def cli(ctx):
       osprey deploy up                Start services
       osprey chat                     Interactive conversation
       osprey health                   Check system health
-      osprey workflows export         Export AI workflow files
+      osprey tasks                    Browse AI assistant tasks
+      osprey claude install <task>    Install Claude Code skill
     """
     # Initialize theme from config if available (best-effort, silent failure)
     try:

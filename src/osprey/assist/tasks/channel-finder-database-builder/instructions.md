@@ -5,11 +5,16 @@ applies_when: [building_database, adding_descriptions, improving_database]
 estimated_time: 1-4 hours (depends on channel count and available documentation)
 ai_ready: true
 related: [channel-finder-pipeline-selection]
+skill_description: >-
+  Helps build high-quality channel databases with descriptions for the Channel
+  Finder service. Use when the user needs to create a channel database, add
+  descriptions to channels, improve database quality, or structure channel
+  data for any of the Channel Finder pipelines (In-Context, Hierarchical, Middle Layer).
 ---
 
 # Channel Finder: Database Builder Guide
 
-**Purpose**: Help users build high-quality channel databases with descriptions that enable effective LLM-based channel finding.
+Build high-quality channel databases with descriptions that enable effective LLM-based channel finding.
 
 **Key Principle**: Descriptions should help the LLM distinguish between channels and understand the user's intent, not just document what exists.
 
@@ -22,7 +27,7 @@ related: [channel-finder-pipeline-selection]
 **Paste this prompt to your AI assistant:**
 
 ```
-Following @docs/workflows/channel-finder-database-builder.md, help me build my Channel Finder database.
+Following @src/osprey/assist/tasks/channel-finder-database-builder/instructions.md, help me build my Channel Finder database.
 
 Your role:
 1. Ask questions to understand what information I have available

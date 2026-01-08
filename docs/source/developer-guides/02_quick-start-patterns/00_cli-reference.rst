@@ -39,6 +39,8 @@ The Osprey Framework provides a unified CLI for all framework operations. All co
    osprey deploy COMMAND     # Manage services
    osprey chat               # Start interactive chat
    osprey config             # Manage configuration
+   osprey tasks              # Browse AI assistant tasks (NEW)
+   osprey claude             # Manage Claude Code skills (NEW)
 
 Interactive Mode
 ================
@@ -1008,6 +1010,162 @@ Examples
 
    # Set all models to CBORG provider for specific project
    osprey config set-models --provider cborg --model anthropic/claude-haiku --project ~/my-agent
+
+============
+
+osprey tasks
+============
+
+Browse and manage AI assistant tasks. Tasks are structured workflows for common
+development activities like testing, code review, and documentation.
+
+Syntax
+------
+
+.. code-block:: bash
+
+   osprey tasks [COMMAND] [OPTIONS]
+
+Commands
+--------
+
+``osprey tasks`` (no subcommand)
+   Launch interactive task browser with actions like open in editor, copy to
+   project, and install as Claude Code skill.
+
+``osprey tasks list``
+   Quick non-interactive list of all available tasks.
+
+``osprey tasks copy TASK_NAME``
+   Copy a task to your project's ``.ai-tasks/`` directory for use with any AI assistant.
+
+   Options:
+      ``--force`` / ``-f`` - Overwrite existing files
+
+``osprey tasks show TASK_NAME``
+   Print a task's instructions to stdout.
+
+``osprey tasks path TASK_NAME``
+   Print the path to a task's instructions file.
+
+Examples
+--------
+
+.. code-block:: bash
+
+   # Interactive browser (recommended)
+   osprey tasks
+
+   # List all tasks
+   osprey tasks list
+
+   # Copy task to project for any AI assistant
+   osprey tasks copy pre-merge-cleanup
+
+   # View instructions
+   osprey tasks show testing-workflow
+
+   # Get path (useful for scripting)
+   osprey tasks path create-capability
+
+Using Tasks
+-----------
+
+After copying a task to your project, reference it in your AI assistant:
+
+.. code-block:: text
+
+   @.ai-tasks/testing-workflow/instructions.md Help me write tests
+
+See :doc:`../../contributing/03_ai-assisted-development` for detailed workflow guides.
+
+osprey claude
+=============
+
+Manage Claude Code skill installations. Skills are task wrappers that enable
+Claude Code to automatically discover and use Osprey workflows.
+
+Syntax
+------
+
+.. code-block:: bash
+
+   osprey claude [COMMAND] [OPTIONS]
+
+Commands
+--------
+
+``osprey claude install TASK``
+   Install a task as a Claude Code skill in ``.claude/skills/<task>/``.
+
+   Skills can be installed from two sources:
+
+   1. **Custom wrappers** - Pre-built skill files in ``integrations/claude_code/<task>/``
+   2. **Auto-generated** - Generated from task frontmatter if ``skill_description`` is present
+
+   Options:
+      ``--force`` / ``-f`` - Overwrite existing installation
+
+``osprey claude list``
+   List installed and available Claude Code skills.
+
+   Shows:
+
+   - Installed skills in current project
+   - Available skills (custom wrappers)
+   - Auto-generatable skills (from task frontmatter)
+   - Tasks without skill support
+
+Examples
+--------
+
+.. code-block:: bash
+
+   # List available and installed skills
+   osprey claude list
+
+   # Install a skill
+   osprey claude install create-capability
+
+   # Force reinstall
+   osprey claude install testing-workflow --force
+
+Output:
+
+.. code-block:: text
+
+   Claude Code Skills
+
+   Installed in this project:
+     ✓ create-capability
+
+   Available to install:
+     ○ migrate
+     ○ testing-workflow (auto-generated)
+     ○ ai-code-review (auto-generated)
+
+   Tasks without skill support (use @-mention or add skill_description):
+     - comments
+     - release-workflow
+
+Skill Auto-Generation
+---------------------
+
+Tasks with ``skill_description`` in their frontmatter can be installed as skills
+without requiring custom wrappers:
+
+.. code-block:: yaml
+
+   ---
+   workflow: my-task
+   skill_description: >-
+     Description of when Claude should use this skill.
+     Include keywords users might say.
+   ---
+
+When installed, the skill is auto-generated from this frontmatter.
+
+See :doc:`../../contributing/03_ai-assisted-development` for complete workflow documentation.
 
 ============
 

@@ -58,6 +58,7 @@ class TestLazyGroup:
         commands = group.list_commands(ctx)
 
         # Verify expected commands are present
+        # Note: 'workflows' and 'assist' are deprecated (still work but hidden from help)
         expected_commands = [
             "init",
             "config",
@@ -66,7 +67,8 @@ class TestLazyGroup:
             "generate",
             "remove",
             "health",
-            "workflows",
+            "tasks",
+            "claude",
         ]
         assert isinstance(commands, list)
         assert len(commands) > 0

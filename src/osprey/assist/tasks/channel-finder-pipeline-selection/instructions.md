@@ -5,11 +5,16 @@ applies_when: [setting_up_channel_finder, choosing_pipeline, building_database]
 estimated_time: 15-30 minutes
 ai_ready: true
 related: [channel-finder-database-builder]
+skill_description: >-
+  Helps select the appropriate Channel Finder pipeline based on channel naming
+  patterns. Use when the user is setting up Channel Finder, choosing between
+  In-Context, Hierarchical, or Middle Layer pipelines, or needs guidance on
+  which pipeline fits their control system's channel naming conventions.
 ---
 
 # Channel Finder: Pipeline Selection Guide
 
-**Purpose**: Help users select the most appropriate Channel Finder pipeline for their control system based on observable characteristics of their channel naming and organization.
+Select the most appropriate Channel Finder pipeline for your control system based on channel naming patterns.
 
 **Target Audience**: Users setting up Channel Finder for the first time who need to choose between In-Context, Hierarchical, or Middle Layer pipelines.
 
@@ -22,7 +27,7 @@ related: [channel-finder-database-builder]
 **Paste this prompt to your AI assistant:**
 
 ```
-Following @docs/workflows/channel-finder-pipeline-selection.md, help me select the right Channel Finder pipeline.
+Following @src/osprey/assist/tasks/channel-finder-pipeline-selection/instructions.md, help me select the right Channel Finder pipeline.
 
 Your approach:
 1. DO NOT immediately recommend a pipeline

@@ -9,14 +9,14 @@ related: [pre-merge-cleanup, commit-organization]
 
 # Release Workflow - Documentation Version Sync Fix
 
-This document provides the **definitive workflow** for creating releases that ensure documentation always shows the correct version.
+Definitive workflow for creating releases that ensure documentation and version numbers stay in sync.
 
 ## 🤖 AI Quick Start
 
 **Paste this prompt to your AI assistant (Cursor/Copilot):**
 
 ```
-I'm ready to create a new release. Following @docs/workflows/release-workflow.md,
+I'm ready to create a new release. Following @src/osprey/assist/tasks/release-workflow/instructions.md,
 guide me through the complete release process for version X.X.X.
 
 Walk me through each step and verify completion before moving to the next:
@@ -92,7 +92,13 @@ If any step fails, help me troubleshoot before continuing.
    - All breaking changes noted?
    - Migration steps included if needed?
 
-4. **Plan Release Notes**
+4. **Check for Breaking Changes → Migration Document**
+   - Does CHANGELOG "Changed" or "Removed" section affect public API?
+   - If YES: Follow the migration workflow to create migration document
+   - Migration document must be committed before tagging release
+   - See: `src/osprey/assist/tasks/migrate/authoring/README.md`
+
+5. **Plan Release Notes**
    - Identify the top 3-5 features to highlight
    - Note any important upgrade instructions
    - Prepare user-facing descriptions
@@ -299,7 +305,7 @@ Before creating a release, ensure these files have the correct version. **All ve
 - [ ] **`src/osprey/cli/main.py`** - Line 20: `__version__ = "0.7.3"` (fallback version)
 
 ### 📝 Documentation & Release Notes
-- [ ] **`RELEASE_NOTES.md`** - Line 1: `# Alpha Berkeley Framework - Latest Release (v0.7.3)`
+- [ ] **`RELEASE_NOTES.md`** - Line 1: `# Osprey Framework - Latest Release (v0.7.3)`
 - [ ] **`CHANGELOG.md`** - Add new section: `## [0.7.3] - 2025-MM-DD`
 - [ ] **`README.md`** - Line 12: `**🎉 Latest Release: v0.7.3**`
 

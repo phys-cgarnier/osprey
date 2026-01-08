@@ -5,11 +5,16 @@ applies_when: [before_commit, pre_review, before_merge]
 estimated_time: 10-15 minutes
 ai_ready: true
 related: [commit-organization, update-documentation]
+skill_description: >-
+  Detects loose ends before merging PRs or feature branches. Use when the
+  user wants to check for issues before merging, find TODOs or FIXMEs,
+  detect debugging code, check for incomplete implementations, or ensure
+  code quality before review. Systematic cleanup and verification workflow.
 ---
 
 # Pre-Merge Cleanup Guide
 
-**Purpose**: Systematic detection of loose ends before merging feature branches.
+Systematic detection of loose ends before merging feature branches.
 
 **Principle**: If a diff needs extensive explanation, it's incomplete.
 
@@ -18,7 +23,7 @@ related: [commit-organization, update-documentation]
 **Paste this prompt to your AI assistant (Cursor/Copilot):**
 
 ```
-I'm ready to commit my changes. Following @docs/workflows/pre-merge-cleanup.md,
+I'm ready to commit my changes. Following @src/osprey/assist/tasks/pre-merge-cleanup/instructions.md,
 scan my uncommitted changes for:
 
 1. BLOCKERS:

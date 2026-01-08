@@ -618,7 +618,7 @@ def get_project_menu_choices(exit_action: str = "exit") -> list[Choice]:
         Choice("[>] generate    - Generate components", value="generate"),
         Choice("[>] config      - Configuration settings", value="config"),
         Choice("[>] registry    - Show registry contents", value="registry"),
-        Choice("[>] workflows   - Export AI workflow files", value="workflows"),
+        Choice("[>] tasks       - Browse AI assistant tasks", value="tasks"),
         Choice("─" * 60, value=None, disabled=True),
         Choice("[+] init        - Create new project", value="init_interactive"),
         Choice("[?] help        - Show all commands", value="help"),
@@ -677,6 +677,7 @@ def show_main_menu() -> str | None:
         choices.extend(
             [
                 Choice("[+] Create new project (interactive)", value="init_interactive"),
+                Choice("[>] Browse AI assistant tasks", value="tasks"),
                 Choice("[?] Help", value="help"),
                 Choice("[x] Exit", value="exit"),
             ]
@@ -1647,8 +1648,8 @@ def handle_project_selection(project_path: Path):
             from osprey.cli.registry_cmd import handle_registry_action
 
             handle_registry_action(project_path=project_path)
-        elif action == "workflows":
-            handle_workflows_action()
+        elif action == "tasks":
+            handle_tasks_action()
         elif action == "init_interactive":
             # Save current directory before init flow
             original_dir = Path.cwd()
@@ -2177,6 +2178,16 @@ def handle_workflows_action():
         console.print(f"\n{Messages.error(f'Export failed: {e}')}")
 
     input("\nPress ENTER to continue...")
+
+
+def handle_tasks_action():
+    """Handle tasks browsing action from interactive menu.
+
+    Launches the interactive task browser for selecting and managing tasks.
+    """
+    from osprey.cli.tasks_cmd import interactive_task_browser
+
+    interactive_task_browser()
 
 
 def handle_export_action(project_path: Path | None = None):
@@ -3260,8 +3271,8 @@ def navigation_loop():
             from osprey.cli.registry_cmd import handle_registry_action
 
             handle_registry_action()
-        elif action == "workflows":
-            handle_workflows_action()
+        elif action == "tasks":
+            handle_tasks_action()
         elif action == "help":
             # Show contextual help based on whether we're in a project or not
             if is_project_initialized():

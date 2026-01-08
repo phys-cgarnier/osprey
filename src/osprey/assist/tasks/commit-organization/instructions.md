@@ -5,6 +5,12 @@ applies_when: [before_commit, multiple_changes, feature_complete]
 estimated_time: 20-30 minutes
 ai_ready: true
 related: [pre-merge-cleanup, release-workflow]
+skill_description: >-
+  Helps organize uncommitted changes into atomic, logical commits. Use when
+  the user has multiple changes to commit, wants to split a large changeset
+  into smaller commits, or needs help structuring commits before pushing.
+  Guides through analyzing changes, grouping related modifications, and
+  creating meaningful commit messages.
 ---
 
 # Commit Organization Workflow
@@ -16,7 +22,7 @@ This guide helps you organize uncommitted Git changes into atomic, logical commi
 **Paste this prompt to your AI assistant (Cursor/Copilot):**
 
 ```
-I have multiple uncommitted changes. Following @docs/workflows/commit-organization.md,
+I have multiple uncommitted changes. Following @src/osprey/assist/tasks/commit-organization/instructions.md,
 help me organize them into atomic, logical commits.
 
 CRITICAL REQUIREMENTS:

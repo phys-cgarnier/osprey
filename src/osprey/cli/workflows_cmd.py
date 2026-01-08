@@ -16,8 +16,11 @@ from .styles import Messages, Styles, console
 def get_workflows_source_path() -> Path | None:
     """Get the path to bundled workflow files using importlib.resources.
 
+    DEPRECATED: This now points to assist/tasks for backward compatibility.
+    New code should use osprey.cli.tasks_cmd functions instead.
+
     Returns:
-        Path to the workflows directory in the installed package,
+        Path to the assist/tasks directory in the installed package,
         or None if not found.
     """
     try:
@@ -25,15 +28,16 @@ def get_workflows_source_path() -> Path | None:
         # This works for both installed packages and development mode
         from importlib.resources import files
 
-        workflows_ref = files("osprey").joinpath("workflows")
+        # Point to assist/tasks instead of deprecated workflows directory
+        tasks_ref = files("osprey").joinpath("assist", "tasks")
 
         # Convert to Path - handle both Traversable and Path objects
-        if hasattr(workflows_ref, "__fspath__"):
+        if hasattr(tasks_ref, "__fspath__"):
             # It's a real Path
-            return Path(workflows_ref)
+            return Path(tasks_ref)
         else:
             # It's a Traversable, convert via str
-            return Path(str(workflows_ref))
+            return Path(str(tasks_ref))
     except Exception as e:
         console.print(f"{Messages.error('Error locating workflow files:')} {e}", style=Styles.ERROR)
         return None
@@ -44,8 +48,15 @@ def get_workflows_source_path() -> Path | None:
 def workflows(ctx):
     """Manage AI workflow documentation files.
 
-    Export workflow files to your project for easy access by AI coding assistants.
-    These markdown files guide assistants through common development tasks.
+    DEPRECATED: Use 'osprey tasks' and 'osprey claude' instead.
+
+    The workflows have been consolidated into the assist system:
+      - osprey tasks list         # List all available tasks
+      - osprey tasks show X       # Show task details
+      - osprey claude install X   # Install task as Claude Code skill
+
+    This command is kept for backward compatibility but will be removed
+    in a future version.
 
     Examples:
 
@@ -59,6 +70,15 @@ def workflows(ctx):
       # List available workflows
       osprey workflows list
     """
+    # Show deprecation warning
+    console.print(
+        "\n[yellow]⚠ DEPRECATED:[/yellow] 'osprey workflows' is deprecated. "
+        "Use [cyan]osprey tasks[/cyan] and [cyan]osprey claude[/cyan] instead.\n"
+    )
+    console.print("  [dim]osprey tasks list[/dim]         - List all available tasks")
+    console.print("  [dim]osprey tasks show X[/dim]       - Show task details")
+    console.print("  [dim]osprey claude install X[/dim]   - Install task as Claude Code skill\n")
+
     if ctx.invoked_subcommand is None:
         # Default action: export to current directory
         ctx.invoke(export)
@@ -81,10 +101,10 @@ def list():
 
     console.print(f"\n{Messages.header('Available AI Workflow Files:')}\n")
 
-    # Get all markdown files except README
+    # Get all task directories that have instructions.md
     try:
         workflows_list = sorted(
-            [f for f in source.iterdir() if f.suffix == ".md" and f.name != "README.md"]
+            [d for d in source.iterdir() if d.is_dir() and (d / "instructions.md").exists()]
         )
     except Exception as e:
         console.print(Messages.error(f"Error reading workflow directory: {e}"))
@@ -95,10 +115,11 @@ def list():
         return
 
     # Display each workflow with its title
-    for wf in workflows_list:
+    for task_dir in workflows_list:
+        instructions_file = task_dir / "instructions.md"
         try:
-            # Read first line (title) from each workflow
-            with open(wf, encoding="utf-8") as f:
+            # Read first line (title) from instructions.md
+            with open(instructions_file, encoding="utf-8") as f:
                 lines = f.readlines()
                 title = None
                 in_frontmatter = False
@@ -114,16 +135,19 @@ def list():
                         title = line.lstrip("#").strip()
                         break
 
-                # Display with title or just filename
+                # Display with title or just task name
+                display_name = f"{task_dir.name}.md"
                 if title:
-                    console.print(f"  [{Styles.SUCCESS}]•[/{Styles.SUCCESS}] {wf.name:45} {title}")
+                    console.print(
+                        f"  [{Styles.SUCCESS}]•[/{Styles.SUCCESS}] {display_name:45} {title}"
+                    )
                 else:
-                    console.print(f"  [{Styles.SUCCESS}]•[/{Styles.SUCCESS}] {wf.name}")
+                    console.print(f"  [{Styles.SUCCESS}]•[/{Styles.SUCCESS}] {display_name}")
 
         except Exception:
-            # Fallback: just show filename
+            # Fallback: just show task name
             console.print(
-                f"  [{Styles.SUCCESS}]•[/{Styles.SUCCESS}] {wf.name} [{Styles.DIM}](read error)[/{Styles.DIM}]"
+                f"  [{Styles.SUCCESS}]•[/{Styles.SUCCESS}] {task_dir.name}.md [{Styles.DIM}](read error)[/{Styles.DIM}]"
             )
 
     console.print(f"\n[{Styles.DIM}]Total: {len(workflows_list)} workflows[/{Styles.DIM}]")
@@ -201,23 +225,30 @@ def export(output, force):
         console.print(Messages.error(f"Failed to create directory: {e}"))
         return
 
-    # Copy workflow files
+    # Copy workflow files (from assist/tasks/*/instructions.md to {task-name}.md)
     console.print(f"\n{Messages.header('Exporting workflows to:')} {target}\n")
 
     copied = 0
     errors = []
 
     try:
-        for wf_file in source.iterdir():
-            if wf_file.suffix == ".md":
-                try:
-                    dest_file = target / wf_file.name
-                    shutil.copy2(wf_file, dest_file)
-                    console.print(f"  [{Styles.SUCCESS}]✓[/{Styles.SUCCESS}] {wf_file.name}")
-                    copied += 1
-                except Exception as e:
-                    errors.append((wf_file.name, str(e)))
-                    console.print(f"  [{Styles.ERROR}]✗[/{Styles.ERROR}] {wf_file.name} - {e}")
+        for task_dir in source.iterdir():
+            if task_dir.is_dir():
+                instructions_file = task_dir / "instructions.md"
+                if instructions_file.exists():
+                    try:
+                        # Export as {task-name}.md for backward compatibility
+                        dest_file = target / f"{task_dir.name}.md"
+                        shutil.copy2(instructions_file, dest_file)
+                        console.print(
+                            f"  [{Styles.SUCCESS}]✓[/{Styles.SUCCESS}] {task_dir.name}.md"
+                        )
+                        copied += 1
+                    except Exception as e:
+                        errors.append((f"{task_dir.name}.md", str(e)))
+                        console.print(
+                            f"  [{Styles.ERROR}]✗[/{Styles.ERROR}] {task_dir.name}.md - {e}"
+                        )
     except Exception as e:
         console.print(Messages.error(f"Error during export: {e}"))
         return

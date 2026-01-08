@@ -21,20 +21,28 @@ def cli_runner():
 
 @pytest.fixture
 def mock_workflows_path(tmp_path):
-    """Create a mock workflows directory with sample files."""
-    workflows_dir = tmp_path / "workflows"
-    workflows_dir.mkdir()
+    """Create a mock assist/tasks directory with sample task subdirectories.
 
-    # Create sample workflow files
-    (workflows_dir / "README.md").write_text("# Workflows\n\nDocumentation")
-    (workflows_dir / "testing-workflow.md").write_text(
+    Note: workflows_cmd now reads from assist/tasks/, not workflows/.
+    Each task is a directory with instructions.md inside.
+    """
+    tasks_dir = tmp_path / "tasks"
+    tasks_dir.mkdir()
+
+    # Create sample task directories with instructions.md files
+    testing_dir = tasks_dir / "testing-workflow"
+    testing_dir.mkdir()
+    (testing_dir / "instructions.md").write_text(
         "---\nworkflow: testing\n---\n\n# Testing Workflow\n\nContent here"
     )
-    (workflows_dir / "commit-organization.md").write_text(
+
+    commit_dir = tasks_dir / "commit-organization"
+    commit_dir.mkdir()
+    (commit_dir / "instructions.md").write_text(
         "---\nworkflow: commits\n---\n\n# Commit Organization\n\nGuide content"
     )
 
-    return workflows_dir
+    return tasks_dir
 
 
 class TestGetWorkflowsSourcePath:
@@ -118,9 +126,9 @@ class TestExportCommand:
 
         assert result.exit_code == 0
         assert target.exists()
+        # Export creates {task-name}.md from tasks/{task-name}/instructions.md
         assert (target / "testing-workflow.md").exists()
         assert (target / "commit-organization.md").exists()
-        assert (target / "README.md").exists()
 
     @patch("osprey.cli.workflows_cmd.get_workflows_source_path")
     def test_export_default_location(

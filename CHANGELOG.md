@@ -7,8 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **Documentation**: Fixed workflow file references to use correct `@src/osprey/workflows/` path for copy-paste into Claude Code and Cursor
+### Added
+- **CLI**: New `osprey tasks` command for browsing AI assistant tasks
+  - `osprey tasks` - Interactive task browser (default)
+  - `osprey tasks list` - List all available tasks
+  - `osprey tasks show <task>` - Print task instructions to stdout
+  - `osprey tasks copy <task>` - Copy task to project's `.ai-tasks/` directory
+  - `osprey tasks path <task>` - Print path to task's instructions file
+- **CLI**: New `osprey claude` command for Claude Code skill management
+  - `osprey claude install <task>` - Install a task as a Claude Code skill
+  - `osprey claude list` - List installed and available skills
+- **Assist System**: General-purpose architecture for AI coding assistant integrations
+  - Tool-agnostic task instructions in `src/osprey/assist/tasks/`
+  - Tool-specific wrappers in `src/osprey/assist/integrations/`
+  - Pre-commit task for validating code before commits
+  - Migration task for upgrading downstream OSPREY projects
+- **Tests**: Comprehensive tests for `tasks_cmd.py` and `claude_cmd.py`
+
+### Changed
+- **CLI**: Deprecated `osprey workflows` command (use `osprey tasks` instead)
+  - Command still works for backward compatibility but shows deprecation warning
+- **Documentation**: Updated workflow references to use new command structure
+  - `osprey tasks list` for browsing tasks
+  - `osprey claude install <task>` for installing Claude Code skills
+
+### Removed
+- **Workflows**: Removed duplicate workflow files from `src/osprey/workflows/`
+  - Content consolidated into `src/osprey/assist/tasks/{name}/instructions.md`
+  - Only `README.md` deprecation notice remains in workflows directory
 
 ## [0.9.10] - 2025-01-03
 

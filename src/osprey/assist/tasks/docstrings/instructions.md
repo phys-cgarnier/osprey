@@ -5,6 +5,11 @@ applies_when: [writing_code, code_review, new_functions, api_design]
 estimated_time: reference as needed
 ai_ready: true
 related: [comments, update-documentation, pre-merge-cleanup]
+skill_description: >-
+  Guidelines for writing Sphinx-format docstrings. Use when the user wants
+  to add docstrings, improve documentation, document functions or classes,
+  or needs guidance on Python docstring format, parameter documentation,
+  return value documentation, or API documentation.
 ---
 
 # DocString Guidelines for Professional Python Development
