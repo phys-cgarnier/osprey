@@ -86,6 +86,9 @@ Step 2: Implement Capability
        provides = ["PROCESSED_DATA"]
        requires = []
 
+       # Optional: Enable direct chat mode for multi-turn conversations
+       # direct_chat_enabled = True
+
        async def execute(self) -> Dict[str, Any]:
            """Execute the capability's core business logic."""
            # Get unified logger with automatic streaming
@@ -120,6 +123,18 @@ Step 2: Implement Capability
            except Exception as e:
                logger.error(f"Processing error: {e}")
                raise
+
+.. tip:: **Enabling Direct Chat Mode**
+
+   Add ``direct_chat_enabled = True`` to allow users to interact directly with your capability via ``/chat:capability_name``. This bypasses the normal orchestration pipeline and enables:
+
+   - **Multi-turn conversations** with message history preserved
+   - **Interactive exploration** without task extraction overhead
+   - **Context accumulation** for follow-up queries
+
+   Direct chat mode is ideal for ReAct-style capabilities with tools, or any capability where iterative conversation is valuable.
+
+   See :ref:`direct-chat-mode` for user workflow details.
 
 Helper Methods Reference
 ------------------------

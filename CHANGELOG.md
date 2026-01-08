@@ -109,6 +109,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests basic completion, structured output (Pydantic), and ReAct agent workflows
   - Auto-skips unavailable providers/models based on environment
   - Graceful handling of API quota/rate limit errors (skips with warning instead of failing)
+- **Documentation**: Direct chat mode user and developer documentation
+  - CLI Reference: `/chat` and `/exit` commands, Direct Chat Mode section with examples
+  - Gateway Architecture: Direct chat mode handling, message history preservation, GatewayResult fields
+  - Classification and Routing: Router priority with direct chat bypass
+  - Building First Capability: `direct_chat_enabled` attribute and tip box
 
 ### Changed
 - **Capabilities**: Support direct chat execution mode in capability decorator

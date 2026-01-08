@@ -788,27 +788,129 @@ The CLI supports slash commands for agent control and interface operations:
    /task:off            # Bypass task extraction
    /caps:off            # Bypass capability selection
 
+**Direct Chat Mode Commands:**
+
+.. code-block:: bash
+
+   /chat                     # List capabilities that support direct chat
+   /chat:<capability_name>   # Enter direct chat mode with a specific capability
+   /exit                     # Exit direct chat mode (or exit CLI if not in direct chat)
+
 **CLI Commands:**
 
 .. code-block:: bash
 
    /help                # Show available commands
    /help <command>      # Show help for specific command
-   /exit                # Exit the chat session
+   /exit                # Exit direct chat mode (or exit CLI if not in direct chat)
    /clear               # Clear the screen
+
+.. _direct-chat-mode:
+
+Direct Chat Mode
+----------------
+
+Direct Chat Mode enables multi-turn conversations directly with a specific capability, bypassing the normal orchestration pipeline (task extraction → classification → orchestration). This is useful for:
+
+- **Interactive exploration** with ReAct-style capabilities
+- **Focused conversations** where you know which capability you need
+- **Context accumulation** across multiple turns within the same capability
+
+**Available Capabilities:**
+
+Direct chat mode is designed for **ReAct-style capabilities** - agents that use tools and benefit from multi-turn reasoning. The framework includes one built-in direct-chat capability:
+
+- ``state_manager`` - Inspect and manage accumulated context data
+
+You can create your own ReAct capabilities with direct chat support. One example is generating a capability from an MCP server - see :doc:`04_mcp-capability-generation` for a tutorial that creates the ``weather_mcp`` capability shown in these examples.
+
+**Entering Direct Chat Mode:**
+
+.. code-block:: text
+
+   👤 You: /chat
+   Available capabilities for direct chat:
+   ┌──────────────────┬─────────────────────────────────────┐
+   │ Capability       │ Description                         │
+   ├──────────────────┼─────────────────────────────────────┤
+   │ state_manager    │ Manage and inspect agent state      │
+   │ weather_mcp      │ Weather operations via MCP server   │
+   └──────────────────┴─────────────────────────────────────┘
+
+   👤 You: /chat:weather_mcp
+   ✓ Entering direct chat with weather_mcp
+     Type /exit to return to normal mode
+
+   🎯 weather_mcp > What's the weather in Tokyo?
+   🤖 The current weather in Tokyo is 22°C with clear skies...
+
+   🎯 weather_mcp > How about San Francisco?
+   🤖 San Francisco is currently 18°C with partly cloudy conditions...
+
+.. note::
+
+   The ``weather_mcp`` capability shown above is an example generated from an MCP server. Your ``/chat`` list will only show ``state_manager`` until you generate or create additional direct-chat-enabled capabilities.
+
+**Key Behaviors:**
+
+- **Message history preserved**: The capability sees the full conversation history, enabling follow-up questions like "How about yesterday?" or "Compare that to Boston"
+- **Pipeline bypass**: Messages go directly to the capability without task extraction, classification, or orchestration
+- **Visual indicator**: The prompt changes to show the active capability (e.g., ``🎯 weather_mcp >``)
+
+**Saving Results to Context:**
+
+While in direct chat mode, you can save results for later use in orchestrated queries:
+
+.. code-block:: text
+
+   🎯 weather_mcp > What's the weather in Tokyo?
+   🤖 Tokyo is 22°C with clear skies...
+
+   🎯 weather_mcp > Save that as tokyo_weather
+   🤖 ✓ Saved weather data as 'tokyo_weather'
+
+   🎯 weather_mcp > /exit
+   ✓ Exited direct chat with weather_mcp
+
+   👤 You: Compare the tokyo_weather to current Boston conditions
+   🤖 [Orchestrated query using saved context...]
+
+**State Manager Capability:**
+
+The built-in ``state_manager`` capability provides tools for inspecting and managing accumulated context:
+
+.. code-block:: text
+
+   👤 You: /chat:state_manager
+   ✓ Entering direct chat with state_manager
+
+   🎯 state_manager > What context data do we have?
+   🤖 Current context includes:
+      - WEATHER_RESULTS: tokyo_weather, sf_weather
+      - ANALYSIS_RESULTS: correlation_analysis
+
+   🎯 state_manager > Show me the tokyo_weather details
+   🤖 [Displays full context object...]
+
+**Exiting Direct Chat Mode:**
+
+Use ``/exit`` to return to normal orchestrated mode:
+
+.. code-block:: text
+
+   🎯 weather_mcp > /exit
+   ✓ Exited direct chat with weather_mcp
+     Returning to normal mode
+
+   👤 You: [Now in normal orchestrated mode]
+
+.. note::
+
+   Not all capabilities support direct chat mode. Only capabilities with ``direct_chat_enabled = True`` appear in the ``/chat`` list. See :doc:`01_building-your-first-capability` for how to enable this on your own capabilities.
 
 .. seealso::
    :doc:`../../api_reference/01_core_framework/06_command_system`
        Complete API reference for the centralized command system
-
-Prerequisites
--------------
-
-Before using ``framework chat``:
-
-1. Services must be deployed: ``framework deploy up --detached``
-2. Configuration must be valid: ``config.yml`` with proper model settings
-3. API keys must be set: ``.env`` file with required credentials
 
 osprey config
 =============

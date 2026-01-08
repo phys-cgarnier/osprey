@@ -572,6 +572,39 @@ Try this example query:
 
 Your control assistant now demonstrates the full MCP integration pattern, which you can adapt for any MCP-compatible service.
 
+Step 5: Try Direct Chat Mode (Optional)
+----------------------------------------
+
+Generated MCP capabilities come with **direct chat mode** enabled by default (``direct_chat_enabled = True``). This lets you have multi-turn conversations directly with the capability's ReAct agent, bypassing the normal orchestration pipeline.
+
+.. code-block:: text
+
+   👤 You: /chat:weather_demo
+   ✓ Entering direct chat with weather_demo
+     Type /exit to return to normal mode
+     💡 Say 'save that as <key>' to store results
+
+   🎯 weather_demo > What's the weather in Tokyo?
+   🤖 Tokyo is currently 22°C with clear skies...
+
+   🎯 weather_demo > How about San Francisco?
+   🤖 San Francisco is 18°C with partly cloudy conditions...
+
+   🎯 weather_demo > Save that as sf_weather
+   🤖 ✓ Saved weather data as 'sf_weather'
+
+   🎯 weather_demo > /exit
+   ✓ Exited direct chat with weather_demo
+     Returning to normal mode
+
+**Key benefits of direct chat mode:**
+
+- **Multi-turn conversations** with message history preserved between turns
+- **Interactive exploration** without task extraction/classification overhead
+- **Context saving** - say "save that as <key>" to store results for later use in orchestrated queries
+
+See :ref:`direct-chat-mode` for complete details on direct chat commands and workflow.
+
 Removing Capabilities
 =====================
 
