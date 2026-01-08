@@ -187,9 +187,16 @@ Be concise and helpful. Focus on the task at hand. When listing context or state
                 final_message.content if hasattr(final_message, "content") else str(final_message)
             )
 
-            # Note: Tool executions may have modified state directly
-            # Return the response message
-            return {"messages": [MessageUtils.create_assistant_message(result_content)]}
+            # Build state updates with response message
+            state_updates = {"messages": [MessageUtils.create_assistant_message(result_content)]}
+
+            # CRITICAL: Include capability_context_data if tools modified it
+            # Context tools modify state["capability_context_data"] in-place during ReAct execution
+            # We must return these changes to LangGraph for persistence
+            if state.get("capability_context_data"):
+                state_updates["capability_context_data"] = state["capability_context_data"]
+
+            return state_updates
 
         except Exception as e:
             error_msg = f"State management failed: {str(e)}"

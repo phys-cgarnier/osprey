@@ -746,6 +746,12 @@ class {class_name}(BaseCapability):
                 # Add response message for direct chat
                 state_updates['messages'] = [MessageUtils.create_assistant_message(result_content)]
 
+                # CRITICAL: Include capability_context_data in state_updates
+                # Context tools (save_result_to_context, etc.) modify state["capability_context_data"]
+                # in-place during ReAct execution. We must return these changes to LangGraph.
+                if state.get("capability_context_data"):
+                    state_updates['capability_context_data'] = state["capability_context_data"]
+
             # Store context in orchestrated mode (store_output_context handles context_key internally)
             if not direct_chat_mode:
                 context = {context_class_name}(

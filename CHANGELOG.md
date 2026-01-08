@@ -151,6 +151,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Router**: Suppress routing logs during state-only evaluations
   - Mode switches no longer produce confusing "routing to task extraction" logs
   - Uses `execution_start_time` to detect active vs state-only execution
+- **Capabilities**: Context tool changes now persist to LangGraph state
+  - State manager and MCP capabilities return `capability_context_data` in state updates
+  - Fixes context save/remove operations having no effect in direct chat mode
 
 ## [0.9.10] - 2025-01-03
 
