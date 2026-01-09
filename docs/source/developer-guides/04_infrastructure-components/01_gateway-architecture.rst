@@ -249,6 +249,108 @@ Gateway automatically detects approval responses using a two-tier detection syst
 **Resume Command Creation:**
    Gateway extracts interrupt payload and injects approval decision into agent state for processing.
 
+.. _gateway-direct-chat-mode:
+
+Direct Chat Mode Handling
+-------------------------
+
+Gateway provides special handling for direct chat mode, where users interact directly with a specific capability without going through the normal orchestration pipeline.
+
+**Mode Detection:**
+
+Gateway checks the current ``session_state`` to determine if direct chat mode is active:
+
+.. code-block:: python
+
+   # Gateway detects direct chat mode from session state
+   session_state = current_state.get("session_state", {})
+   direct_chat_capability = session_state.get("direct_chat_capability")
+   in_direct_chat = direct_chat_capability is not None
+
+   if in_direct_chat:
+       # Direct chat mode - preserve message history
+       # (handled within _handle_new_message_flow)
+       ...
+   else:
+       # Normal mode - create fresh state
+       fresh_state = StateManager.create_fresh_state(user_input, current_state)
+
+**Message History Preservation:**
+
+The key difference between direct chat and normal mode is how messages are handled:
+
+.. tab-set::
+
+   .. tab-item:: Normal Mode
+
+      Creates fresh state with only the current message:
+
+      .. code-block:: python
+
+         # Normal mode: fresh state for each turn
+         fresh_state = StateManager.create_fresh_state(
+             user_input=cleaned_message,
+             current_state=current_state  # Preserves persistent fields only
+         )
+
+      This ensures each orchestrated query is independent.
+
+   .. tab-item:: Direct Chat Mode
+
+      Preserves message history for multi-turn conversations:
+
+      .. code-block:: python
+
+         # Direct chat mode: append to existing messages
+         state_update = {
+             "messages": [new_message],  # LangGraph APPENDS to existing
+             "session_state": session_state,
+             "execution_start_time": time.time(),
+             "execution_last_result": None,  # Clear for new turn
+             "planning_current_step_index": 0,
+             "planning_execution_plan": None,
+         }
+
+      The capability sees the full conversation history, enabling context-aware follow-up questions.
+
+**Mode Switch Handling:**
+
+When entering or exiting direct chat mode (via ``/chat:capability_name`` or ``/exit``), Gateway returns a state-only update:
+
+.. code-block:: python
+
+   # Mode switch state - no active execution
+   mode_switch_state = {
+       "session_state": updated_session_state,
+       "execution_start_time": None,  # Signals no active execution
+       "planning_execution_plan": None,
+       "planning_current_step_index": 0,
+   }
+
+   return GatewayResult(
+       agent_state=mode_switch_state,
+       is_state_only_update=True,  # Use update_state(), not ainvoke()
+   )
+
+**Interface Integration:**
+
+Interfaces must handle the ``is_state_only_update`` and ``exit_interface`` flags:
+
+.. code-block:: python
+
+   result = await self.gateway.process_message(message, graph, config)
+
+   if result.exit_interface:
+       # Exit CLI or close session
+       return
+
+   if result.is_state_only_update and result.agent_state:
+       # Mode switch - update state without running graph
+       graph.update_state(config, result.agent_state, as_node="router")
+   elif result.agent_state:
+       # Normal execution
+       await graph.ainvoke(result.agent_state, config=config)
+
 Error Handling
 --------------
 
@@ -264,6 +366,18 @@ Gateway provides graceful error handling:
        error: Optional[str] = None
        slash_commands_processed: List[str] = None
        approval_detected: bool = False
+       is_state_only_update: bool = False  # Mode switch, use update_state()
+       exit_interface: bool = False        # Exit CLI/session
+
+**Field Reference:**
+
+- ``agent_state``: State to pass to ``graph.ainvoke()`` for normal execution
+- ``resume_command``: Command for resuming from approval interrupt
+- ``error``: Error message if processing failed
+- ``slash_commands_processed``: List of slash commands that were handled
+- ``approval_detected``: Whether an approval/rejection response was detected
+- ``is_state_only_update``: If True, use ``graph.update_state()`` instead of ``ainvoke()`` (for mode switches)
+- ``exit_interface``: If True, the interface should exit (``/exit`` outside direct chat mode)
 
 Common error scenarios:
 - Interrupt detection failures fall back to new message processing
@@ -341,3 +455,6 @@ Gateway Architecture provides the foundation for consistent, reliable message pr
 
    :doc:`../05_production-systems/01_human-approval-workflows`
        Advanced approval workflow integration patterns
+
+   :ref:`direct-chat-mode`
+       User guide for Direct Chat Mode commands and workflow

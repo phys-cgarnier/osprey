@@ -198,7 +198,7 @@ class E2EProject:
         original_cwd = os.getcwd()
         os.chdir(self.project_dir)
 
-        # Set up log capture and optional console output
+        # Set up log capture for execution trace
         log_capture = StringIO()
         log_handler = logging.StreamHandler(log_capture)
         log_handler.setLevel(logging.INFO)
@@ -209,14 +209,10 @@ class E2EProject:
         root_logger.setLevel(logging.INFO)
         root_logger.addHandler(log_handler)
 
-        # Add console handler if verbose mode
-        console_handler = None
+        # Note: We don't add a console handler for verbose mode because
+        # RichHandler (from osprey.utils.logger) already outputs to console
+        # Adding another handler causes duplicate logs with raw Rich markup
         if self.verbose:
-            console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setLevel(logging.INFO)
-            # Format to show just the important parts
-            console_handler.setFormatter(logging.Formatter("  %(message)s"))
-            root_logger.addHandler(console_handler)
             print(f"\n🔄 Executing query: '{message}'")
 
         # Execute query through gateway
@@ -236,11 +232,25 @@ class E2EProject:
                 print("  ⏳ Executing agent graph...")
 
             # Execute the graph based on gateway result
-            if result.resume_command:
+            if result.exit_interface:
+                # Interface should exit (e.g., /exit outside direct chat)
+                # For test harness, this is a no-op - just return success
+                if self.verbose:
+                    print("  📝 Exit interface requested (no-op in test harness)")
+                final_state = self.graph.get_state(self.base_config).values
+            elif result.resume_command:
                 # Approval flow resumption
                 final_state = await self.graph.ainvoke(
                     result.resume_command, config=self.base_config
                 )
+            elif result.is_state_only_update and result.agent_state:
+                # Mode switch only (entering/exiting direct chat with no message)
+                # Use update_state() to persist without running the full agent graph
+                # Specify as_node="router" to avoid triggering pending graph execution
+                self.graph.update_state(self.base_config, result.agent_state, as_node="router")
+                final_state = self.graph.get_state(self.base_config).values
+                if self.verbose:
+                    print(f"  📝 State-only update: {list(result.agent_state.keys())}")
             elif result.agent_state:
                 # Normal conversation turn
                 final_state = await self.graph.ainvoke(result.agent_state, config=self.base_config)
@@ -270,10 +280,8 @@ class E2EProject:
                 print(f"  ❌ Error: {error}")
 
         finally:
-            # Remove log handlers and restore original level
+            # Remove log handler and restore original level
             root_logger.removeHandler(log_handler)
-            if console_handler:
-                root_logger.removeHandler(console_handler)
             root_logger.setLevel(original_level)
 
         execution_time = asyncio.get_event_loop().time() - start_time

@@ -190,11 +190,21 @@ Router serves as the central decision point for execution flow:
    def router_conditional_edge(state: AgentState) -> str:
        """Central routing logic with error handling."""
 
-       # 1. Handle errors first
+       # 1. Direct chat mode - route directly to capability
+       session_state = state.get("session_state", {})
+       direct_chat_capability = session_state.get("direct_chat_capability")
+
+       if direct_chat_capability:
+           last_result = state.get("execution_last_result") or {}
+           if last_result.get("capability") == direct_chat_capability:
+               return "END"  # Turn complete
+           return direct_chat_capability
+
+       # 2. Handle errors
        if state.get('control_has_error', False):
            return handle_error_routing(state)
 
-       # 2. Check execution progress
+       # 3. Check execution progress
        if not state.get("task_current_task"):
            return "task_extraction"
 
@@ -204,15 +214,17 @@ Router serves as the central decision point for execution flow:
        if not StateManager.get_execution_plan(state):
            return "orchestrator"
 
-       # 3. Execute next step
+       # 4. Execute next step
        return get_next_step_capability(state)
 
-**Routing Priority:**
-1. Error handling (highest priority)
-2. Task availability check
-3. Capability selection check
-4. Execution plan check
-5. Step execution
+The router evaluates conditions in order and returns the first matching route:
+
+1. Direct chat mode → route to specified capability
+2. Error state → error handling
+3. Missing task → task extraction
+4. Missing capabilities → classifier
+5. Missing plan → orchestrator
+6. Default → next step in execution plan
 
 Error Handling and Retry
 -------------------------
@@ -352,10 +364,10 @@ Usage Examples
    :doc:`04_orchestrator-planning`
        How selected capabilities become execution plans
 
-   :doc:`../03_core-framework-systems/03_registry-and-discovery`
-       Capability registry management
-
    :doc:`06_error-handling-infrastructure`
        Error handling patterns
+
+   :ref:`direct-chat-mode`
+       User guide for Direct Chat Mode (bypasses classification and routing)
 
 Classification and Routing determines which capabilities are needed and coordinates their execution through the framework's infrastructure.

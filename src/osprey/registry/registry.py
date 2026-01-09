@@ -337,6 +337,15 @@ class FrameworkRegistryProvider(RegistryConfigProvider):
                     always_active=True,
                     functional_node="clarify",
                 ),
+                # State manager capability (framework-level) - interactive context/state management
+                CapabilityRegistration(
+                    name="state_manager",
+                    module_path="osprey.capabilities.state_manager_chat",
+                    class_name="StateManagerChatCapability",
+                    description="Interactive context and state management via natural language",
+                    provides=[],
+                    requires=[],
+                ),
             ],
             # Framework-level context classes
             context_classes=[

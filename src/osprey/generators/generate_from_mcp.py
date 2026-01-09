@@ -390,10 +390,24 @@ Tools: {len(self.tools)}
 This file contains everything needed to integrate the {self.server_name} MCP server:
 - Capability class with ReAct agent execution pattern
 - LangGraph ReAct agent with MCP tools integration
+- Direct chat mode support for conversational interaction
 - Classifier guide (when to activate)
 - Orchestrator guide (high-level planning only)
 - Context class for results
 - Error handling
+
+DIRECT CHAT MODE:
+This capability supports direct chat mode, allowing conversational interaction
+with the ReAct agent without going through task extraction/orchestration.
+
+Usage:
+  /chat:{self.capability_name}    # Enter direct chat mode
+
+In direct chat mode:
+  - Messages go directly to the ReAct agent
+  - Full conversation history maintained
+  - Say "save that as <key>" to store results in context
+  - Agent can read accumulated context via tools
 
 ARCHITECTURE:
 This capability uses a ReAct agent pattern that follows standard MCP usage:
@@ -544,6 +558,9 @@ class {class_name}(BaseCapability):
     provides = ["{context_type}"]
     requires = []
 
+    # Enable direct chat mode for conversational interaction
+    direct_chat_enabled = True
+
     # MCP server configuration
     MCP_SERVER_URL = "{sse_url}"
     MCP_SERVER_CONFIG = {{
@@ -558,9 +575,23 @@ class {class_name}(BaseCapability):
     _react_agent = None
 
     @classmethod
-    async def _get_react_agent(cls):
-        """Get or create ReAct agent with MCP tools (cached)."""
-        if cls._react_agent is None:
+    async def _get_react_agent(cls, state: Optional['AgentState'] = None, include_context_tools: bool = False):
+        """Get or create ReAct agent with MCP tools.
+
+        Args:
+            state: Agent state (required when include_context_tools=True)
+            include_context_tools: If True, adds context management tools to the agent.
+                                   When True, agent is NOT cached since tools are state-dependent.
+
+        Returns:
+            ReAct agent configured with requested tools
+        """
+        # When context tools are included, we can't cache (state-dependent)
+        # Use cached agent only when no context tools needed
+        if not include_context_tools and cls._react_agent is not None:
+            return cls._react_agent
+
+        if cls._react_agent is None or include_context_tools:
             # Get logger for initialization (classmethod doesn't have self)
             logger = get_logger("{self.capability_name}")
 
@@ -571,8 +602,16 @@ class {class_name}(BaseCapability):
                     logger.info(f"Connected to MCP server: {{cls.MCP_SERVER_URL}}")
 
                 # Get tools from MCP server
-                tools = await cls._mcp_client.get_tools()
-                logger.info(f"Loaded {{len(tools)}} tools from MCP server")
+                mcp_tools = await cls._mcp_client.get_tools()
+                logger.info(f"Loaded {{len(mcp_tools)}} tools from MCP server")
+
+                # Optionally add context management tools
+                all_tools = list(mcp_tools)
+                if include_context_tools and state is not None:
+                    from osprey.capabilities.context_tools import create_context_tools
+                    context_tools = create_context_tools(state, cls.name)
+                    all_tools.extend(context_tools)
+                    logger.info(f"Added {{len(context_tools)}} context management tools")
 
                 # Get LLM instance for ReAct agent
                 # Try to use dedicated "{self.capability_name}_react" model first, fallback to "orchestrator"
@@ -598,9 +637,15 @@ class {class_name}(BaseCapability):
                     max_tokens=model_config.get("max_tokens", 4096)
                 )
 
-                # Create ReAct agent
-                cls._react_agent = create_react_agent(llm, tools)
-                logger.info("ReAct agent initialized")
+                # Create ReAct agent with all tools
+                agent = create_react_agent(llm, all_tools)
+                logger.info(f"ReAct agent initialized with {{len(all_tools)}} total tools")
+
+                # Only cache if no context tools (context tools are state-dependent)
+                if not include_context_tools:
+                    cls._react_agent = agent
+
+                return agent
 
             except (ConnectionError, ConnectionRefusedError, TimeoutError, OSError) as e:
                 # Connection-specific errors - likely server not running
@@ -630,52 +675,106 @@ class {class_name}(BaseCapability):
         return cls._react_agent
 
     async def execute(self) -> Dict[str, Any]:
-        """Execute {self.server_name} MCP capability using ReAct agent."""
+        """Execute {self.server_name} MCP capability in orchestrated OR direct chat mode."""
+        import time as time_module
+        from osprey.state import MessageUtils
+
         # Get unified logger with automatic streaming support
         logger = self.get_logger()
+        state = self._state
 
-        # Extract task objective
-        task_objective = self.get_task_objective()
+        # Detect execution mode
+        session_state = state.get('session_state', {{}})
+        direct_chat_mode = session_state.get('direct_chat_capability') == "{self.capability_name}"
 
-        logger.info(f"{self.server_name} MCP: {{task_objective}}")
+        # Get input based on mode
+        if direct_chat_mode:
+            # Direct chat: use raw user message and preserve conversation history
+            messages = state.get('messages', [])
+            if not messages:
+                return {{"messages": [MessageUtils.create_assistant_message("No input provided")]}}
+
+            last_message = messages[-1]
+            user_input = last_message.content if hasattr(last_message, 'content') else str(last_message)
+            logger.info(f"Direct chat mode: {{user_input[:50]}}...")
+
+            # Use full message history for conversation context
+            agent_messages = messages
+        else:
+            # Orchestrated mode: use task objective
+            task_objective = self.get_task_objective()
+            user_input = task_objective
+            logger.info(f"Orchestrated mode: {{user_input}}")
+
+            # Single message for orchestrated mode
+            agent_messages = [{{"role": "user", "content": user_input}}]
+
         logger.status(f"Initializing {self.server_name} ReAct agent...")
 
         try:
-            # Get ReAct agent
-            agent = await {class_name}._get_react_agent()
+            # Get ReAct agent - only include context tools in direct chat mode
+            # (orchestrated mode handles context automatically via store_output_context)
+            agent = await {class_name}._get_react_agent(
+                state,
+                include_context_tools=direct_chat_mode
+            )
             logger.status(f"Agent reasoning about task...")
 
             # Invoke ReAct agent
-            response = await agent.ainvoke({{
-                "messages": [{{
-                    "role": "user",
-                    "content": task_objective
-                }}]
-            }})
-
+            response = await agent.ainvoke({{"messages": agent_messages}})
             logger.info(f"ReAct agent completed task")
 
             # Extract final result
             final_message = response["messages"][-1]
             result_content = final_message.content if hasattr(final_message, 'content') else str(final_message)
 
-            # Format as context
-            context = {context_class_name}(
-                tool="react_agent",
-                results={{"final_output": result_content, "full_response": response}},
-                description=f"{self.server_name} ReAct agent: {{task_objective}}"
-            )
+            # Build state updates
+            state_updates = {{}}
 
-            # Store in state and return updates
+            # In direct chat mode, store last result for potential saving via tool
+            if direct_chat_mode:
+                state_updates['session_state'] = {{
+                    **session_state,
+                    'last_direct_chat_result': {{
+                        'content': result_content,
+                        'full_response': response,
+                        'timestamp': time_module.time(),
+                        'capability': "{self.capability_name}",
+                        'context_type': "{context_type}"
+                    }}
+                }}
+                # Add response message for direct chat
+                state_updates['messages'] = [MessageUtils.create_assistant_message(result_content)]
+
+                # CRITICAL: Include capability_context_data in state_updates
+                # Context tools (save_result_to_context, etc.) modify state["capability_context_data"]
+                # in-place during ReAct execution. We must return these changes to LangGraph.
+                if state.get("capability_context_data"):
+                    state_updates['capability_context_data'] = state["capability_context_data"]
+
+            # Store context in orchestrated mode (store_output_context handles context_key internally)
+            if not direct_chat_mode:
+                context = {context_class_name}(
+                    tool="react_agent",
+                    results={{"final_output": result_content, "full_response": response}},
+                    description=f"{self.server_name} ReAct agent: {{user_input[:50]}}..."
+                )
+                context_updates = self.store_output_context(context)
+                state_updates.update(context_updates)
+
             logger.status(f"{self.server_name} ReAct agent complete")
-            return self.store_output_context(context)
+            return state_updates
 
         except {self.server_name}ConnectionError:
             raise
         except Exception as e:
             error_msg = f"{self.server_name} ReAct agent failed: {{str(e)}}"
             logger.error(error_msg)
-            raise {self.server_name}ToolError(error_msg) from e
+
+            if direct_chat_mode:
+                return {{"messages": [MessageUtils.create_assistant_message(f"❌ Error: {{error_msg}}")]}}
+            else:
+                raise {self.server_name}ToolError(error_msg) from e
 
     @staticmethod
     def classify_error(exc: Exception, context: dict) -> ErrorClassification:

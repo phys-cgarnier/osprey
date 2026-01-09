@@ -68,13 +68,10 @@ def router_conditional_edge(state: AgentState) -> str:
     Follows LangGraph native patterns where conditional edge functions take only
     the state parameter and handle logging internally.
 
-
-
-    Manual retry handling:
-    - Checks for errors and retry count first
-    - Routes retriable errors back to same capability if retries available
-    - Routes to error node when retries exhausted
-    - Routes critical/replanning errors immediately
+    Routing priority:
+    1. Direct chat mode - routes directly to capability, bypassing pipeline
+    2. Manual retry handling - checks errors and retry count
+    3. Normal routing - task extraction → classification → orchestration → execution
 
     :param state: Current agent state containing all execution context
     :type state: AgentState
@@ -86,6 +83,49 @@ def router_conditional_edge(state: AgentState) -> str:
 
     # Get registry for node lookup
     registry = get_registry()
+
+    # Check if this is an active execution (vs state-only evaluation)
+    # State-only updates (mode switches) set execution_start_time to None
+    is_active_execution = state.get("execution_start_time") is not None
+
+    # ==== HIGHEST PRIORITY: DIRECT CHAT MODE ====
+    session_state = state.get("session_state", {})
+    direct_chat_capability = session_state.get("direct_chat_capability")
+
+    if direct_chat_capability:
+        # Check if capability already executed this turn (prevents infinite loop)
+        # Use `or {}` because gateway explicitly sets to None for new turns
+        last_result = state.get("execution_last_result") or {}
+        if last_result.get("capability") == direct_chat_capability:
+            # Direct chat turn complete - end execution
+            logger.key_info(f"🎯 Direct chat turn complete for {direct_chat_capability}")
+            return "END"
+
+        # Validate capability exists and supports direct chat
+        cap_instance = registry.get_capability(direct_chat_capability)
+        if cap_instance is None:
+            logger.error(f"Direct chat capability '{direct_chat_capability}' not found in registry")
+            # Clear invalid state and fall through to normal routing
+            state["session_state"] = {
+                **session_state,
+                "direct_chat_capability": None,
+                "last_direct_chat_result": None,
+            }
+        else:
+            if not getattr(cap_instance, "direct_chat_enabled", False):
+                logger.error(
+                    f"Capability '{direct_chat_capability}' doesn't support direct chat mode"
+                )
+                # Clear invalid state and fall through to normal routing
+                state["session_state"] = {
+                    **session_state,
+                    "direct_chat_capability": None,
+                    "last_direct_chat_result": None,
+                }
+            else:
+                # Valid direct chat mode - route directly to capability
+                logger.key_info(f"🎯 Direct chat mode: routing to {direct_chat_capability}")
+                return direct_chat_capability
 
     # ==== MANUAL RETRY HANDLING - Check first before normal routing ====
     if state.get("control_has_error", False):
@@ -204,19 +244,22 @@ def router_conditional_edge(state: AgentState) -> str:
     # Check if task extraction is needed first
     current_task = StateManager.get_current_task(state)
     if not current_task:
-        logger.key_info("No current task extracted, routing to task extraction")
+        if is_active_execution:
+            logger.key_info("No current task extracted, routing to task extraction")
         return "task_extraction"
 
     # Check if has active capabilities from prefixed state structure
     active_capabilities = state.get("planning_active_capabilities")
     if not active_capabilities:
-        logger.key_info("No active capabilities, routing to classifier")
+        if is_active_execution:
+            logger.key_info("No active capabilities, routing to classifier")
         return "classifier"
 
     # Check if has execution plan using StateManager utility
     execution_plan = StateManager.get_execution_plan(state)
     if not execution_plan:
-        logger.key_info("No execution plan, routing to orchestrator")
+        if is_active_execution:
+            logger.key_info("No execution plan, routing to orchestrator")
         return "orchestrator"
 
     # Check if more steps to execute using StateManager utility
@@ -239,9 +282,10 @@ def router_conditional_edge(state: AgentState) -> str:
     # PlannedStep is a TypedDict, so access it as a dictionary
     step_capability = current_step.get("capability", "respond")
 
-    logger.key_info(
-        f"Executing step {current_index + 1}/{len(plan_steps)} - capability: {step_capability}"
-    )
+    if is_active_execution:
+        logger.key_info(
+            f"Executing step {current_index + 1}/{len(plan_steps)} - capability: {step_capability}"
+        )
 
     # Validate that the capability exists as a registered node
     if not registry.get_node(step_capability):

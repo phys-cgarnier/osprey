@@ -59,6 +59,14 @@ class GatewayResult:
     approval_detected: bool = False
     is_interrupt_resume: bool = False
 
+    # State-only update flag - when True, caller should use update_state() not ainvoke()
+    # This is for mode switches (entering/exiting direct chat) with no message to process
+    is_state_only_update: bool = False
+
+    # Exit interface signal - when True, interface should terminate (CLI exits, etc.)
+    # This is returned when /exit is used outside of direct chat mode
+    exit_interface: bool = False
+
     # Error handling
     error: str | None = None
 
@@ -189,12 +197,10 @@ class Gateway:
     async def _handle_new_message_flow(
         self, user_input: str, compiled_graph: Any = None, config: dict[str, Any] | None = None
     ) -> GatewayResult:
-        """Handle new message flow with fresh state creation."""
+        """Handle new message flow with fresh state creation or direct chat mode."""
+        from osprey.state import MessageUtils
 
-        # Parse and execute slash commands using centralized system
-        slash_commands, cleaned_message = await self._process_slash_commands(user_input, config)
-
-        # Get current state if available to preserve persistent fields
+        # Get current state FIRST (needed for slash command processing like /exit)
         current_state = None
         if compiled_graph and config:
             try:
@@ -207,11 +213,112 @@ class Gateway:
             except Exception as e:
                 self.logger.warning(f"Could not get current state: {e}")
 
-        # Create completely fresh state (not partial updates)
+        # Parse and execute slash commands using centralized system
+        # Pass current_state so commands like /exit can check direct chat mode
+        slash_commands, cleaned_message, exit_requested = await self._process_slash_commands(
+            user_input, config, current_state
+        )
+
+        # Handle exit_interface request (e.g., /exit outside direct chat mode)
+        if exit_requested:
+            self.logger.info("Exit interface requested")
+            return GatewayResult(
+                slash_commands_processed=["/exit"],
+                exit_interface=True,
+            )
+
+        # Check for session state changes from slash commands (e.g., /chat:capability_name)
+        session_state_changes = slash_commands.pop("session_state", None)
+
+        # Check if we're in direct chat mode
+        session_state = current_state.get("session_state", {}) if current_state else {}
+        # Apply session state changes from this turn's commands
+        if session_state_changes:
+            session_state = {**session_state, **session_state_changes}
+
+        in_direct_chat = session_state.get("direct_chat_capability") is not None
+        is_mode_switch = session_state_changes and "direct_chat_capability" in session_state_changes
+
+        # Mode switch only: entering/exiting direct chat with no actual message
+        # Use is_state_only_update=True so callers use update_state() instead of ainvoke()
+        if is_mode_switch and not cleaned_message.strip():
+            self.logger.info("Direct chat mode switch only - no message to process")
+            # Build processed commands list based on the actual switch
+            if in_direct_chat:
+                processed = [f"/chat:{session_state.get('direct_chat_capability')}"]
+            else:
+                processed = ["/exit"]
+
+            # Reset execution state for clean mode transition
+            mode_switch_state = {
+                "session_state": session_state,
+                "planning_current_step_index": 0,
+                "planning_execution_plan": None,
+                "execution_last_result": None,
+                "execution_start_time": None,  # Signals no active execution
+            }
+
+            return GatewayResult(
+                agent_state=mode_switch_state,
+                slash_commands_processed=processed,
+                is_state_only_update=True,
+            )
+
+        if in_direct_chat:
+            # Direct chat mode: preserve message history for multi-turn conversation
+            self.logger.info("Direct chat mode: preserving message history")
+
+            # Create new user message
+            message_content = cleaned_message.strip() if cleaned_message.strip() else user_input
+            new_message = MessageUtils.create_user_message(message_content)
+
+            # Direct chat bypasses orchestration - reset plan state, preserve messages
+            state_update = {
+                "messages": [new_message],
+                "session_state": session_state,
+                "execution_start_time": time.time(),
+                "execution_last_result": None,
+                "planning_current_step_index": 0,
+                "planning_execution_plan": None,
+            }
+
+            # Apply agent control changes if any
+            if slash_commands:
+                from osprey.state import apply_slash_commands_to_agent_control_state
+
+                # Get current agent control or defaults
+                current_agent_control = (
+                    current_state.get("agent_control", {}) if current_state else {}
+                )
+                state_update["agent_control"] = apply_slash_commands_to_agent_control_state(
+                    current_agent_control, slash_commands
+                )
+                self.logger.info("Applied agent control changes from slash commands")
+
+            # Create readable command list for user feedback
+            processed_commands = []
+            if slash_commands:
+                change_descriptions = [f"{key}={value}" for key, value in slash_commands.items()]
+                processed_commands = [
+                    f"Applied agent control changes: {', '.join(change_descriptions)}"
+                ]
+
+            return GatewayResult(
+                agent_state=state_update, slash_commands_processed=processed_commands
+            )
+
+        # Normal mode: create completely fresh state (not partial updates)
         message_content = cleaned_message.strip() if cleaned_message.strip() else user_input
         fresh_state = StateManager.create_fresh_state(
             user_input=message_content, current_state=current_state
         )
+
+        # Apply session state changes from slash commands
+        if session_state_changes:
+            fresh_state["session_state"] = {
+                **fresh_state.get("session_state", {}),
+                **session_state_changes,
+            }
 
         # Show fresh state execution history
         fresh_exec_history = fresh_state.get("execution_history", [])
@@ -401,23 +508,37 @@ Respond with true if the message indicates approval (yes, okay, proceed, continu
         return {"approval_approved": None, "approved_payload": None}
 
     async def _process_slash_commands(
-        self, user_input: str, config: dict[str, Any] | None = None
-    ) -> tuple[dict[str, Any], str]:
+        self,
+        user_input: str,
+        config: dict[str, Any] | None = None,
+        current_state: dict | None = None,
+    ) -> tuple[dict[str, Any], str, bool]:
         """Process slash commands using the centralized command system.
 
+        Args:
+            user_input: Raw user input potentially containing slash commands
+            config: LangGraph execution configuration
+            current_state: Current agent state (for commands like /exit that need state context)
+
         Returns:
-            Tuple of (agent_control_changes, remaining_message)
+            Tuple of (agent_control_changes, remaining_message, exit_interface)
+            - agent_control_changes: dict of state changes from commands
+            - remaining_message: message text after removing commands
+            - exit_interface: True if interface should terminate (e.g., /exit outside direct chat)
         """
         if not user_input.startswith("/"):
-            return {}, user_input
+            return {}, user_input, False
 
-        # Create command context for gateway execution
-        context = CommandContext(interface_type="gateway", config=config, gateway=self)
+        # Create command context for gateway execution with current state
+        context = CommandContext(
+            interface_type="gateway", config=config, gateway=self, agent_state=current_state
+        )
 
         registry = get_command_registry()
         agent_control_changes = {}
         remaining_parts = []
         processed_commands = []
+        exit_interface = False
 
         # Split message into parts to handle multiple commands
         parts = user_input.split()
@@ -436,6 +557,11 @@ Respond with true if the message indicates approval (yes, okay, proceed, continu
                         for key, value in result.items():
                             self.logger.info(f"Set {key} = {value} via slash command {part}")
 
+                    elif result == CommandResult.EXIT:
+                        # Interface should terminate (e.g., /exit outside direct chat)
+                        processed_commands.append(part)
+                        exit_interface = True
+                        self.logger.info(f"Exit interface requested by command: {part}")
                     elif result == CommandResult.AGENT_STATE_CHANGED:
                         processed_commands.append(part)
                         self.logger.info(f"Agent state changed by command: {part}")
@@ -456,4 +582,4 @@ Respond with true if the message indicates approval (yes, okay, proceed, continu
             self.logger.info(f"Processing slash commands: {processed_commands}")
 
         remaining_message = " ".join(remaining_parts)
-        return agent_control_changes, remaining_message
+        return agent_control_changes, remaining_message, exit_interface

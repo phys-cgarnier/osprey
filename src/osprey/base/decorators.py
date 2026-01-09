@@ -218,10 +218,22 @@ def capability_node(cls):
         # Get streaming capability for status updates
         streaming = get_stream_writer() if get_stream_writer else None
 
+        # Check if in direct chat mode (bypasses orchestration, no execution plan)
+        session_state = state.get("session_state", {})
+        direct_chat_mode = session_state.get("direct_chat_capability") is not None
+
         # Extract current step information using StateManager (lazy import to avoid circular imports)
         from osprey.state import StateManager
 
-        step = StateManager.get_current_step(state)
+        if direct_chat_mode:
+            # Direct chat mode: create synthetic step (no execution plan exists)
+            step = {
+                "capability": capability_name,
+                "inputs": {},
+                "description": f"Direct chat with {capability_name}",
+            }
+        else:
+            step = StateManager.get_current_step(state)
         start_time = time.time()
 
         try:
@@ -258,7 +270,14 @@ def capability_node(cls):
 
             # Handle state updates for step progression
             state_updates = _handle_capability_state_updates(
-                state, result, step, capability_name, start_time, execution_time, logger
+                state,
+                result,
+                step,
+                capability_name,
+                start_time,
+                execution_time,
+                logger,
+                direct_chat_mode=direct_chat_mode,
             )
 
             return state_updates
@@ -287,10 +306,16 @@ def capability_node(cls):
                 )
                 raise exc
 
+            # Get step info (use synthetic step in direct chat mode)
+            if direct_chat_mode:
+                current_step_index = 0
+            else:
+                current_step_index = StateManager.get_current_step_index(state)
+
             # Classify the error using domain-specific or default logic
             error_context = {
                 "capability": capability_name,
-                "current_step_index": StateManager.get_current_step_index(state),
+                "current_step_index": current_step_index,
                 "execution_time": execution_time,
                 "current_state": state,
             }
@@ -305,9 +330,8 @@ def capability_node(cls):
             # Always use manual retry system via router - NO LangGraph retries
 
             # Track failure in execution_step_results for consistent tracking
-            step = StateManager.get_current_step(state)
+            # Use the synthetic step we created earlier for direct chat mode
             step_results = state.get("execution_step_results", {}).copy()
-            current_step_index = StateManager.get_current_step_index(state)
             step_key = step.get("context_key", f"{current_step_index}_{capability_name}")
             step_results[step_key] = {
                 "step_index": current_step_index,  # For explicit ordering
@@ -367,6 +391,7 @@ def _handle_capability_state_updates(
     start_time: float,
     execution_time: float,
     logger,
+    direct_chat_mode: bool = False,
 ) -> dict[str, Any]:
     """Handle comprehensive state updates for capability execution."""
 
@@ -376,9 +401,13 @@ def _handle_capability_state_updates(
     # Start with the capability's result (now includes capability_context_data instead of execution_context)
     state_updates = result.copy() if isinstance(result, dict) else {}
 
-    # Step progression - advance to next step after successful execution
-    current_step_index = StateManager.get_current_step_index(state)
-    state_updates["planning_current_step_index"] = current_step_index + 1
+    if direct_chat_mode:
+        # Direct chat mode: skip step progression (no execution plan)
+        current_step_index = 0
+    else:
+        # Step progression - advance to next step after successful execution
+        current_step_index = StateManager.get_current_step_index(state)
+        state_updates["planning_current_step_index"] = current_step_index + 1
 
     # Control flow updates
     state_updates["control_current_step_retry_count"] = 0  # Reset retry count

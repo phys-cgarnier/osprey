@@ -437,8 +437,10 @@ class CapabilityClassifier:
         try:
             classifier = capability.classifier_guide
             if not classifier:
-                self.logger.warning(
-                    f"No classifier found for capability '{capability.name}' - skipping"
+                # Not a warning - capability may intentionally not have a classifier
+                # (e.g., direct-chat-only capabilities that override _create_classifier_guide to return None)
+                self.logger.debug(
+                    f"No classifier guide for capability '{capability.name}' - skipping classification"
                 )
                 return None
             return classifier

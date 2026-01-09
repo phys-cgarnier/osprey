@@ -231,9 +231,9 @@ class StateManager:
         :rtype: AgentState
 
         .. note::
-           Only capability_context_data persists across conversation turns. All other
-           fields including execution results, control state, and UI data are reset
-           to defaults for optimal performance and state clarity.
+           Only capability_context_data and session_state persist across conversation
+           turns. All other fields including execution results, control state, and UI
+           data are reset to defaults for optimal performance and state clarity.
 
         .. warning::
            The current_state parameter should be the complete previous AgentState.
@@ -268,18 +268,24 @@ class StateManager:
         # Create initial message
         initial_message = MessageUtils.create_user_message(user_input)
 
-        # Preserve capability_context_data from previous state if available
+        # Preserve persistent fields from previous state if available
         preserved_context_data = {}
-        if current_state and "capability_context_data" in current_state:
-            preserved_context_data = current_state["capability_context_data"]
-            logger.debug("Preserved capability_context_data from previous state")
+        preserved_session_state = {}
+        if current_state:
+            if "capability_context_data" in current_state:
+                preserved_context_data = current_state["capability_context_data"]
+                logger.debug("Preserved capability_context_data from previous state")
+            if "session_state" in current_state:
+                preserved_session_state = current_state["session_state"]
+                logger.debug("Preserved session_state from previous state")
 
-        # Create complete fresh state with only capability_context_data preserved
+        # Create complete fresh state with persistent fields preserved
         state = AgentState(
             # Messages (from MessagesState)
             messages=[initial_message],
-            # Only persistent field - preserved from previous state (LangGraph-native dictionary)
+            # Persistent fields - preserved from previous state
             capability_context_data=preserved_context_data,
+            session_state=preserved_session_state,
             # Agent control state - reset to defaults each conversation turn
             agent_control=get_agent_control_defaults(),
             # Event accumulation - reset each execution

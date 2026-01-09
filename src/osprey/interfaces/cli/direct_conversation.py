@@ -40,7 +40,7 @@ from osprey.graph import create_graph
 from osprey.infrastructure.gateway import Gateway
 from osprey.registry import get_registry, initialize_registry
 from osprey.utils.config import get_full_configuration
-from osprey.utils.logger import get_logger
+from osprey.utils.logger import get_logger, quiet_logging
 
 # Load environment variables after imports
 load_dotenv()
@@ -169,6 +169,48 @@ class CLI:
             interface_type="cli", cli_instance=self, console=self.console
         )
         self.command_completer = UnifiedCommandCompleter(self.command_context)
+
+    def _get_prompt(self) -> HTML:
+        """Generate the prompt based on current mode (normal or direct chat).
+
+        :return: Formatted HTML prompt for prompt_toolkit
+        :rtype: HTML
+        """
+        try:
+            if self.graph and self.base_config:
+                current_state = self.graph.get_state(config=self.base_config)
+                if current_state and current_state.values:
+                    session_state = current_state.values.get("session_state", {})
+                    direct_chat_cap = session_state.get("direct_chat_capability")
+                    if direct_chat_cap:
+                        # In direct chat mode - show custom prompt
+                        return HTML(f"<prompt>🎯 {direct_chat_cap} > </prompt>")
+        except Exception:
+            pass  # Fall back to default prompt on any error
+
+        # Default prompt
+        return HTML("<prompt>👤 You: </prompt>")
+
+    def _is_in_direct_chat(self) -> bool:
+        """Check if the CLI is currently in direct chat mode.
+
+        Queries the graph state to determine if a direct chat capability
+        is currently active.
+
+        :returns: True if in direct chat mode, False otherwise
+        :rtype: bool
+        """
+        if not self.graph or not self.base_config:
+            return False
+        try:
+            current_state = self.graph.get_state(config=self.base_config)
+            if current_state and current_state.values:
+                session_state = current_state.values.get("session_state", {})
+                return session_state.get("direct_chat_capability") is not None
+        except Exception:
+            # Safely fall back to "not in direct chat" on any state access error
+            pass
+        return False
 
     def _create_key_bindings(self):
         """Create custom key bindings for advanced CLI functionality.
@@ -392,9 +434,9 @@ class CLI:
 
         while True:
             try:
-                # Use modern prompt with rich formatting and history
+                # Use dynamic prompt based on current mode (normal or direct chat)
                 user_input = await self.prompt_session.prompt_async(
-                    HTML("<prompt>👤 You: </prompt>"), style=self.prompt_style
+                    self._get_prompt(), style=self.prompt_style
                 )
                 user_input = user_input.strip()
 
@@ -407,37 +449,50 @@ class CLI:
                 if not user_input:
                     continue
 
-                # Handle slash commands using centralized system
+                # Handle slash commands - determine if local or gateway-handled
                 if user_input.startswith("/"):
-                    # Update command context with current state
-                    self.command_context.config = self.base_config
-                    self.command_context.gateway = self.gateway
+                    # Parse command to check if it's gateway-handled
+                    from osprey.commands.registry import parse_command_line
 
-                    # Get current agent state from the graph
-                    try:
-                        if self.graph and self.base_config:
-                            current_state = self.graph.get_state(config=self.base_config)
-                            self.command_context.agent_state = (
-                                current_state.values if current_state else None
-                            )
-                        else:
-                            self.command_context.agent_state = None
-                    except Exception:
-                        self.command_context.agent_state = None
-
-                    self.command_context.session_id = self.thread_id
-
+                    parsed = parse_command_line(user_input)
                     registry = get_command_registry()
-                    result = await registry.execute(user_input, self.command_context)
+                    command = registry.get_command(parsed.command_name) if parsed.is_valid else None
 
-                    if result == CommandResult.EXIT:
-                        break
-                    elif result in [CommandResult.HANDLED, CommandResult.AGENT_STATE_CHANGED]:
-                        continue
-                    # If CONTINUE, fall through to normal processing
+                    # Interface-only commands (gateway_handled=False) are handled locally
+                    # This includes: /help, /clear, /config, /status
+                    if command and not command.gateway_handled:
+                        # Update command context for local execution
+                        self.command_context.config = self.base_config
+                        self.command_context.gateway = self.gateway
+                        self.command_context.session_id = self.thread_id
 
-                # Process user input normally
-                await self._process_user_input(user_input)
+                        # Get current agent state from the graph
+                        try:
+                            if self.graph and self.base_config:
+                                current_state = self.graph.get_state(config=self.base_config)
+                                self.command_context.agent_state = (
+                                    current_state.values if current_state else None
+                                )
+                            else:
+                                self.command_context.agent_state = None
+                        except Exception:
+                            self.command_context.agent_state = None
+
+                        result = await registry.execute(user_input, self.command_context)
+
+                        if result == CommandResult.EXIT:
+                            break
+                        elif result in [CommandResult.HANDLED, CommandResult.AGENT_STATE_CHANGED]:
+                            continue
+                        # If CONTINUE, fall through to gateway processing
+
+                    # Gateway-handled commands (/chat, /exit, /planning, etc.) and
+                    # any remaining text go through gateway for consistent processing
+
+                # Process user input through gateway (handles gateway_handled commands + messages)
+                should_exit = await self._process_user_input(user_input)
+                if should_exit:
+                    break
 
             except KeyboardInterrupt:
                 self.console.print(f"\n[{Styles.WARNING}]👋 Goodbye![/{Styles.WARNING}]")
@@ -498,7 +553,7 @@ class CLI:
 
         self.console.print(f"[{Styles.INFO}]🔄 {status_msg}[/{Styles.INFO}]")
 
-    async def _process_user_input(self, user_input: str):
+    async def _process_user_input(self, user_input: str) -> bool:
         """Process user input through the Gateway and handle execution flow.
 
         Processes a single user message through the complete framework pipeline,
@@ -519,6 +574,8 @@ class CLI:
 
         :param user_input: Raw user message to process
         :type user_input: str
+        :returns: True if interface should exit, False otherwise
+        :rtype: bool
         :raises Exception: Processing errors are logged and displayed to user
 
         .. note::
@@ -548,16 +605,39 @@ class CLI:
            :meth:`_show_final_result` : Final result display
            :meth:`_handle_streaming_update` : Streaming status display logic
         """
+        # Check if we're in direct chat mode for quieter logging
+        in_direct_chat = self._is_in_direct_chat()
 
+        # Use context manager to suppress INFO logs during direct chat
+        if in_direct_chat:
+            with quiet_logging():
+                return await self._do_process_user_input(user_input)
+        else:
+            return await self._do_process_user_input(user_input)
+
+    async def _do_process_user_input(self, user_input: str) -> bool:
+        """Internal processing logic for user input.
+
+        This method contains the actual processing logic, separated from
+        _process_user_input to allow wrapping in quiet_logging context.
+
+        Returns:
+            True if interface should exit, False otherwise
+        """
         self.console.print(f"[{Styles.INFO}]🔄 Processing: {user_input}[/{Styles.INFO}]")
 
         # Gateway handles all preprocessing
         result = await self.gateway.process_message(user_input, self.graph, self.base_config)
 
+        # Handle exit_interface signal (e.g., /exit outside direct chat mode)
+        if result.exit_interface:
+            self.console.print(f"[{Styles.WARNING}]👋 Goodbye![/{Styles.WARNING}]")
+            return True  # Signal to exit
+
         # Handle result
         if result.error:
             self.console.print(f"[{Styles.ERROR}]❌ Error: {result.error}[/{Styles.ERROR}]")
-            return
+            return False
 
         # Show slash command processing if any
         if result.slash_commands_processed:
@@ -588,7 +668,7 @@ class CLI:
                     self.console.print(f"\n[{Styles.WARNING}]{user_message}[/{Styles.WARNING}]")
 
                     user_input = await self.prompt_session.prompt_async(
-                        HTML("<prompt>👤 You: </prompt>"), style=self.prompt_style
+                        self._get_prompt(), style=self.prompt_style
                     )
                     user_input = user_input.strip()
                     await self._process_user_input(user_input)
@@ -600,14 +680,24 @@ class CLI:
                 self.console.print(f"[{Styles.ERROR}]❌ Resume error: {e}[/{Styles.ERROR}]")
                 logger.exception("Error during resume execution")
         elif result.agent_state:
-            # Debug: Show execution step results count in fresh state
-            step_results = result.agent_state.get("execution_step_results", {})
-            self.console.print(
-                f"[{Styles.INFO}]🔄 Starting new conversation turn (execution_step_results: {len(step_results)} records)...[/{Styles.INFO}]"
-            )
-            await self._execute_result(result.agent_state)
+            # Check if this is a mode-switch only (entering/exiting direct chat with no message)
+            if result.is_state_only_update:
+                # Apply state update without executing the graph
+                self.graph.update_state(self.base_config, result.agent_state)
+                self.console.print(
+                    f"[{Styles.SUCCESS}]✓ Mode switched. Ready for your message.[/{Styles.SUCCESS}]"
+                )
+            else:
+                # Debug: Show execution step results count in fresh state
+                step_results = result.agent_state.get("execution_step_results", {})
+                self.console.print(
+                    f"[{Styles.INFO}]🔄 Starting new conversation turn (execution_step_results: {len(step_results)} records)...[/{Styles.INFO}]"
+                )
+                await self._execute_result(result.agent_state)
         else:
             self.console.print(f"[{Styles.WARNING}]⚠️  No action required[/{Styles.WARNING}]")
+
+        return False  # Don't exit interface
 
     async def _execute_result(self, input_data: Any):
         """Execute agent processing with real-time streaming and interrupt handling.
@@ -662,7 +752,6 @@ class CLI:
            :meth:`_handle_streaming_update` : Streaming status display logic
            :class:`langgraph.graph.StateGraph` : LangGraph streaming execution
         """
-
         try:
             # Use streaming for real-time updates
             async for chunk in self.graph.astream(
@@ -699,7 +788,7 @@ class CLI:
 
                 # Get user input for approval
                 user_input = await self.prompt_session.prompt_async(
-                    HTML("<prompt>👤 You: </prompt>"), style=self.prompt_style
+                    self._get_prompt(), style=self.prompt_style
                 )
                 user_input = user_input.strip()
 

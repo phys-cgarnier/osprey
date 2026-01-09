@@ -65,6 +65,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Only `README.md` deprecation notice remains in workflows directory
 
 ### Added
+- **State**: Session state persistence for user preferences and mode tracking
+  - New `session_state` field in AgentState with custom merge reducer
+  - Enables direct chat mode and other session-level settings to persist across conversation turns
+- **Infrastructure**: Direct chat mode routing and message handling
+  - Router detects direct chat mode and routes directly to capability
+  - Gateway preserves message history in direct chat mode
+  - Validates capability supports direct_chat_enabled before routing
+- **Capabilities**: Context management tools for ReAct agents
+  - read_context, list_available_context, save_result_to_context
+  - remove_context, clear_context_type, get_context_summary
+  - Enables agents to manage accumulated context during direct chat
+- **Capabilities**: StateManager capability for interactive state management
+  - Natural language interface for context and agent settings
+  - State inspection tools: session info, execution status, capability list, settings
+  - State modification tools: clear session, modify agent settings
+  - Registered as framework-level capability (/chat:state_manager)
+- **CLI**: Direct chat mode for conversational interaction with capabilities
+  - `/chat:<capability>` enters direct chat mode
+  - `/chat` lists available direct-chat capabilities
+  - `/exit` returns to normal mode (adds transition marker for context)
+  - Dynamic prompt shows current mode (normal vs capability name)
+  - Quieter logging during direct chat for cleaner experience
+- **Generators**: Direct chat mode support in MCP capability generator
+  - Generated capabilities have direct_chat_enabled=True by default
+  - Adds context management tools when in direct chat mode
+  - Handles both orchestrated and direct chat execution modes
+  - Updated docstrings with direct chat usage examples
 - **Models**: LangChain model factory for full LangGraph ReAct agent support
   - `get_langchain_model()` creates BaseChatModel instances from osprey config
   - Supports all 8 providers: anthropic, openai, google, ollama, cborg, vllm, stanford, argo
@@ -82,8 +109,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests basic completion, structured output (Pydantic), and ReAct agent workflows
   - Auto-skips unavailable providers/models based on environment
   - Graceful handling of API quota/rate limit errors (skips with warning instead of failing)
+- **Documentation**: Direct chat mode user and developer documentation
+  - CLI Reference: `/chat` and `/exit` commands, Direct Chat Mode section with examples
+  - Gateway Architecture: Direct chat mode handling, message history preservation, GatewayResult fields
+  - Classification and Routing: Router priority with direct chat bypass
+  - Building First Capability: `direct_chat_enabled` attribute and tip box
 
 ### Changed
+- **Capabilities**: Support direct chat execution mode in capability decorator
+  - Creates synthetic execution step when no execution plan exists
+  - Skips step progression in direct chat mode
+  - Changed classifier missing log from warning to debug (expected for direct-chat-only capabilities)
+- **Logging**: Reduced verbose third-party logging for cleaner CLI output
+  - Added quiet_logging() context manager for temporary log suppression
+  - Suppressed LiteLLM debug messages
 - **Models**: Migrated all LLM provider implementations to LiteLLM unified interface (#23)
   - Replaced ~2,200 lines of custom provider code with ~700 lines using LiteLLM adapter
   - All 8 providers (anthropic, google, openai, ollama, cborg, stanford, argo, vllm) now use LiteLLM
@@ -102,6 +141,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Both regular text completion and structured output paths now respect temperature setting
 - **Code Generation**: Add simplicity guidance to prevent over-engineered solutions
   - LLM now prefers direct context usage over building complex systems to fetch data
+- **Documentation**: Fixed workflow file references to use correct `@src/osprey/workflows/` path for copy-paste into Claude Code and Cursor
+- **Gateway**: Mode switch handling for direct chat entry/exit
+  - Use `update_state()` for mode switches instead of `ainvoke()` to avoid full graph execution
+  - Correct field names (`planning_execution_plan`, `planning_current_step_index`)
+  - New `is_state_only_update` flag signals callers to use proper update method
+  - New `exit_interface` flag for `/exit` outside direct chat mode
+- **Commands**: New `gateway_handled` flag ensures state-affecting commands route through gateway
+  - /exit, /planning, /approval, /task, /caps, /chat marked as gateway_handled
+  - Ensures consistent behavior across all interfaces (CLI, OpenWebUI, API)
+- **CLI**: Proper routing for gateway_handled vs local commands
+  - Local commands (/help, /clear) handled directly for instant response
+  - State commands route through gateway for consistent state management
+- **Router**: Suppress routing logs during state-only evaluations
+  - Mode switches no longer produce confusing "routing to task extraction" logs
+  - Uses `execution_start_time` to detect active vs state-only execution
+- **Capabilities**: Context tool changes now persist to LangGraph state
+  - State manager and MCP capabilities return `capability_context_data` in state updates
+  - Fixes context save/remove operations having no effect in direct chat mode
 
 ## [0.9.10] - 2025-01-03
 
