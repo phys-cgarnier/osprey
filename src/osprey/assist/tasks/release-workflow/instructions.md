@@ -121,7 +121,7 @@ If any step fails, help me troubleshoot before continuing.
    pytest tests/ --ignore=tests/e2e -v
    ```
    - **Any failures = STOP**: Fix issues before proceeding
-   - **Expected**: ~370-380 tests, completes in <5 seconds
+   - **Expected**: ~1850 tests, completes in ~1-2 minutes
    - **Cost**: Free (no API calls)
    - **What it tests**:
      - Capability unit tests (with mocked registry)
@@ -140,8 +140,8 @@ If any step fails, help me troubleshoot before continuing.
    # pytest tests/e2e/ -v -s --e2e-verbose --judge-verbose
    ```
    - **Any failures = STOP**: These validate the core user experience
-   - **Expected**: 5 tests, completes in 2-3 minutes
-   - **Cost**: ~$0.10-$0.25 in API calls
+   - **Expected**: ~32 tests, completes in ~10-12 minutes
+   - **Cost**: ~$1-2 in API calls
    - **What it tests**:
      - Complete tutorial workflows (BPM analysis, weather tutorial)
      - Project creation from templates (minimal, hello_world_weather, control_assistant)
@@ -328,8 +328,8 @@ pytest tests/ --ignore=tests/e2e -v
 ```
 - **Purpose**: Fast, isolated component testing
 - **Registry**: Mocked (in `tests/capabilities/conftest.py`)
-- **Duration**: ~3-5 seconds
-- **Count**: ~370-380 tests
+- **Duration**: ~1-2 minutes
+- **Count**: ~1850 tests
 - **Cost**: Free (no API calls)
 
 ### E2E Tests (Slow, Real Integration)
@@ -342,9 +342,9 @@ pytest tests/e2e/ -v -s --e2e-verbose
 ```
 - **Purpose**: End-to-end user workflow validation
 - **Registry**: Real (no mocks)
-- **Duration**: ~2-3 minutes
-- **Count**: ~5 tests
-- **Cost**: ~$0.10-$0.25 in API calls
+- **Duration**: ~10-12 minutes
+- **Count**: ~32 tests
+- **Cost**: ~$1-2 in API calls
 
 ### ⚠️ Critical: Why Separate?
 
@@ -358,15 +358,20 @@ The capability unit tests mock the registry globally, which will break e2e tests
 
 **Always run both test commands separately before releasing.**
 
-### Current E2E Test Coverage
+### Representative E2E Tests
 
-| Test | Duration | What It Validates |
-|------|----------|-------------------|
-| `test_simple_query_smoke_test` | ~10s | Basic framework initialization and query processing |
-| `test_bpm_timeseries_and_correlation_tutorial` | ~60s | Control assistant workflow: channel finding → archiver retrieval → Python plotting |
-| `test_hello_world_weather_tutorial` | ~30s | Hello World tutorial: weather capability, registry, mock API integration |
-| `test_in_context_pipeline_benchmark` | ~15s | In-context channel finder pipeline performance |
-| `test_hierarchical_pipeline_benchmark` | ~15s | Hierarchical channel finder pipeline performance |
+The test suite includes ~32 tests across multiple categories. Here are representative examples:
+
+| Test | What It Validates |
+|------|-------------------|
+| `test_simple_query_smoke_test` | Basic framework initialization and query processing |
+| `test_bpm_timeseries_and_correlation_tutorial` | Control assistant workflow: channel finding → archiver retrieval → Python plotting |
+| `test_hello_world_weather_tutorial` | Hello World tutorial: weather capability, registry, mock API integration |
+| `test_in_context_pipeline_benchmark` | In-context channel finder pipeline performance |
+| `test_hierarchical_pipeline_benchmark` | Hierarchical channel finder pipeline performance |
+| `test_osprey_claude_install_*` | Claude Code skill installation and invocation |
+| `test_channel_finder_queries` | Channel finder query parsing and execution |
+| `test_code_generator_workflows` | Capability and MCP server code generation |
 
 ### Why E2E Tests Matter for Releases
 
@@ -378,9 +383,9 @@ The capability unit tests mock the registry globally, which will break e2e tests
 
 ### Cost & Performance
 
-- **Unit tests runtime**: ~3-5 seconds
-- **E2E tests runtime**: ~2-3 minutes
-- **Total API cost**: ~$0.10-$0.25 per release
+- **Unit tests runtime**: ~1-2 minutes
+- **E2E tests runtime**: ~10-12 minutes
+- **Total API cost**: ~$1-2 per release
 - **Value**: Prevents broken tutorials and user-facing bugs
 
 See `tests/e2e/README.md` for complete e2e test documentation.

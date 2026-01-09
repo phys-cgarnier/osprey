@@ -55,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Updated workflow references to use new command structure
   - `osprey tasks list` for browsing tasks
   - `osprey claude install <task>` for installing Claude Code skills
+- **Documentation**: Updated release-workflow instructions with accurate test counts
+  - Unit tests: ~1850 tests (~1-2 min) instead of outdated ~370-380 tests (~5s)
+  - E2E tests: ~32 tests (~10-12 min) instead of outdated ~5 tests (~2-3 min)
 
 ### Removed
 - **Workflows**: Removed duplicate workflow files from `src/osprey/workflows/`
