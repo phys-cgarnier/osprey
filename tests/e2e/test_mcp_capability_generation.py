@@ -251,7 +251,7 @@ async def test_mcp_capability_generation_workflow(e2e_project_factory, llm_judge
         # =====================================================================
         # Step 7: Query for weather in San Francisco (orchestrated mode)
         # =====================================================================
-        result = await project.query("What's the current weather in San Francisco?")
+        _result = await project.query("What's the current weather in San Francisco?")
 
         # =====================================================================
         # Step 8: Test direct chat mode with MCP capability
