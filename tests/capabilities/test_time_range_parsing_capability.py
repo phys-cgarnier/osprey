@@ -1,7 +1,7 @@
 """Integration tests for TimeRangeParsingCapability instance method pattern."""
 
 import inspect
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -257,21 +257,21 @@ class TestTimeRangeTimezoneHandling:
     def test_time_range_context_handles_naive_start_date(self):
         """validate_datetime must reject naive start_date, not silently pass it through."""
         naive_start = datetime(2026, 3, 1, 0, 0, 0)
-        aware_end = datetime(2026, 3, 2, 0, 0, 0, tzinfo=timezone.utc)
+        aware_end = datetime(2026, 3, 2, 0, 0, 0, tzinfo=UTC)
         ctx = TimeRangeContext(start_date=naive_start, end_date=aware_end)
         assert ctx.start_date.tzname() == datetime.now().astimezone().tzname()
 
     def test_time_range_context_handles_naive_end_date(self):
         """validate_datetime must reject naive end_date, not silently pass it through."""
-        aware_start = datetime(2026, 3, 1, 0, 0, 0, tzinfo=timezone.utc)
+        aware_start = datetime(2026, 3, 1, 0, 0, 0, tzinfo=UTC)
         naive_end = datetime(2026, 3, 2, 0, 0, 0)
         ctx = TimeRangeContext(start_date=aware_start, end_date=naive_end)
         assert ctx.end_date.tzname() == datetime.now().astimezone().tzname()
 
     def test_time_range_context_accepts_utc_aware_datetimes(self):
         """UTC-aware datetimes should be accepted and preserved without modification."""
-        utc_start = datetime(2026, 3, 1, 0, 0, 0, tzinfo=timezone.utc)
-        utc_end = datetime(2026, 3, 2, 0, 0, 0, tzinfo=timezone.utc)
+        utc_start = datetime(2026, 3, 1, 0, 0, 0, tzinfo=UTC)
+        utc_end = datetime(2026, 3, 2, 0, 0, 0, tzinfo=UTC)
         ctx = TimeRangeContext(start_date=utc_start, end_date=utc_end)
         assert ctx.start_date.tzinfo is not None
         assert ctx.end_date.tzinfo is not None
@@ -306,8 +306,8 @@ class TestTimeRangeTimezoneHandling:
         )
 
         mock_time_output = TimeRangeOutput(
-            start_date=datetime(2099, 1, 1, tzinfo=timezone.utc),
-            end_date=datetime(2099, 1, 2, tzinfo=timezone.utc),
+            start_date=datetime(2099, 1, 1, tzinfo=UTC),
+            end_date=datetime(2099, 1, 2, tzinfo=UTC),
             found=True,
         )
 
@@ -341,8 +341,8 @@ class TestTimeRangeTimezoneHandling:
             MagicMock(return_value={"model": "gpt-4"}),
         )
 
-        utc_start = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        utc_end = datetime(2024, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        utc_start = datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC)
+        utc_end = datetime(2024, 1, 2, 0, 0, 0, tzinfo=UTC)
         mock_time_output = TimeRangeOutput(
             start_date=utc_start,
             end_date=utc_end,

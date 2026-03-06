@@ -45,7 +45,7 @@ type safety through Pydantic models and comprehensive error handling.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -563,10 +563,10 @@ class TimeRangeParsingCapability(BaseCapability):
             )
 
         # VALIDATION: Check for future years (likely LLM error)
-        current_year = datetime.now(timezone.utc).year
+        current_year = datetime.now(UTC).year
         if (
-            response_data.start_date.astimezone(timezone.utc).year > current_year
-            or response_data.end_date.astimezone(timezone.utc).year > current_year
+            response_data.start_date.astimezone(UTC).year > current_year
+            or response_data.end_date.astimezone(UTC).year > current_year
         ):
             logger.error(
                 f"⚠️ LLM returned FUTURE year: start={response_data.start_date}, end={response_data.end_date}, current_year={current_year}"

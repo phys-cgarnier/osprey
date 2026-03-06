@@ -153,7 +153,7 @@ class DefaultTimeRangeParsingPromptBuilder(FrameworkPromptBuilder):
         )
 
         sections.append(
-            textwrap.dedent(f"""\
+            textwrap.dedent("""\
             EXAMPLES of users requests optionally containing timezones with exact format expected:
             - "from 2026-01-15 01:35 EST to 2026-01-16 02:40 EST" → start_date: "2026-01-15 06:35:00 UTC", end_date: "2026-01-16 07:40:00 UTC"
             - "between 2025-07-01 21:35 PST and 2025-09-05 12:23 MST" → start_date: "2025-07-02 05:35:00 UTC", end_date: "2025-09-05 19:23:00 UTC"

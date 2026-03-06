@@ -83,7 +83,7 @@ class ArchiverDataContext(CapabilityContext):
             "precision_ms": self.precision_ms,
             "channel_count": len(self.available_channels),
             "available_channels": self.available_channels,
-            "time_info": f"Data spans from {start_time.strftime("%Y-%m-%d %H:%M:%S %Z")} to {end_time.strftime("%Y-%m-%d %H:%M:%S %Z")} (duration: {duration})",
+            "time_info": f"Data spans from {start_time.strftime('%Y-%m-%d %H:%M:%S %Z')} to {end_time.strftime('%Y-%m-%d %H:%M:%S %Z')} (duration: {duration})",
             "timezone_name": self.timezone_name or "",
             "data_structure": "5 attributes: timestamps (list of datetime objects), precision_ms (int), time_series_data (dict of channel_name -> list of float values), available_channels (list of channel names), timezone_name (str, human-readable timezone label e.g. 'EST')",
             "CRITICAL_ACCESS_PATTERNS": {
