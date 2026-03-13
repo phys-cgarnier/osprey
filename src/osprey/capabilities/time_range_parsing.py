@@ -83,9 +83,9 @@ class TimeRangeContext(CapabilityContext):
     information, enabling precise temporal calculations and consistent behavior
     across different system environments.
 
-    :param start_date: Parsed start datetime with timezone information (UTC)
+    :param start_date: Parsed start datetime with timezone information (local timezone)
     :type start_date: datetime
-    :param end_date: Parsed end datetime with timezone information (UTC)
+    :param end_date: Parsed end datetime with timezone information (local timezone)
     :type end_date: datetime
 
     .. note::
@@ -333,9 +333,9 @@ class TimeRangeOutput(BaseModel):
     This model enables reliable parsing validation and provides clear feedback
     about parsing success or failure for appropriate error handling.
 
-    :param start_date: Parsed start datetime with timezone information (UTC)
+    :param start_date: Parsed start datetime with timezone information (local timezone)
     :type start_date: datetime
-    :param end_date: Parsed end datetime with timezone information (UTC)
+    :param end_date: Parsed end datetime with timezone information (local timezone)
     :type end_date: datetime
     :param found: Whether valid time range was successfully identified and parsed
     :type found: bool
