@@ -135,18 +135,18 @@ jobs:
         import subprocess
         from pathlib import Path
 
-        # Get all version tags
+        # Get all version tags (sorted newest-first by version)
         result = subprocess.run(
             ['git', 'tag', '--sort=-version:refname'],
             capture_output=True,
             text=True
         )
-
         tags = [tag.strip() for tag in result.stdout.split('\n') if tag.strip().startswith('v')]
 
         versions = []
+        deployment_dir = Path('deployment')
 
-        # Add latest stable version (at root)
+        # 1. Latest stable version -> root URL (preferred)
         if tags:
             latest_version = tags[0].lstrip('v')
             versions.append({
@@ -156,8 +156,20 @@ jobs:
                 "preferred": True
             })
 
-        # Only add development version if on main branch
-        # We don't add individual versioned directories since they don't exist yet
+        # 2. All deployed versioned snapshots (skip latest — already listed as root)
+        for tag in tags:
+            version_dir = deployment_dir / tag  # e.g., deployment/v0.11.5
+            if version_dir.is_dir():
+                if tags and tag == tags[0]:
+                    continue  # Latest is already the root entry
+                version_num = tag.lstrip('v')
+                versions.append({
+                    "name": tag,
+                    "version": version_num,
+                    "url": f"https://als-apg.github.io/osprey/{tag}/"
+                })
+
+        # 3. Development version (only on main branch pushes)
         github_ref = os.environ.get('GITHUB_REF', '')
         if github_ref == 'refs/heads/main':
             versions.append({
@@ -166,14 +178,14 @@ jobs:
                 "url": "https://als-apg.github.io/osprey/latest/"
             })
 
-        # Write versions.json
+        # Write versions.json to root _static/
         output_dir = Path('deployment/_static')
         output_dir.mkdir(parents=True, exist_ok=True)
 
         with open(output_dir / 'versions.json', 'w') as f:
             json.dump(versions, f, indent=2)
 
-        print("✅ Generated versions.json:")
+        print("Generated versions.json:")
         print(json.dumps(versions, indent=2))
         EOFPYTHON
 
